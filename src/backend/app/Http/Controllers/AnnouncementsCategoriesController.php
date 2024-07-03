@@ -15,8 +15,8 @@ class AnnouncementsCategoriesController extends Controller
         $model = AnnouncementsCategories::query();
         $model->where('company_id', $request->company_id);
         $model->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id',  $request->branch_id));
-        $model->when($request->filled('serach_name'), fn ($q) => $q->where('name', 'LIKE', "{$request->serach_name}%"));
-        $model->when($request->filled('search_description'), fn ($q) => $q->where('description', 'LIKE', "{$request->search_description}%"));
+        $model->when($request->filled('serach_name'), fn ($q) => $q->where('name', env('WILD_CARD') ?? 'ILIKE', "{$request->serach_name}%"));
+        $model->when($request->filled('search_description'), fn ($q) => $q->where('description', env('WILD_CARD') ?? 'ILIKE', "{$request->search_description}%"));
         $model->with("branch");
         $model->orderByDesc("id");
         return $model;

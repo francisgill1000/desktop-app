@@ -57,7 +57,7 @@ class HostController extends Controller
 
         $fields = ['flat_number', 'number', 'emergency_phone', 'open_time', 'close_time', 'branch_id', 'zone_id'];
 
-        $model = $this->process_LIKE_filter($model, $request, $fields);
+        $model = $this->process_ilike_filter($model, $request, $fields);
         $fields = ['branch_id', 'zone_id'];
         $model = $this->process_column_filter($model, $request, $fields);
 
@@ -73,7 +73,7 @@ class HostController extends Controller
                 'employee',
                 fn (Builder $query) =>
 
-                $query->where('first_name', 'LIKE', "$request->first_name%")
+                $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%")
 
 
             );

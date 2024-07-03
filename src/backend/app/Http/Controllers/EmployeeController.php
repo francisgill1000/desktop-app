@@ -361,13 +361,13 @@ class EmployeeController extends Controller
                 $q->whereHas('department', fn (Builder $query) => $query->where('department_id', $request->department_id));
             })
             ->when($request->filled('search_column_name'), function ($q) use ($request, $text) {
-                $q->where($request->search_column_name, 'LIKE', "$text%");
+                $q->where($request->search_column_name, env('WILD_CARD') ?? 'ILIKE', "$text%");
             })
             ->when($request->filled('search_department_name'), function ($q) use ($request, $text) {
-                $q->whereHas('department', fn (Builder $query) => $query->where('name', 'LIKE', "$text%"));
+                $q->whereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
             })
             ->when($request->filled('search_designation_name'), function ($q) use ($request, $text) {
-                $q->whereHas('designation', fn (Builder $query) => $query->where('name', 'LIKE', "$text%"));
+                $q->whereHas('designation', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
             })
             ->when($request->filled('searchBybasic_salary'), function ($q) use ($request, $text) {
                 $q->whereHas('payroll', fn (Builder $query) => $query->where('basic_salary', '>=', $text));
@@ -658,8 +658,8 @@ class EmployeeController extends Controller
                 ->when($request->filled('search_employee_id'), function ($q) use ($request, $key) {
                     //$q->where('employee_id', 'LIKE', "$key%");
                     $q->where(function ($q) use ($key) {
-                        $q->Where('employee_id', 'LIKE', "$key%");
-                        $q->orWhere('system_user_id', 'LIKE', "$key%");
+                        $q->Where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$key%");
+                        $q->orWhere('system_user_id', env('WILD_CARD') ?? 'ILIKE', "$key%");
                     });
                 })
                 ->when($request->filled('search_phone_number'), function ($q) use ($request, $key) {
@@ -667,8 +667,8 @@ class EmployeeController extends Controller
                 })
                 ->when($request->filled('search_employee_name'), function ($q) use ($request, $key) {
                     $q->where(function ($q) use ($key) {
-                        $q->Where('first_name', 'LIKE', "$key%");
-                        $q->orWhere('last_name', 'LIKE', "$key%");
+                        $q->Where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%");
+                        $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$key%");
                     });
                 })
 
@@ -676,16 +676,16 @@ class EmployeeController extends Controller
                     $q->where('local_email', 'LIKE', "$key%");
                 })
                 ->when($request->filled('search_department_name'), function ($q) use ($request, $key) {
-                    $q->whereHas('department', fn (Builder $query) => $query->where('name', 'LIKE', "$key%"));
+                    $q->whereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
                     // $q->orWhereHas('sub_department', fn(Builder $query) => $query->where(DB::raw('lower(name)'), 'LIKE', "$key%"));
                 })
                 ->when($request->filled('search_shiftname'), function ($q) use ($request, $key) {
-                    $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', 'LIKE', "$key%"));
+                    $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
                     $q->whereHas('schedule.shift', fn (Builder $query) => $query->whereNotNull('name'));
                     $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', '<>', '---'));
                 })
                 ->when($request->filled('search_timezonename'), function ($q) use ($request, $key) {
-                    $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', 'LIKE', "$key%"));
+                    $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
                 })
                 ->paginate($request->perPage ?? 20);
         } else {

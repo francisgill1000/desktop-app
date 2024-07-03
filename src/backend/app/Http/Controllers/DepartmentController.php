@@ -25,7 +25,7 @@ class DepartmentController extends Controller
 
     public function index(Department $department, Request $request)
     {
-        return $department->filter($request)->orderBy("id", "desc")->paginate($request->per_page);
+        return $department->filter($request)->orderBy("id", "desc")->paginate(500);
     }
 
     public function departmentEmployee(Request $request)

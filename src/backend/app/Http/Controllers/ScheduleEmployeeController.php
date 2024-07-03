@@ -37,35 +37,35 @@ class ScheduleEmployeeController extends Controller
         ]);
         $model->when($request->filled('common_search'), function ($q) use ($request) {
             $q->where(function ($q) use ($request) {
-                $q->Where('system_user_id', 'LIKE', "%$request->common_search%");
-                $q->orWhere('employee_id', 'LIKE', "%$request->common_search%");
-                $q->orWhere('first_name', 'LIKE', "%$request->common_search%");
-                $q->orWhere('last_name', 'LIKE', "%$request->common_search%");
-                $q->orWhere('full_name', 'LIKE', "%$request->common_search%");
-                $q->orWhere('phone_number', 'LIKE', "%$request->common_search%");
-                $q->orWhere('local_email', 'LIKE', "%$request->common_search%");
+                $q->Where('system_user_id', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('employee_id', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('full_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+                $q->orWhere('local_email', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
 
-                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
-                $q->orWhereHas('department', fn (Builder $query) => $query->where('name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
-                // $q->orWhereHas('schedule.shift', fn (Builder $query) => $query->where('name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id)->where('company_id', $request->company_id));
+                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                // $q->orWhereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id)->where('company_id', $request->company_id));
 
-                $q->orWhereHas('schedule_active.shift', fn (Builder $query) => $query->where('name', 'LIKE',  "$request->common_search%")
+                $q->orWhereHas('schedule_active.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE',  "$request->common_search%")
 
                     ->where('company_id', $request->company_id));
             });
         });
         // $model->when($request->filled('common_search'), function ($q) use ($request) {
-        //     $q->Where('system_user_id', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('employee_id', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('first_name', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('last_name', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('full_name', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('phone_number', 'LIKE', "%$request->common_search%");
-        //     $q->orWhere('local_email', 'LIKE', "%$request->common_search%");
+        //     $q->Where('system_user_id', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('employee_id', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('full_name', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
+        //     $q->orWhere('local_email', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
 
-        //     $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
-        //     $q->orWhereHas('department', fn (Builder $query) => $query->where('name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
-        //     $q->orWhereHas('schedule.shift', fn (Builder $query) => $query->where('name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id)->where('company_id', $request->company_id));
+        //     $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+        //     $q->orWhereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+        //     $q->orWhereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id)->where('company_id', $request->company_id));
 
         //     $q->WhereHas('schedule_active.shift', fn (Builder $query) => $query->where('name',  "$request->common_search")
 
@@ -143,8 +143,8 @@ class ScheduleEmployeeController extends Controller
 
 
             $q->Where(function ($q) use ($request) {
-                $q->where('first_name', 'LIKE', "$request->first_name%");
-                $q->orWhere('last_name', 'LIKE', "$request->first_name%");
+                $q->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
             });
         });
 
@@ -152,8 +152,8 @@ class ScheduleEmployeeController extends Controller
 
 
             $q->Where(function ($q) use ($request) {
-                $q->where('employee_id', 'LIKE', "$request->employee_id%");
-                $q->orWhere('system_user_id', 'LIKE', "$request->employee_id%");
+                $q->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
+                $q->orWhere('system_user_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
             });
         });
 
@@ -499,7 +499,7 @@ class ScheduleEmployeeController extends Controller
         // $model->whereDate('to_date', '>=', $date);
         $model->when($request->filled('employee_first_name'), function ($q) use ($request) {
 
-            $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', 'LIKE', "$request->employee_first_name%"));
+            $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->employee_first_name%"));
         });
 
 
@@ -511,20 +511,20 @@ class ScheduleEmployeeController extends Controller
         });
         $model->when($request->filled('roster_name'), function ($q) use ($request) {
 
-            $q->whereHas('roster', fn (Builder $query) => $query->where('name', 'LIKE', "$request->roster_name%"));
+            $q->whereHas('roster', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->roster_name%"));
         });
         $model->when($request->filled('shift_name'), function ($q) use ($request) {
 
-            $q->whereHas('shift', fn (Builder $query) => $query->where('name', 'LIKE', "$request->shift_name%"));
+            $q->whereHas('shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_name%"));
         });
         $model->when($request->filled('shift_type_name'), function ($q) use ($request) {
 
-            $q->whereHas('shift_type', fn (Builder $query) => $query->where('name', 'LIKE', "$request->shift_type_name%"));
+            $q->whereHas('shift_type', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_type_name%"));
         });
         $model->when($request->filled('employee_id'), function ($q) use ($request) {
 
-            //$q->where('employee_id', 'LIKE', "$request->employee_id%");
-            $q->whereHas('employee', fn (Builder $query) => $query->where('employee_id', 'LIKE', "$request->employee_id%"));
+            //$q->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
+            $q->whereHas('employee', fn (Builder $query) => $query->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%"));
         });
         $model->when($request->filled('show_from_date'), function ($q) use ($request) {
 

@@ -74,7 +74,7 @@ class VisitorLogController extends Controller
             })
 
             ->when($request->filled('visitor_full_name') && $request->visitor_full_name != '', function ($q) use ($request) {
-                $q->whereHas('visitor', fn (Builder $q) => $q->where('first_name', 'LIKE', "$request->visitor_full_name%")->Orwhere('phone_number', 'LIKE', "$request->visitor_full_name%"));
+                $q->whereHas('visitor', fn (Builder $q) => $q->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->visitor_full_name%")->Orwhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->visitor_full_name%"));
             })
             // ->when($request->filled('devicelocation'), function ($q) use ($request) {
             //     //if ($request->devicelocation != 'All Locations') {
@@ -94,7 +94,7 @@ class VisitorLogController extends Controller
 
                 $key = strtolower($request->reason);
 
-                $q->whereHas('visitor', fn (Builder $query) => $query->where('reason', 'LIKE', "$key%"));
+                $q->whereHas('visitor', fn (Builder $query) => $query->where('reason', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
 
             ->when($request->filled('sortBy'), function ($q) use ($request) {

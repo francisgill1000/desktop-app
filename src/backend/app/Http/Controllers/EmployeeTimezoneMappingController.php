@@ -231,7 +231,7 @@ class EmployeeTimezoneMappingController extends Controller
         return $model->where('company_id', $request->company_id)
             ->when($request->filled('branch_id'), fn ($q) =>  $q->where('branch_id', $request->branch_id))
             ->when($request->filled('timezoneName'), function ($q) use ($request) {
-                $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', 'LIKE', "$request->timezoneName%"));
+                $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$request->timezoneName%"));
             })
             ->when($request->filled('device'), function ($q) use ($request) {
                 $q->whereJsonContains('device_id', [['name' => "$request->device"]]);

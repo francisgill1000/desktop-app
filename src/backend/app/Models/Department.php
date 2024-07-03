@@ -79,13 +79,13 @@ class Department extends Model
             $q->where('id', 'LIKE', "$request->id%");
         });
         $model->when($request->filled('name'), function ($q) use ($request) {
-            $q->where('name', 'LIKE', "$request->name%");
+            $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->name%");
         });
         $model->when($request->filled('serach_sub_department_name'), function ($q) use ($request) {
-            $q->whereHas('children', fn (Builder $query) => $query->where('name', 'LIKE', "$request->serach_sub_department_name%"));
+            $q->whereHas('children', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->serach_sub_department_name%"));
         });
         $model->when($request->filled('serach_designation_name'), function ($q) use ($request) {
-            $q->whereHas('designations', fn (Builder $query) => $query->where('name', 'LIKE', "$request->serach_designation_name%"));
+            $q->whereHas('designations', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->serach_designation_name%"));
         });
         $model->when(isset($cols) && count($cols) > 0, function ($q) use ($cols) {
             $q->select($cols);

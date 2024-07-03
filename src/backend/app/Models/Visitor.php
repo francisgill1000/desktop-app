@@ -195,12 +195,12 @@ class Visitor extends Model
 
 
 
-        $LIKEFields = ['id', 'company_name', 'system_user_id', 'manager_name', 'phone', 'email', 'zone_id', 'phone_number', 'time_in'];
+        $ilikeFields = ['id', 'company_name', 'system_user_id', 'manager_name', 'phone', 'email', 'zone_id', 'phone_number', 'time_in'];
 
 
-        foreach ($LIKEFields as $field) {
+        foreach ($ilikeFields as $field) {
             $model->when($request->filled($field), function ($q) use ($field, $request) {
-                $q->when($request->filled('purpose_id'), fn ($q) => $q->where($field, 'LIKE', $request->input($field) . '%'));
+                $q->when($request->filled('purpose_id'), fn ($q) => $q->where($field, env('WILD_CARD') ?? 'ILIKE', $request->input($field) . '%'));
             });
         }
 
@@ -208,18 +208,18 @@ class Visitor extends Model
 
         $model->when($request->filled('first_name'), function ($q) use ($first_name) {
             $q->where(function ($q) use ($first_name) {
-                $q->Where('first_name', 'LIKE', "$first_name%");
-                $q->orWhere('last_name', 'LIKE', "$first_name%");
+                $q->Where('first_name', env('WILD_CARD') ?? 'ILIKE', "$first_name%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$first_name%");
             });
         });
 
         $model->when($request->filled('phone_number_or_email'), function ($q) use ($request) {
             $q->where(function ($q) use ($request) {
-                $q->Where('phone_number', 'LIKE', "$request->phone_number_or_email%");
-                $q->orWhere('email', 'LIKE', "$request->phone_number_or_email%");
-                $q->orWhere('first_name', 'LIKE', "$request->phone_number_or_email%");
-                $q->orWhere('last_name', 'LIKE', "$request->phone_number_or_email%");
-                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->Where('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number_or_email%");
+                $q->orWhere('email', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number_or_email%");
+                $q->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number_or_email%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number_or_email%");
+                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
             });
         });
 
@@ -258,33 +258,33 @@ class Visitor extends Model
 
         $model->when($request->filled('common_search'), function ($q) use ($request) {
             $q->where(function ($q) use ($request) {
-                $q->Where('phone_number', 'LIKE', "$request->common_search%");
-                $q->orWhere('email', 'LIKE', "$request->common_search%");
-                $q->orWhere('first_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('last_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('visit_from', 'LIKE', "$request->common_search%");
-                $q->orWhere('visit_to', 'LIKE', "$request->common_search%");
-                $q->orWhere('visitor_company_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('id_type', 'LIKE', "$request->common_search%");
-                $q->orWhere('id_number', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_first_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_last_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_email', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_phone_number', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_first_name', 'LIKE', "$request->common_search%");
-                $q->orWhere('time_in', 'LIKE', "$request->common_search%");
-                $q->orWhere('time_out', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_flat_number', 'LIKE', "$request->common_search%");
-                $q->orWhere('host_company_name', 'LIKE', "$request->common_search%");
+                $q->Where('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('email', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('visit_from', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('visit_to', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('visitor_company_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('id_type', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('id_number', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_first_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_last_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_email', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_first_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('time_in', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('time_out', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_flat_number', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
+                $q->orWhere('host_company_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%");
 
-                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('first_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
 
-                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('last_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
 
-                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('email', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
-                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('phone_number', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('email', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('host.employee', fn (Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
 
-                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
             });
         });
 

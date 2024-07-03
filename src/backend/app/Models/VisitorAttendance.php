@@ -146,7 +146,7 @@ class VisitorAttendance extends Model
         });
 
         $model->when($request->filled('visitor_first_name') && $request->visitor_first_name != '', function ($q) use ($request) {
-            $q->whereHas('visitor', fn (Builder $q) => $q->where('first_name', 'LIKE', "$request->visitor_first_name%")->Orwhere('phone_number', 'LIKE', "$request->visitor_first_name%"));
+            $q->whereHas('visitor', fn (Builder $q) => $q->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->visitor_first_name%")->Orwhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->visitor_first_name%"));
         });
 
         $model->when($request->filled('in'), function ($q) use ($request) {

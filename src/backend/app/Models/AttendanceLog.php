@@ -164,12 +164,12 @@ class AttendanceLog extends Model
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', 'LIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
             ->when($request->filled('employee_first_name'), function ($q) use ($request) {
                 $key = strtolower($request->employee_first_name);
-                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', 'LIKE', "$key%"));
+                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
             ->when($request->filled('branch_id'), function ($q) {
                 $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));

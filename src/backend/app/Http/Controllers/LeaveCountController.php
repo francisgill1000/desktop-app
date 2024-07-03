@@ -19,11 +19,11 @@ class LeaveCountController extends Controller
 
         // $model->when($request->filled('serach_name'), function ($q) use ($request) {
         //     $key = $request->serach_name;
-        //     $q->where('name', 'LIKE', "$key%");
+        //     $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%");
         // });
         // $model->when($request->filled('search_short_name'), function ($q) use ($request) {
         //     $key = $request->search_short_name;
-        //     $q->where('short_name', 'LIKE', "$key%");
+        //     $q->where('short_name', env('WILD_CARD') ?? 'ILIKE', "$key%");
         // });
 
         return $model;

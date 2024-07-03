@@ -64,10 +64,10 @@ class Announcement extends Model
 
         $model->when($request->filled('title'), function ($q) use ($request) {
             $key = $request->title;
-            $q->where('title', 'LIKE', "$key%");
+            $q->where('title', env('WILD_CARD') ?? 'ILIKE', "$key%");
         });
         $model->when($request->filled('description'), function ($q) use ($request) {
-            $q->where('description', 'LIKE', "$request->description%");
+            $q->where('description', env('WILD_CARD') ?? 'ILIKE', "$request->description%");
         });
         $model->when($request->filled('dates') && count($request->dates) > 1, function ($q) use ($request) {
             $q->where(function ($query) use ($request) {

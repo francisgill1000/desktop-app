@@ -114,7 +114,7 @@ class AccessControlController extends Controller
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', 'LIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
 

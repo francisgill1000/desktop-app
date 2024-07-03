@@ -33,7 +33,7 @@ class ShiftController extends Controller
         }]);
 
         $model->when($request->filled('search'), function ($q) use ($request) {
-            $q->where('name', 'LIKE', "$request->search%");
+            $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->search%");
             $q->orwhereHas('shift_type', fn (Builder $query) => $query->where('name', 'LIKE', "$request->search%"));
             $q->orwhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->search%"));
             $q->where("company_id", $request->company_id);

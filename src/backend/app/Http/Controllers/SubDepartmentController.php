@@ -18,10 +18,10 @@ class SubDepartmentController extends Controller
                 $q->whereHas('department', fn (Builder $query) => $query->where('department_id', $request->department_id));
             })
             ->when($request->filled('serach_sub_department_name'), function ($q) use ($request) {
-                $q->where('name', 'LIKE', "$request->serach_sub_department_name%");
+                $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->serach_sub_department_name%");
             })
             ->when($request->filled('serach_sub_department_name'), function ($q) use ($request) {
-                $q->where('name', 'LIKE', "$request->serach_sub_department_name%");
+                $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->serach_sub_department_name%");
             })
             ->when($request->filled('department_ids'), function ($q) use ($request) {
                 $q->whereIn('department_id', $request->department_ids ?? []);

@@ -144,23 +144,23 @@ class CompanyBranchController extends Controller
         });
 
         // $model->when($request->filled("location_address"), function ($q) use ($request) {
-        //     return $q->where("location_address", "LIKE", $request->location_address);
+        //     return $q->where("location_address", env('WILD_CARD') ?? 'ILIKE', $request->location_address);
         // });
 
         $model->when($request->filled("location_address"), function ($q) use ($request) {
 
             $q->where(function ($q) use ($request) {
-                $q->where("location", "LIKE", $request->location_address . '%');
-                $q->orWhere("address", "LIKE", $request->location_address . '%');
+                $q->where("location", env('WILD_CARD') ?? 'ILIKE', $request->location_address . '%');
+                $q->orWhere("address", env('WILD_CARD') ?? 'ILIKE', $request->location_address . '%');
             });
         });
         $model->when($request->filled("manager_mobile"), function ($q) use ($request) {
 
-            // $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', "LIKE",   $request->manager_mobile));
-            // $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', "LIKE",   $request->manager_mobile));
+            // $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile));
+            // $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile));
             $q->where(function ($q) use ($request) {
-                $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', "LIKE",   $request->manager_mobile . '%'));
-                $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', "LIKE",   $request->manager_mobile . '%'));
+                $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
+                $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
             });
         });
 

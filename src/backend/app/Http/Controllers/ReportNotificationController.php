@@ -27,33 +27,33 @@ class ReportNotificationController extends Controller
                 $query->where("company_id", $request->company_id);
             })
             ->when($request->filled('subject'), function ($q) use ($request) {
-                $q->where('subject', 'LIKE', "$request->subject%");
+                $q->where('subject', env('WILD_CARD') ?? 'ILIKE', "$request->subject%");
             })
             ->when($request->filled('branch_id'), function ($q) use ($request) {
                 $q->where('branch_id', $request->branch_id);
             })
             ->when($request->filled('frequency'), function ($q) use ($request) {
-                $q->where('frequency', 'LIKE', "$request->frequency%");
+                $q->where('frequency', env('WILD_CARD') ?? 'ILIKE', "$request->frequency%");
             })
 
 
             ->when($request->filled('manager1'), function ($q) use ($request) {
 
-                $q->whereHas("managers", fn ($q) => $q->where("name", "LIKE", $request->manager1 . '%')->orWhere("email", "LIKE", $request->manager1 . '%')->orWhere("whatsapp_number", "LIKE", $request->manager1 . '%'));
+                $q->whereHas("managers", fn ($q) => $q->where("name", env('WILD_CARD') ?? 'ILIKE', $request->manager1 . '%')->orWhere("email", env('WILD_CARD') ?? 'ILIKE', $request->manager1 . '%')->orWhere("whatsapp_number", env('WILD_CARD') ?? 'ILIKE', $request->manager1 . '%'));
             })
             ->when($request->filled('manager2'), function ($q) use ($request) {
 
-                $q->whereHas("managers", fn ($q) => $q->where("name", "LIKE", $request->manager2 . '%')->orWhere("email", "LIKE", $request->manager2 . '%')->orWhere("whatsapp_number", "LIKE", $request->manager2 . '%'));
+                $q->whereHas("managers", fn ($q) => $q->where("name", env('WILD_CARD') ?? 'ILIKE', $request->manager2 . '%')->orWhere("email", env('WILD_CARD') ?? 'ILIKE', $request->manager2 . '%')->orWhere("whatsapp_number", env('WILD_CARD') ?? 'ILIKE', $request->manager2 . '%'));
             })
             ->when($request->filled('manager3'), function ($q) use ($request) {
 
-                $q->whereHas("managers", fn ($q) => $q->where("name", "LIKE", $request->manager3 . '%')->orWhere("email", "LIKE", $request->manager3 . '%')->orWhere("whatsapp_number", "LIKE", $request->manager3 . '%'));
+                $q->whereHas("managers", fn ($q) => $q->where("name", env('WILD_CARD') ?? 'ILIKE', $request->manager3 . '%')->orWhere("email", env('WILD_CARD') ?? 'ILIKE', $request->manager3 . '%')->orWhere("whatsapp_number", env('WILD_CARD') ?? 'ILIKE', $request->manager3 . '%'));
             })
             ->when($request->filled('time'), function ($q) use ($request) {
-                $q->where('time', 'LIKE', "$request->time%");
+                $q->where('time', env('WILD_CARD') ?? 'ILIKE', "$request->time%");
             })
             ->when($request->filled('medium'), function ($q) use ($request) {
-                $q->where('mediums', 'LIKE', "%$request->medium%");
+                $q->where('mediums', env('WILD_CARD') ?? 'ILIKE', "%$request->medium%");
             })
 
             ->when($request->filled('serach_medium'), function ($q) use ($request) {

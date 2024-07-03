@@ -336,8 +336,8 @@ class Employee extends Model
             ->when($request->filled('employee_id'), function ($q) use ($request) {
                 //$q->where('employee_id', 'LIKE', "$key%");
                 $q->where(function ($q) use ($request) {
-                    $q->Where('employee_id', 'LIKE', "$request->employee_id%");
-                    $q->orWhere('system_user_id', 'LIKE', "$request->employee_id%");
+                    $q->Where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
+                    $q->orWhere('system_user_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
                 });
             })
             ->when($request->filled('id'), function ($q) use ($request) {
@@ -346,21 +346,21 @@ class Employee extends Model
             })
             ->when($request->filled('phone_number'), function ($q) use ($request) {
 
-                $q->where('phone_number', 'LIKE', "$request->phone_number%");
+                $q->where('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number%");
             })
             ->when($request->filled('first_name'), function ($q) use ($request) {
                 $q->where(function ($q) use ($request) {
-                    $q->Where('first_name', 'LIKE', "$request->first_name%");
-                    //$q->orWhere('last_name', 'LIKE', "$request->first_name%");
+                    $q->Where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
+                    //$q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
                 });
             })
 
             ->when($request->filled('user_email'), function ($q) use ($request) {
                 // $q->where('local_email', 'LIKE', "$request->user_email%");
-                $q->whereHas('user', fn (Builder $query) => $query->where('email', 'LIKE', "$request->user_email%"));
+                $q->whereHas('user', fn (Builder $query) => $query->where('email', env('WILD_CARD') ?? 'ILIKE', "$request->user_email%"));
             })
             ->when($request->filled('department_name_id'), function ($q) use ($request) {
-                // $q->whereHas('department', fn(Builder $query) => $query->where('name', 'LIKE', "$request->department_name%"));
+                // $q->whereHas('department', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->department_name%"));
                 $q->whereHas('department', fn (Builder $query) => $query->where('id', $request->department_name_id));
             })
 
@@ -368,12 +368,12 @@ class Employee extends Model
                 $q->whereHas('schedule', fn (Builder $query) => $query->where('shift_id', $request->shceduleshift_id));
             })
             ->when($request->filled('schedule_shift_name'), function ($q) use ($request) {
-                $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', 'LIKE', "$request->schedule_shift_name%"));
+                $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->schedule_shift_name%"));
                 $q->whereHas('schedule.shift', fn (Builder $query) => $query->whereNotNull('name'));
                 $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', '<>', '---'));
             })
             // ->when($request->filled('timezone_name'), function ($q) use ($request) {
-            //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', 'LIKE', "$request->timezone_name%"));
+            //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$request->timezone_name%"));
             // })
             // ->when($request->filled('timezone'), function ($q) use ($request) {
             //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_id', $request->timezone));
@@ -485,40 +485,44 @@ class Employee extends Model
                 // Add where clause for company_id
                 $q->where('company_id', $request->company_id);
 
-                // Add where clauses for various fields using LIKE for case-insensitive matching
+                // Add where clauses for various fields using ILIKE for case-insensitive matching
                 $q->where(function ($q) use ($request) {
-                    $searchTerm = "%{$request->search}%";
-                    $q->where('system_user_id', 'LIKE', $searchTerm)
-                        ->orWhere('employee_id', 'LIKE', $searchTerm)
-                        ->orWhere('first_name', 'LIKE', $searchTerm)
-                        ->orWhere('last_name', 'LIKE', $searchTerm)
-                        ->orWhere('full_name', 'LIKE', $searchTerm)
-                        ->orWhere('phone_number', 'LIKE', $searchTerm)
-                        ->orWhere('local_email', 'LIKE', $searchTerm);
+                    //$searchTerm = "%{$request->search}%";
+                    $searchTerm = "{$request->search}%";
+
+                    $q->where('system_user_id', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('employee_id', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('full_name', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('phone_number', env('WILD_CARD') ?? 'ILIKE', $searchTerm)
+                        ->orWhere('local_email', env('WILD_CARD') ?? 'ILIKE', $searchTerm);
                 });
 
                 // Add whereHas clauses for related models branch and department
                 $q->orWhereHas('branch', function ($query) use ($request) {
-                    $query->where('branch_name', 'LIKE', "{$request->search}%");
+                    $query->where('company_id', $request->company_id);
+                    $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "{$request->search}%");
                 });
 
                 $q->orWhereHas('department', function ($query) use ($request) {
-                    $query->where('name', 'LIKE', "{$request->search}%");
+                    $query->where('company_id', $request->company_id);
+                    $query->where('name', env('WILD_CARD') ?? 'ILIKE', "{$request->search}%");
                 });
             })
 
             // ->when($request->filled('search'), function ($q) use ($request) {
 
-            //     $q->Where('system_user_id', 'LIKE', "%$request->search%");
-            //     $q->orWhere('employee_id', 'LIKE', "%$request->search%");
-            //     $q->orWhere('first_name', 'LIKE', "%$request->search%");
-            //     $q->orWhere('last_name', 'LIKE', "%$request->search%");
-            //     $q->orWhere('full_name', 'LIKE', "%$request->search%");
-            //     $q->orWhere('phone_number', 'LIKE', "%$request->search%");
-            //     $q->orWhere('local_email', 'LIKE', "%$request->search%");
+            //     $q->Where('system_user_id', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('employee_id', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('first_name', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('full_name', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
+            //     $q->orWhere('local_email', env('WILD_CARD') ?? 'ILIKE', "%$request->search%");
 
-            //     $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->search%"));
-            //     $q->orWhereHas('department', fn (Builder $query) => $query->where('name', 'LIKE', "$request->search%"));
+            //     $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->search%"));
+            //     $q->orWhereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->search%"));
             // });
 
 
@@ -572,8 +576,8 @@ class Employee extends Model
             ->when($request->filled('employee_id'), function ($q) use ($request) {
                 //$q->where('employee_id', 'LIKE', "$key%");
                 $q->where(function ($q) use ($request) {
-                    $q->Where('employee_id', 'LIKE', "$request->employee_id%");
-                    $q->orWhere('system_user_id', 'LIKE', "$request->employee_id%");
+                    $q->Where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
+                    $q->orWhere('system_user_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
                 });
             })
             ->when($request->filled('id'), function ($q) use ($request) {
@@ -582,21 +586,21 @@ class Employee extends Model
             })
             ->when($request->filled('phone_number'), function ($q) use ($request) {
 
-                $q->where('phone_number', 'LIKE', "$request->phone_number%");
+                $q->where('phone_number', env('WILD_CARD') ?? 'ILIKE', "$request->phone_number%");
             })
             ->when($request->filled('first_name'), function ($q) use ($request) {
                 $q->where(function ($q) use ($request) {
-                    $q->Where('first_name', 'LIKE', "$request->first_name%");
-                    //$q->orWhere('last_name', 'LIKE', "$request->first_name%");
+                    $q->Where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
+                    //$q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
                 });
             })
 
             ->when($request->filled('user_email'), function ($q) use ($request) {
                 // $q->where('local_email', 'LIKE', "$request->user_email%");
-                $q->whereHas('user', fn (Builder $query) => $query->where('email', 'LIKE', "$request->user_email%"));
+                $q->whereHas('user', fn (Builder $query) => $query->where('email', env('WILD_CARD') ?? 'ILIKE', "$request->user_email%"));
             })
             ->when($request->filled('department_name_id'), function ($q) use ($request) {
-                // $q->whereHas('department', fn(Builder $query) => $query->where('name', 'LIKE', "$request->department_name%"));
+                // $q->whereHas('department', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->department_name%"));
                 $q->whereHas('department', fn (Builder $query) => $query->where('id', $request->department_name_id));
             })
 
@@ -604,12 +608,12 @@ class Employee extends Model
                 $q->whereHas('schedule', fn (Builder $query) => $query->where('shift_id', $request->shceduleshift_id));
             })
             ->when($request->filled('schedule_shift_name'), function ($q) use ($request) {
-                $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', 'LIKE', "$request->schedule_shift_name%"));
+                $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->schedule_shift_name%"));
                 $q->whereHas('schedule.shift', fn (Builder $query) => $query->whereNotNull('name'));
                 $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', '<>', '---'));
             })
             // ->when($request->filled('timezone_name'), function ($q) use ($request) {
-            //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', 'LIKE', "$request->timezone_name%"));
+            //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$request->timezone_name%"));
             // })
             // ->when($request->filled('timezone'), function ($q) use ($request) {
             //     $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_id', $request->timezone));

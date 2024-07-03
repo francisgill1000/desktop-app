@@ -32,11 +32,11 @@ class ZoneController extends Controller
 
         $fields = ['name'];
 
-        $model = $this->process_LIKE_filter($model, $request, $fields);
+        $model = $this->process_ilike_filter($model, $request, $fields);
 
         $model->when($request->filled('devices'), function ($q) use ($request) {
 
-            $q->orWhereHas('devices', fn (Builder $query) => $query->where('short_name', 'LIKE', $request->input("devices") . '%'));
+            $q->orWhereHas('devices', fn (Builder $query) => $query->where('short_name', env('WILD_CARD') ?? 'ILIKE', $request->input("devices") . '%'));
         });
 
         $model->where("company_id", $request->input("company_id"));

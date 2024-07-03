@@ -30,7 +30,6 @@ class AuthController extends Controller
 
         $user = User::with('company', 'company.contact', 'employee')->where('email', $request->email)
             ->with("company:id,user_id,name,location,logo,company_code,expiry,contact_number,enable_whatsapp_otp")
-            ->select()
             ->first();
 
 
@@ -153,18 +152,6 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)
             ->with("company:id,user_id,name,location,logo,company_code,expiry")
-            ->select(
-                // "id",
-                // "email",
-                // "password",
-                // "is_master",
-                // "role_id",
-                // "company_id",
-                // "employee_role_id",
-                // "can_login",
-                // "web_login_access",
-                // "mobile_app_login_access",
-            )
             ->first();
 
         $this->throwErrorIfFail($request, $user);
@@ -217,49 +204,20 @@ class AuthController extends Controller
 
     public function getUserType($user)
     {
-        if ($user->user_type == "department") {
+
+        // Check if the user type is one of the predefined types
+        if (in_array($user->user_type, ["company", "admin", "department"])) {
             return $user->user_type;
         }
-        
-        if ($user->company_id > 0) {
 
-            if ($user->user_type === "company")  return $user->user_type;
+        $found = CompanyBranch::where('user_id', $user->id)->select('id', 'branch_name', "logo as branch_logo")->first();
 
-            $branchesArray = CompanyBranch::where('user_id', $user->id)->select('id', 'branch_name', "logo as branch_logo")->first();
-
-            if ($branchesArray) {
-                $user->branch_name = $branchesArray->branch_name;
-                $user->branch_logo = $branchesArray->logo;
-                $user->branch_id = $branchesArray->id; //$user->id;
-
-                $user->load(["employee" => function ($q) {
-                    // :id,employee_id,system_user_id,user_id"
-
-                    $q->select(
-                        "id",
-                        "first_name",
-                        "last_name",
-                        "profile_picture",
-                        "employee_id",
-                        "system_user_id",
-                        "joining_date",
-                        "user_id",
-                        "overtime",
-                        "display_name",
-                        "display_name",
-                        "branch_id",
-                        "leave_group_id",
-                        "reporting_manager_id",
-                    );
-
-                    $q->withOut(["user", "department", "designation", "sub_department", "branch"]);
-                }]);
-                return "branch";
-            };
+        if ($found) {
+            $user->branch_name = $found->branch_name;
+            $user->branch_logo = $found->logo;
+            $user->branch_id = $found->id; //$user->id;
 
             $user->load(["employee" => function ($q) {
-                // :id,employee_id,system_user_id,user_id"
-
                 $q->select(
                     "id",
                     "first_name",
@@ -279,19 +237,15 @@ class AuthController extends Controller
 
                 $q->withOut(["user", "department", "designation", "sub_department", "branch"]);
             }]);
-            return "employee";
-        } else {
-            return $user->role_id > 0 ? "user" : "master";
-        }
+            return "branch";
+        };
+
+        return "master";
     }
 
     public function logout(Request $request)
     {
-
-        // return $request->user();
-        // return $request->all();
         return true;
-        //return  $request->user()->tokens()->delete();
     }
 
     public function throwErrorIfFail($request, $user)

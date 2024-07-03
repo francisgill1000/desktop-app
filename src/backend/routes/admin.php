@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssignModuleController;
 use App\Http\Controllers\AssignPermissionController;
 use App\Http\Controllers\AttendanceController;
@@ -21,6 +22,8 @@ use App\Http\Controllers\TradeLicenseController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::apiResource('admin', AdminController::class);
 
 // Auth
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

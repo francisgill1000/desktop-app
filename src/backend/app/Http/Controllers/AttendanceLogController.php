@@ -606,7 +606,7 @@ class AttendanceLogController extends Controller
         });
         $model->when($request->filled('search_device_name'), function ($q) use ($request) {
             $key = strtolower($request->search_device_name);
-            $q->whereHas('device', fn (Builder $query) => $query->where('name', 'LIKE', "$key%"));
+            $q->whereHas('device', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
         });
         $model->when($request->filled('search_device_id'), function ($q) use ($request) {
             $q->where('DeviceID', 'LIKE', "$request->search_device_id%");

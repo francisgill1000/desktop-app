@@ -48,7 +48,7 @@ class AssignedDepartmentEmployeeController extends Controller
             return $q->where("branch_id", $request->branch_id);
         });
         $model->whereHas("user.role", function ($q) {
-            return $q->where('name', "LIKE", "manager");
+            return $q->where('name', env('WILD_CARD') ?? 'ILIKE', "manager");
         });
 
         // $model->whereHas("user.role", function ($q) {

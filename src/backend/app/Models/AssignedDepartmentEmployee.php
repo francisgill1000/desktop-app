@@ -57,7 +57,7 @@ class AssignedDepartmentEmployee extends Model
 
         $model->when($request->filled('title'), function ($q) use ($request) {
             $key = $request->title;
-            $q->where('title', 'LIKE', "$key%");
+            $q->where('title', env('WILD_CARD') ?? 'ILIKE', "$key%");
         });
 
         $model->when($request->filled('sortBy'), function ($q) use ($request) {

@@ -135,11 +135,11 @@ class Controller extends BaseController
         return $arr[$status];
     }
 
-    public function process_LIKE_filter($model, $request, $fields)
+    public function process_ilike_filter($model, $request, $fields)
     {
         foreach ($fields as $field) {
             if ($request->filled($field)) {
-                $model->where($field, 'LIKE', $request->input($field) . '%');
+                $model->where($field, env('WILD_CARD') ?? 'ILIKE', $request->input($field) . '%');
             }
         }
         return $model;

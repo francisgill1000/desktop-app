@@ -94,11 +94,11 @@ class VisitorController extends Controller
 
         $fields = ['id', 'company_name', 'system_user_id', 'manager_name', 'phone', 'email', 'zone_id', 'phone_number', 'email', 'time_in'];
 
-        $model = $this->process_LIKE_filter($model, $request, $fields);
+        $model = $this->process_ilike_filter($model, $request, $fields);
         $model->when($request->filled('first_name'), function ($q) use ($request) {
             $q->where(function ($q) use ($request) {
-                $q->Where('first_name', 'LIKE', "$request->first_name%");
-                $q->orWhere('last_name', 'LIKE', "$request->first_name%");
+                $q->Where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
+                $q->orWhere('last_name', env('WILD_CARD') ?? 'ILIKE', "$request->first_name%");
             });
         });
 

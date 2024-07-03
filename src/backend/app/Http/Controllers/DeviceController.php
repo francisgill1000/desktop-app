@@ -53,19 +53,19 @@ class DeviceController extends Controller
         $model->with(['status', 'company', 'companyBranch']);
         $model->where('company_id', $request->company_id);
         $model->when($request->filled('name'), function ($q) use ($request) {
-            $q->where('name', 'LIKE', "$request->name%");
+            $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->name%");
         });
         $model->when($request->filled('short_name'), function ($q) use ($request) {
-            $q->where('short_name', 'LIKE', "$request->short_name%");
+            $q->where('short_name', env('WILD_CARD') ?? 'ILIKE', "$request->short_name%");
         });
         $model->when($request->filled('location'), function ($q) use ($request) {
-            $q->where('location', 'LIKE', "$request->location%");
+            $q->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->location%");
         });
         $model->when($request->filled('device_id'), function ($q) use ($request) {
-            $q->where('device_id', 'LIKE', "%$request->device_id%");
+            $q->where('device_id', env('WILD_CARD') ?? 'ILIKE', "%$request->device_id%");
         });
         $model->when($request->filled('device_type'), function ($q) use ($request) {
-            $q->where('device_type', 'LIKE', "$request->device_type%");
+            $q->where('device_type', env('WILD_CARD') ?? 'ILIKE', "$request->device_type%");
         });
         $model->when($request->filled('Status'), function ($q) use ($request) {
             $q->where('status_id', $request->Status);
