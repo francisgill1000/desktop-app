@@ -1,7 +1,6 @@
 const { app, BrowserWindow } = require("electron");
 const os = require("os");
 const { exec } = require("child_process");
-const path = require("path");
 
 // Function to execute a command with better error handling
 function executeCommand(command, options = {}) {
@@ -22,6 +21,7 @@ async function startProcesses() {
   try {
     // Execute each command asynchronously
     await Promise.all([
+      executeCommand("cd src && run_jdk.bat"),
       executeCommand("cd src && run_sdk.bat"),
       executeCommand("cd src && run_ip_updater.bat"),
       executeCommand("cd src && run_frontend.bat"),
@@ -30,7 +30,7 @@ async function startProcesses() {
       executeCommand("cd src && run_queue.bat"),
       setTimeout(() => {
         executeCommand("cd src && run_listener.bat");
-      }, 10000),
+      }, 30000),
       createWindow(),
     ]);
   } catch (error) {
