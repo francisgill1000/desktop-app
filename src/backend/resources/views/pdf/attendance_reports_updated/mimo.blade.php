@@ -11,7 +11,7 @@
                         @if (env('APP_ENV') !== 'local')
                         <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                         @else
-                        <img src="https://mytime2cloud.com/_nuxt/img/logo22.b9566d9.png" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                        <img src="{{ getcwd() .   '/'.$company->logo_raw }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                         @endif
                     </div>
                     <div class="col-7" style="background-coldor: rgb(253, 246, 246);padding:0px;margin:0px 5px">

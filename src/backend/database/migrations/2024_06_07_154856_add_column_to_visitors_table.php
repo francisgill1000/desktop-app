@@ -13,8 +13,8 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('devices', function (Blueprint $table) {
-            $table->dropForeign('devices_device_type_check');
+        Schema::table('visitors', function (Blueprint $table) {
+            $table->string("qr_code_900")->nullable();
         });
     }
 
@@ -25,7 +25,7 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('devices', function (Blueprint $table) {
+        Schema::table('visitors', function (Blueprint $table) {
             //
         });
     }

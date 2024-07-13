@@ -55,7 +55,7 @@
                     @if (env('APP_ENV') !== 'local')
                     <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @else
-                    <img src="https://backend.mytime2cloud.com/upload/1697819664.png" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                    <img src="{{ getcwd() .   '/'.$company->logo_raw }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @endif
                 </div>
                 <div style="clear:both">

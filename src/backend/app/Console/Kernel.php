@@ -19,10 +19,22 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->call(function () {
-            exec('pm2 reload 4');
-            info("MyTime2Cloud SDK Production");
-        })->dailyAt('05:15');
+
+
+        // $file_name_raw = "test.txt";
+        // Storage::append($file_name_raw,  date("d-m-Y H:i:s") . ' - Devices test listed');
+
+        // $schedule->call(function () {
+        //     $file_name_raw = "test.txt";
+        //     Storage::append($file_name_raw,  date("d-m-Y H:i:s") . ' - Devices listed');
+        // })->everyMinute()->appendOutputTo(storage_path("test.txt"));
+        //-------------------------------------------------------------------------------------------------------------------------
+        if (env('APP_ENV') != 'desktop') {
+            $schedule->call(function () {
+                exec('pm2 reload 4');
+                info("MyTime2Cloud SDK Production");
+            })->dailyAt('05:15');
+        }
 
         $monthYear = date("M-Y");
 
@@ -49,11 +61,12 @@ class Kernel extends ConsoleKernel
 
 
         //Schedule Device Access Control 
-        $schedule->call(function () {
-            exec('pm2 reload 3');
-            info("Camera Log listener restarted");
-        })->everyMinute();
-
+        if (env('APP_ENV') != 'desktop') {
+            $schedule->call(function () {
+                exec('pm2 reload 3');
+                info("Camera Log listener restarted");
+            })->everyMinute();
+        }
         (new DeviceController())->deviceAccessControllAllwaysOpen($schedule);
 
         $schedule
@@ -223,7 +236,19 @@ class Kernel extends ConsoleKernel
             info($count . "companies has been updated");
         })->dailyAt('00:00');
         //->withoutOverlapping();
-
+        $schedule->call(function () {
+            exec('chown -R www-data:www-data /var/www/mytime2cloud/backend');
+            // Artisan::call('cache:clear');
+            // info("Cache cleared successfully at " . date("d-M-y H:i:s"));
+        })->hourly();
+        if (env('APP_ENV') != 'desktop') {
+            $schedule->call(function () {
+                exec('pm2 reload 1');
+                // Artisan::call('cache:clear');
+                // info("Cache cleared successfully at " . date("d-M-y H:i:s"));
+            })->everyThreeHours();
+        }
+        // $schedule->call(function () {
 
 
 

@@ -1128,20 +1128,24 @@ class DeviceController extends Controller
                     // info($count . "companies has been updated");
                 }
             }
-        }
-        try {
+            $company_id = $Device["company_id"];
 
-            $count = (new DeviceCameraController(''))->updateCameraDeviceLiveStatus($company_id);
-            $online_devices_count = $online_devices_count +  $count;
-        } catch (\Exception $e) {
-        }
-        try {
-            //139.59.69.241:8888
-            $count = (new DeviceCameraModel2Controller(''))->getCameraDeviceLiveStatus($company_id);
+            try {
 
-            $online_devices_count = $online_devices_count +  $count;
-        } catch (\Exception $e) {
+                $count = (new DeviceCameraController(''))->updateCameraDeviceLiveStatus($company_id);
+                $online_devices_count = $online_devices_count +  $count;
+            } catch (\Exception $e) {
+            }
+            try {
+                //139.59.69.241:8888
+                $count = (new DeviceCameraModel2Controller(''))->getCameraDeviceLiveStatus($company_id);
+
+                $online_devices_count = $online_devices_count +  $count;
+            } catch (\Exception $e) {
+            }
         }
+
+
 
         $offline_devices_count = $total_devices_count - $online_devices_count;
 

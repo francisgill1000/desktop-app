@@ -79,9 +79,9 @@ die();
     </style>
 </head>
 @php
-    $totPresent = [];
-    $totAbsent = [];
-    $totMissing = [];
+$totPresent = [];
+$totAbsent = [];
+$totMissing = [];
 @endphp
 
 <body>
@@ -96,10 +96,9 @@ die();
 
                 <div class="col-12" style="text-align:center">
                     @if (env('APP_ENV') !== 'local')
-                        <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                    <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @else
-                        <img src="https://mytime2cloud.com/_nuxt/img/logo22.b9566d9.png"
-                            style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                    <img src="{{ getcwd() .   '/'.$company->logo_raw }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @endif
 
                 </div>
@@ -118,19 +117,19 @@ die();
                             {{-- <td style="text-align: center; border :none">
                                 <span style="font-size: 11px">
                                     {{ date('d-M-y', strtotime($params['from_date'])) }} -
-                                    {{ date('d-M-y', strtotime($params['to_date'])) }}
+                            {{ date('d-M-y', strtotime($params['to_date'])) }}
 
-                                </span>
-                                <hr style="width: 230px">
-                            </td>
-                        </tr> --}}
-                    </table>
-                </div>
+                            </span>
+                            <hr style="width: 230px">
             </td>
-            <td style="text-align: right;width: 300px; border :none;">
-            </td>
-            </td>
-        </tr>
+        </tr> --}}
+    </table>
+    </div>
+    </td>
+    <td style="text-align: right;width: 300px; border :none;">
+    </td>
+    </td>
+    </tr>
     </table>
     <table class="main-table">
         <thead>
@@ -142,56 +141,57 @@ die();
         </thead>
 
         @foreach ($data as $row)
-            <tbody>
-                <tr>
-                    <td style="text-align:  center;">
-                        {{ $row['branch']['branch_name'] ?? '---' }}</td>
-                    <td style="text-align:; width:120px;">
-                        @php
-                            // $pic = 'https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg';
-                            $pic = getcwd() . '/media/employee/profile_picture/' . $row['profile_picture_raw'];
+        <tbody>
+            <tr>
+                <td style="text-align:  center;">
+                    {{ $row['branch']['branch_name'] ?? '---' }}
+                </td>
+                <td style="text-align:; width:120px;">
+                    @php
+                    // $pic = 'https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg';
+                    $pic = getcwd() . '/media/employee/profile_picture/' . $row['profile_picture_raw'];
 
-                        @endphp
-                        <div style="padding:5px; height: 30px;">
-                            <img style="border-radius: 50%;width: 30px;float:left"src="{{ $pic }}" />
-                            <br>
-                            <b style="margin-left:5px; padding-top:15px;">
-                                {{ $row['first_name'] ?? '---' }} {{ $row['last_name'] ?? '---' }}
-                            </b>
-                            <br>
-                            <small style="margin-left:5px;">{{ $row['employee_id'] ?? '---' }}</small>
-                        </div>
-                    </td>
+                    @endphp
+                    <div style="padding:5px; height: 30px;">
+                        <img style="border-radius: 50%;width: 30px;float:left" src="{{ $pic }}" />
+                        <br>
+                        <b style="margin-left:5px; padding-top:15px;">
+                            {{ $row['first_name'] ?? '---' }} {{ $row['last_name'] ?? '---' }}
+                        </b>
+                        <br>
+                        <small style="margin-left:5px;">{{ $row['employee_id'] ?? '---' }}</small>
+                    </div>
+                </td>
 
-                    <td style="text-align:  center;">
-                        {{ $row['phone_number'] ?? '---' }}
-                    </td>
+                <td style="text-align:  center;">
+                    {{ $row['phone_number'] ?? '---' }}
+                </td>
 
-                    <td style="text-align:  center;">
-                        {{ $row['user']['email'] ?? '---' }}
-                    </td>
+                <td style="text-align:  center;">
+                    {{ $row['user']['email'] ?? '---' }}
+                </td>
 
-                    <td style="text-align:;">
-                        @if ($row['passport'])
-                            <div>
-                                <b>Passport</b>{{ $row['passport']['expiry_date'] ?? '---' }}
-                            </div>
-                        @endif
+                <td style="text-align:;">
+                    @if ($row['passport'])
+                    <div>
+                        <b>Passport</b>{{ $row['passport']['expiry_date'] ?? '---' }}
+                    </div>
+                    @endif
 
-                        @if ($row['emirate'])
-                            <div>
-                                <b>Emirates Id</b> {{ $row['emirate']['expiry'] ?? '---' }}
-                            </div>
-                        @endif
+                    @if ($row['emirate'])
+                    <div>
+                        <b>Emirates Id</b> {{ $row['emirate']['expiry'] ?? '---' }}
+                    </div>
+                    @endif
 
-                        @if ($row['visa'])
-                            <div>
-                                <b>Emirates Id</b> {{ $row['visa']['expiry_date'] ?? '---' }}
-                            </div>
-                        @endif
-                    </td>
-                </tr>
-            </tbody>
+                    @if ($row['visa'])
+                    <div>
+                        <b>Emirates Id</b> {{ $row['visa']['expiry_date'] ?? '---' }}
+                    </div>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
         @endforeach
 
 

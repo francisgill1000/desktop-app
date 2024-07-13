@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('devices', function (Blueprint $table) {
-            $table->dropForeign('devices_device_type_check');
+            $table->string("device_type")->nullable();
         });
     }
 
@@ -26,7 +26,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('devices', function (Blueprint $table) {
-            //
+            $table->dropColumn("device_type");
         });
     }
 };

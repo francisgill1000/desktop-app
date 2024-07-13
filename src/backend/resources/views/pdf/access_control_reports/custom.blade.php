@@ -79,9 +79,9 @@ die();
     </style>
 </head>
 @php
-    $totPresent = [];
-    $totAbsent = [];
-    $totMissing = [];
+$totPresent = [];
+$totAbsent = [];
+$totMissing = [];
 @endphp
 
 <body>
@@ -96,12 +96,11 @@ die();
 
                 <div class="col-12" style="text-align:center">
                     @if (env('APP_ENV') !== 'local')
-                        <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                    <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @else
-                        <img src="https://mytime2cloud.com/_nuxt/img/logo22.b9566d9.png"
-                            style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                    <img src="{{ getcwd() .   '/'.$company->logo_raw }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
                     @endif
-                  
+
                 </div>
 
                 <div>
@@ -142,16 +141,16 @@ die();
         </thead>
 
         @foreach ($data as $row)
-           <tbody>
+        <tbody>
             <tr>
                 <td style="text-align:; width:120px;">
                     @php
-                        // $pic = 'https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg';
-                        $pic = getcwd() . '/media/employee/profile_picture/' . $row['employee']['profile_picture_raw'];
+                    // $pic = 'https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg';
+                    $pic = getcwd() . '/media/employee/profile_picture/' . $row['employee']['profile_picture_raw'];
 
                     @endphp
                     <div style="padding:5px; height: 30px;">
-                        <img style="border-radius: 50%;width: 30px;float:left"src="{{ $pic }}" />
+                        <img style="border-radius: 50%;width: 30px;float:left" src="{{ $pic }}" />
                         <br>
                         <b style="margin-left:5px; padding-top:15px;">
                             {{ $row['employee']['first_name'] ?? "---" }} {{ $row['employee']['last_name'] ?? "---" }}
@@ -161,22 +160,25 @@ die();
                     </div>
                 </td>
                 <td style="text-align:  center;">
-                    {{ $row['employee']['branch']['branch_name'] ?? "---" }}</td>
+                    {{ $row['employee']['branch']['branch_name'] ?? "---" }}
+                </td>
                 <td style="text-align:  center;">
                     {{ $row['LogTime'] ?? "---" }}
                 </td>
 
                 <td style="text-align:  center;">
-                    {{ $row['device']['name'] ?? "---" }}</td>
+                    {{ $row['device']['name'] ?? "---" }}
+                </td>
 
                 <td style="text-align:  center;">
-                    {{ $row['device']['location'] ?? "---" }}</td>
+                    {{ $row['device']['location'] ?? "---" }}
+                </td>
 
             </tr>
-           </tbody>
+        </tbody>
         @endforeach
 
-      
+
     </table>
 
     <hr style=" bottom: 0px; position: absolute; width: 100%; margin-bottom:40px">

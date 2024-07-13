@@ -13,17 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        // Schema::create('notifications', function (Blueprint $table) {
-        //     $table->id();
-        //     $table->string('data')->nullable();
-        //     $table->string('action')->nullable();
-        //     $table->string('model')->nullable();
-        //     $table->string('read_at')->nullable();
-        //     $table->integer('user_id')->unsigned()->default(0);
-        //     $table->integer('branch_id')->unsigned()->default(0);
-        //     $table->integer('company_id')->unsigned()->default(0);
-        //     $table->timestamps();
-        // });
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->string('data')->nullable();
+            $table->string('action')->nullable();
+            $table->string('model')->nullable();
+            $table->string('read_at')->nullable();
+            $table->integer('user_id')->unsigned()->default(0);
+            $table->integer('branch_id')->unsigned()->default(0);
+            $table->integer('company_id')->unsigned()->default(0);
+            $table->timestamps();
+        });
     }
 
     /**

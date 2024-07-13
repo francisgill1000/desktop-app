@@ -14,8 +14,8 @@ return new class extends Migration
     public function up()
     {
         Schema::table('visitors', function (Blueprint $table) {
-            // $table->dropColumn("time_in");
-            // $table->dropColumn("time_out");
+            $table->dropColumn("time_in");
+            $table->dropColumn("time_out");
         });
     }
 

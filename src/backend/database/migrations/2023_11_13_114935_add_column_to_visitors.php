@@ -14,8 +14,8 @@ return new class extends Migration
     public function up()
     {
         Schema::table('visitors', function (Blueprint $table) {
-            // $table->time("time_in")->nullable();
-            // $table->time("time_out")->nullable();
+            $table->time("time_in")->nullable();
+            $table->time("time_out")->nullable();
         });
     }
 

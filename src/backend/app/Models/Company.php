@@ -29,7 +29,7 @@ class Company extends Model
         'created_at' => 'datetime:d-M-y',
         'no_branch' => 'boolean',
     ];
-    protected $appends = ['show_member_from', 'show_expiry'];
+    protected $appends = ['show_member_from', 'show_expiry', "logo_raw"];
 
     public function documents()
     {
@@ -108,7 +108,11 @@ class Company extends Model
     {
         return $this->hasMany(Device::class);
     }
-
+    public function getLogoRawAttribute($value)
+    {
+        $arr = explode('upload/', $this->logo);
+        return isset($arr[1]) ? 'upload/' . $arr[1] : '';
+    }
     public function getLogoAttribute($value)
     {
         if (!$value) {
