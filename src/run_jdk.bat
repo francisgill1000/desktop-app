@@ -1,2 +1,2 @@
 @echo off
-cd jdk && @set PATH=bin;%PATH% && start /MIN java -jar SxDeviceManager.jar > ../jdk_server.txt
+cd jdk && @set PATH=bin;%PATH% && start java -jar SxDeviceManager.jar > ../jdk_server.txt

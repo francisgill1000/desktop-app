@@ -1,3 +1,3 @@
 @ECHO OFF
 
-cd listener && @set PATH=nodejs;%PATH% && start /MIN node log-listener > ../listener.txt
+cd listener && @set PATH=nodejs;%PATH% && start node log-listener > ../listener.txt
