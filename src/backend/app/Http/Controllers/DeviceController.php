@@ -36,9 +36,9 @@ class DeviceController extends Controller
     {
         $model = Device::query();
         $model->where('company_id', request('company_id'));
-        $model->where("status_id", self::ONLINE_STATUS_ID);
+        //$model->where("status_id", self::ONLINE_STATUS_ID);
         $model->excludeMobile();
-        $model->when(request()->filled('branch_id'), fn ($q) => $q->where('branch_id', request('branch_id')));
+        $model->when(request()->filled('branch_id'), fn($q) => $q->where('branch_id', request('branch_id')));
         $model->orderBy(request('order_by') ?? "name", request('sort_by_desc') ? "desc" : "asc");
         return $model->get(["id", "name", "location", "device_id", "device_type"]);
     }
@@ -342,10 +342,10 @@ class DeviceController extends Controller
         $model->with(['device']);
         $model->where('company_id', $id);
         $model->when($request->filled("branch_id"), function ($q) use ($request) {
-            $q->whereHas("employee", fn ($q) => $q->where("branch_id", $request->branch_id));
+            $q->whereHas("employee", fn($q) => $q->where("branch_id", $request->branch_id));
         });
         $model->when($request->filled("department_id") && $request->department_id > 0, function ($q) use ($request) {
-            $q->whereHas("employee", fn ($q) => $q->where("department_id", $request->department_id));
+            $q->whereHas("employee", fn($q) => $q->where("department_id", $request->department_id));
         });
         $model->whereIn('UserID', function ($query) use ($request) {
             // $model1 = Employee::query();
@@ -415,9 +415,9 @@ class DeviceController extends Controller
 
 
             $device = Device::where("serial_number", $request->serial_number)->first();
-            if ($device->status_id == 2) {
-                return $this->response("Device is offline. Please Check Device Online status.", null, false);
-            }
+            // if ($device->status_id == 2) {
+            //     return $this->response("Device is offline. Please Check Device Online status.", null, false);
+            // }
             try {
 
                 if ($device->device_category_name == 'CAMERA') {
@@ -439,20 +439,20 @@ class DeviceController extends Controller
 
 
 
-                    // $data = [
-                    //     "IllegalVerificationAlarm" => false,
-                    //     "PasswordAlarm" => false,
-                    //     "DoorMagneticAlarm" => false,
-                    //     "BlacklistAlarm" => false,
-                    //     "FireAlarm" => true,
-                    //     "OpenDoorTimeoutAlarm" => false,
-                    //     "AntiDisassemblyAlarm" => false,
-                    // ];
-                    // if ($request->status == 0) {
-                    //     (new SDKController)->processSDKRequestCloseAlarm($request->serial_number, $data);
-                    //     //always open the door till close manually
-                    //     $this->CallAlwaysOpenDoor($request->serial_number);
-                    // }
+                    $data = [
+                        "IllegalVerificationAlarm" => false,
+                        "PasswordAlarm" => false,
+                        "DoorMagneticAlarm" => false,
+                        "BlacklistAlarm" => false,
+                        "FireAlarm" => true,
+                        "OpenDoorTimeoutAlarm" => false,
+                        "AntiDisassemblyAlarm" => false,
+                    ];
+                    if ($request->status == 0) {
+                        (new SDKController)->processSDKRequestCloseAlarm($request->serial_number, $data);
+                        //always open the door till close manually
+                        $this->CallAlwaysOpenDoor($request->serial_number);
+                    }
                 }
 
                 $data = ["alarm_status" => 0, "alarm_end_datetime" => date('Y-m-d H:i:s')];
@@ -607,7 +607,7 @@ class DeviceController extends Controller
             //update to Device 
             if ($request->model_number == 'OX-900') {
 
-                $status = $request->function == 'manual'  ? 'true' : 'false';
+                $status = $request->function == 'option'  ? 'true' : 'false';
                 $json = '{             
              
                  
@@ -674,7 +674,10 @@ class DeviceController extends Controller
         $model = Device::query();
 
         $fields = [
-            'name', 'device_id', 'location', 'short_name',
+            'name',
+            'device_id',
+            'location',
+            'short_name',
             'status' => ['name'],
             'company' => ['name'],
         ];
@@ -840,8 +843,6 @@ class DeviceController extends Controller
     }
     public function closeDoor(Request $request)
     {
-
-
         $device = Device::where("device_id", $request->device_id)->first();
         if ($device->status_id == 2) {
             return $this->response("Device is offline. Please Test Device Online status.", null, false);
@@ -1085,9 +1086,10 @@ class DeviceController extends Controller
     public function checkDevicesHealthCompanyId($company_id = '')
     {
         $total_devices_count = Device::where("device_type", "!=", "Mobile")
-            ->when($company_id > 0, fn ($q) => $q->where('company_id', $company_id))
-            ->where("device_type", "!=", "Manual")
+            ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
             ->where("device_id", "!=", "Manual")
+            // ->where("device_type", "!=", "Manual")
+            ->where('device_id', 'NOT ILIKE', '%mobile%')
 
 
             ->get()->count();;
@@ -1095,9 +1097,12 @@ class DeviceController extends Controller
         $devicesHealth = (new SDKController())->GetAllDevicesHealth();
 
         $companyDevices = Device::where("device_type", "!=", "Mobile")
-            ->when($company_id > 0, fn ($q) => $q->where('company_id', $company_id))
-            ->where("device_type", "!=", "Manual")
+            ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
+            // ->where("device_type", "!=", "Manual")
             ->where("device_id", "!=", "Manual")
+            ->where("device_id", "!=", "Manual")
+            ->where('device_id', 'NOT ILIKE', '%mobile%')
+
 
             ->Where(function ($q) {
                 $q->where('device_category_name', "!=", "CAMERA");
@@ -1129,18 +1134,30 @@ class DeviceController extends Controller
                 }
             }
             $company_id = $Device["company_id"];
+        } //for 
+
+        $array_unique = array_unique($companiesIds);
+        // Re-indexing the array to maintain a clean index sequence
+        $companiesIds = array_values($array_unique);
+        foreach ($companiesIds as $key => $company_id) {
+            # code...
 
             try {
 
                 $count = (new DeviceCameraController(''))->updateCameraDeviceLiveStatus($company_id);
-                $online_devices_count = $online_devices_count +  $count;
+
+
+                if ($count)
+                    $online_devices_count = $online_devices_count +  $count;
             } catch (\Exception $e) {
             }
             try {
-                //139.59.69.241:8888
-                $count = (new DeviceCameraModel2Controller(''))->getCameraDeviceLiveStatus($company_id);
+                //139.59.69.241:8888 //OX-900
 
-                $online_devices_count = $online_devices_count +  $count;
+
+                $count = (new DeviceCameraModel2Controller(''))->getCameraDeviceLiveStatus($company_id);
+                if ($count)
+                    $online_devices_count = $online_devices_count +  $count;
             } catch (\Exception $e) {
             }
         }
@@ -1150,7 +1167,7 @@ class DeviceController extends Controller
         $offline_devices_count = $total_devices_count - $online_devices_count;
 
         Company::whereIn("id", array_values($companiesIds))->update(["is_offline_device_notificaiton_sent" => false]);
-        return   "$offline_devices_count Devices offline. $online_devices_count Devices online. $total_devices_count records found.";
+        return   " $online_devices_count Devices online. $offline_devices_count Devices offline. $total_devices_count records found.";
     }
     // public function checkDeviceHealth_old(Request $request)
     // {
@@ -1270,7 +1287,12 @@ class DeviceController extends Controller
         $device_settings_id = '';
 
         $devices_active_settings_array = [
-            'device_id' => $device_id, 'company_id' =>  $request->company_id, 'date_from' => $request->date_from, 'date_to' => $request->date_to,   'open_json' => json_encode($open_time_array), 'close_json' => json_encode($closing_time_array)
+            'device_id' => $device_id,
+            'company_id' =>  $request->company_id,
+            'date_from' => $request->date_from,
+            'date_to' => $request->date_to,
+            'open_json' => json_encode($open_time_array),
+            'close_json' => json_encode($closing_time_array)
         ];
 
         $record = DeviceActivesettings::where("device_id", $device_id)->where("company_id", $request->company_id);

@@ -47,7 +47,7 @@ class SingleShiftController extends Controller
         return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true);
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $isRequestFromAutoshift = false)
     {
         $params = [
             "company_id" => $id,
@@ -61,10 +61,19 @@ class SingleShiftController extends Controller
             $params["UserIds"] = (new AttendanceLog)->getEmployeeIdsForNewLogsToRender($params);
             // return json_encode($params["UserIds"]);
         }
+        $logsEmployees = [];
+
+
+        if ($isRequestFromAutoshift) {
+            $logsEmployees =  (new AttendanceLog)->getLogsForRenderOnlyAutoShift($params);
+        } else {
+            //$logsEmployees =  (new AttendanceLog)->getLogsForRender($params);
+            $logsEmployees =  (new AttendanceLog)->getLogsForRenderNotAutoShift($params);
+        }
 
 
 
-        $logsEmployees =  (new AttendanceLog)->getLogsForRender($params);
+
 
         //update atendance table with shift ID if shift with employee not found 
         if (count($logsEmployees) == 0) {
@@ -78,6 +87,8 @@ class SingleShiftController extends Controller
                     $model1 = Attendance::query();
                     $model1->whereIn("employee_id", $UserIds);
                     $model1->where("date", $params["date"]);
+                    $model1->where("shift_id", 0);
+                    $model1->where("shift_type_id", 0);
                     $model1->where("company_id", $params["company_id"]);
                     $model1->update($data1);
                 }
@@ -87,6 +98,8 @@ class SingleShiftController extends Controller
         $items = [];
 
         foreach ($logsEmployees as $key => $logs) {
+
+
 
             $logs = $logs->toArray() ?? [];
 
@@ -100,6 +113,7 @@ class SingleShiftController extends Controller
             // $lastLog = collect($logs)->filter(function ($record) {
             //     return isset($record["device"]["function"]) && ($record["device"]["function"] == "Out" || $record["device"]["function"] == "auto");
             // })->first();
+            $firstLog = null;
 
             $firstLog = collect($logs)->filter(function ($record) {
                 return $record["log_type"] == "In";
@@ -108,17 +122,38 @@ class SingleShiftController extends Controller
             $lastLog = collect($logs)->filter(function ($record) {
                 return $record["log_type"] == "Out";
             })->last();
-            if ($firstLog == null) {
 
-                $firstLog = collect($logs)->filter(function ($record) {
-                    return (isset($record["device"]["function"]) && ($record["device"]["function"] != "Out"));
-                })->first();
+            if ($isRequestFromAutoshift) {
+
+                if ($firstLog == null) {
+                    $firstLog = collect($logs)->filter(function ($record) {
+                        return (isset($record["device"]["function"]) && ($record["device"]["function"] == "In"));
+                    })->first();
+                }
+                if ($lastLog == null) {
+                    $lastLog = collect($logs)->filter(function ($record) {
+                        return isset($record["device"]["function"]) && ($record["device"]["function"] == "Out");
+                    })->last();
+                }
+            } else {
+
+
+
+                if ($firstLog == null) {
+
+                    $firstLog = collect($logs)->filter(function ($record) {
+                        return (isset($record["device"]["function"]) && ($record["device"]["function"] != "Out"));
+                    })->first();
+                }
+                if ($lastLog == null) {
+                    $lastLog = collect($logs)->filter(function ($record) {
+                        return isset($record["device"]["function"]) && ($record["device"]["function"] != "In");
+                    })->last();
+                }
             }
-            if ($lastLog == null) {
-                $lastLog = collect($logs)->filter(function ($record) {
-                    return isset($record["device"]["function"]) && ($record["device"]["function"] != "In");
-                })->last();
-            }
+
+
+
 
             // if ($firstLog && ($firstLog["log_type"] == "in" || $firstLog["log_type"] == "auto")) {
             //     $item["in"] = $firstLog["time"];

@@ -535,47 +535,66 @@ class SDKController extends Controller
     }
     public function getPersonDetails($device_id, $user_code)
     {
-        $url = env('SDK_URL') . "/" . "{$device_id}/GetPersonDetail";
 
-        if (env('APP_ENV') == 'desktop') {
-            $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/" . "{$device_id}/GetPersonDetail";
-        }
-
-        try {
-            $response = Http::timeout(3600)->withoutVerifying()->withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($url, ["usercode" => $user_code]);
-
-            $res = $response->json();
+        $device = Device::where("serial_number", $device_id)->first();
+        if ($device && $device->model_number  && $device->model_number == 'OX-900') {
+            $response = (new DeviceCameraModel2Controller($device->camera_sdk_url, $device["serial_number"]))->getPersonDetails($user_code);
+            if ($response)
+                return  ["data" => $response];
+            else
+                return ["data" => null];
+        } else {
 
 
-            // $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $res["data"]["faceImage"]));
-            // $imageName = time() . ".png";
-            // $publicDirectory = public_path("test");
-            // if (!file_exists($publicDirectory)) {
-            //     mkdir($publicDirectory, 0777, true);
-            // }
-            // file_put_contents($publicDirectory . '/' . $imageName, $base64Image);
+            $url = env('SDK_URL') . "/" . "{$device_id}/GetPersonDetail";
 
-            unset($res["data"]["faceImage"]);
+            if (env('APP_ENV') == 'desktop') {
+                $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/" . "{$device_id}/GetPersonDetail";
+            }
 
-            return $res;
-        } catch (\Exception $e) {
-            return [
-                "status" => 102,
-                "message" => $e->getMessage(),
-            ];
+            try {
+                $response = Http::timeout(3600)->withoutVerifying()->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->post($url, ["usercode" => $user_code]);
+
+                $res = $response->json();
+
+
+                // $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $res["data"]["faceImage"]));
+                // $imageName = time() . ".png";
+                // $publicDirectory = public_path("test");
+                // if (!file_exists($publicDirectory)) {
+                //     mkdir($publicDirectory, 0777, true);
+                // }
+                // file_put_contents($publicDirectory . '/' . $imageName, $base64Image);
+
+                unset($res["data"]["faceImage"]);
+
+                return $res;
+            } catch (\Exception $e) {
+                return [
+                    "status" => 102,
+                    "message" => $e->getMessage(),
+                ];
+            }
         }
     }
 
     public function deletePersonDetails($device_id, Request $request)
     {
         try {
-            $response = Http::timeout(3600)->withoutVerifying()->withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post(env('SDK_URL') . "/" . "{$device_id}/DeletePerson", ["userCodeArray" => $request->userCodeArray]);
+            $device = Device::where("serial_number", $device_id)->first();
+            if ($device && $device->model_number  && $device->model_number == 'OX-900') {
+                $response = (new DeviceCameraModel2Controller($device->camera_sdk_url, $device["serial_number"]))->deletePersonFromDevice($request->userCodeArray[0]);
 
-            return $response->json();
+                return  ["data" => $response];
+            } else {
+                $response = Http::timeout(3600)->withoutVerifying()->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->post(env('SDK_URL') . "/" . "{$device_id}/DeletePerson", ["userCodeArray" => $request->userCodeArray]);
+
+                return $response->json();
+            }
         } catch (\Exception $e) {
             return [
                 "status" => 102,

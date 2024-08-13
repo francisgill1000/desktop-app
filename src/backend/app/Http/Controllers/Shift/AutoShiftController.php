@@ -14,6 +14,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Schedule;
 use App\Models\Shift;
+use Carbon\Carbon;
 
 class AutoShiftController extends Controller
 {
@@ -92,6 +93,8 @@ class AutoShiftController extends Controller
         $arr["date"] = $date;
 
         foreach ($data as $UserID => $logs) {
+
+
             if (count($logs) == 0) {
                 continue;
             }
@@ -101,8 +104,28 @@ class AutoShiftController extends Controller
             $model = $this->findAttendanceByUserId($arr);
 
             if (!$model) {
-                $nearestShift = $this->findClosest($shifts, count($shifts), $logs[0]["show_log_time"], $date);
+                $nearestShift = $this->findClosest($shifts, count($shifts), $logs, $date);
+                if ($nearestShift == null) {
 
+                    $itemData = [
+                        "total_hrs" => "---",
+                        "in" =>   "---",
+                        "out" =>  "---",
+                        "ot" => "---",
+                        "device_id_in" =>   "---",
+                        "device_id_out" => "---",
+
+                        "status" => "A",
+                        "late_coming" => "---",
+                        "early_going" => "---",
+
+                    ];
+                    Attendance::where("company_id", $companyId)
+                        ->where("employee_id", $UserID)
+                        ->where("date", $date)->update($itemData);
+
+                    return "Nearest Shift is not found " . $date;
+                }
                 $arr["shift_type_id"] = $nearestShift["shift_type_id"];
                 $arr["status"] = "P";
                 $arr["device_id_in"] = $logs[0]["DeviceID"];
@@ -216,7 +239,45 @@ class AutoShiftController extends Controller
 
         return strtotime($dateTime);
     }
-    public function findClosest($arr, $n, $target, $date)
+    public function findClosest($shifts, $count, $logs, $date)
+    {
+        foreach ($logs as $logTime) {
+            if ($logTime["log_type"] == "In" || $logTime["device"]["function"] == "In") {
+                $current_time = date("H:i", strtotime($logTime["LogTime"]));
+
+                $matching_shift = array_filter($shifts, function ($shift) use ($current_time) {
+                    return $current_time >= $shift['beginning_in'] && $current_time <= $shift['beginning_out'];
+                });
+
+                if (!empty($matching_shift)) {
+                    $shift = array_values($matching_shift)[0]; // Get the first matching shift
+                    //return  [$shift, $logs];
+
+                    return $shift;
+                }
+            }
+        }
+
+        return null;
+
+
+
+
+
+        // $current_time = date("H:i", $log_time);
+
+        // $matching_shift = array_filter($shifts, function ($shift) use ($current_time) {
+        //     return $current_time >= $shift['beginning_in'] && $current_time <= $shift['beginning_out'];
+        // });
+
+        // if (!empty($matching_shift)) {
+        //     $shift = array_values($matching_shift)[0]; // Get the first matching shift
+        //     return  $shift;
+        // } else {
+        //     return null;
+        // }
+    }
+    public function findClosest_old($arr, $n, $target, $date)
     {
         if (count($arr) == 0) return false;
 
@@ -401,10 +462,34 @@ class AutoShiftController extends Controller
 
             $shifts = ((new Shift)->getAutoShiftsAll($params["company_id"], $row[0]["employee"]["branch_id"]));
 
-
+            //return $row;
             if (count($shifts) > 0) {
-                $nearestShift = $this->findClosest($shifts, count($shifts), $row[0]["show_log_time"], $date);
+                $nearestShift = $this->findClosest($shifts, count($shifts), $row, $date);
 
+                //clear old Attendance shift data 
+                $itemData = [
+                    "total_hrs" => "---",
+                    "in" =>   "---",
+                    "out" =>  "---",
+                    "ot" => "---",
+                    "device_id_in" =>   "---",
+                    "device_id_out" => "---",
+                    "shift_type_id" =>   $nearestShift["shift_type_id"] ?? 0,
+                    "shift_id" =>   $nearestShift["shift_id"] ?? 0,
+
+                    "status" => "A",
+                    "late_coming" => "---",
+                    "early_going" => "---",
+
+                ];
+                Attendance::where("company_id", $id)
+                    ->where("employee_id", $UserID)
+                    ->where("date", $date)->update($itemData);
+
+                //------------
+                if ($nearestShift == null) {
+                    return "Nearest Shift is not found1 " . $date;
+                }
                 $arr = [];
                 $arr["company_id"] = $params["company_id"];
                 $arr["date"] = $params["date"];
@@ -419,10 +504,11 @@ class AutoShiftController extends Controller
 
                 ScheduleEmployee::where("company_id", $params['company_id'])
                     ->where("employee_id", $UserID)
+                    ->where("isAutoShift", true)
                     ->update([
-                        "from_date" => $params['date'],
+                        /////////  "from_date" => $params['date'],
                         //"to_date" => $params['date'],
-                        "to_date" =>  date("Y-m-d", strtotime(date("Y-m-d") . " +1 day")),
+                        ///// "to_date" =>  date("Y-m-d", strtotime(date("Y-m-d") . " +1 day")),
 
                         "shift_type_id" => $nearestShift['shift_type_id'],
                         "shift_id" => $nearestShift['id'],
@@ -445,6 +531,7 @@ class AutoShiftController extends Controller
                 $message .= "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto The Log(s) has been rendered against " . $UserID . " SYSTEM USER ID.\n";
 
                 $message .= " Nearest shift ({$nearestShift['name']})";
+                $message .= " Notes: " . json_encode($result);
             }
         }
 
@@ -462,6 +549,6 @@ class AutoShiftController extends Controller
             6 => SingleShiftController::class,
         ];
 
-        return (new $arr[$shift_type_id])->render($params['company_id'], $params['date'], $shift_type_id, [$UserID], true);
+        return (new $arr[$shift_type_id])->render($params['company_id'], $params['date'], $shift_type_id, [$UserID], true, true);
     }
 }

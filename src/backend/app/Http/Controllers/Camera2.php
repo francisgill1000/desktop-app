@@ -30,10 +30,12 @@ class Camera2 extends Controller
         $timestamp = $request->timestamp;
         $recognition_score = $request->recognition_score;
 
-        $clock_status = '';
+        $clock_status = $request->clock_status;
 
         if ($request->clock_status == 'Clock On') $clock_status = "In";
         else if ($request->clock_status == 'Clock Off') $clock_status = "Out";
+
+
 
         //----Raw--------
         $file_name_raw = "camera/camera-logs-raw" . date("d-m-Y") . ".txt";
@@ -42,6 +44,10 @@ class Camera2 extends Controller
 
         //------Raw Data-------
 
+        $deviceAttendancefunction = Device::where("device_id", $device_sn)->pluck("function")->first();
+        if ($deviceAttendancefunction == 'option' && $clock_status == 'None') {
+            return false;
+        }
 
         $timeZone = 'Asia/Dubai';
         $deviceTimezone = Device::where("device_id", $device_sn)->pluck("utc_time_zone")->first();

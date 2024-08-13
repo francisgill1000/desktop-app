@@ -39,17 +39,33 @@ class RenderController extends Controller
 
         $shift_type_id = $request->shift_type_id;
 
+        $fromdate = date('Y-m-d', strtotime('-1 day', strtotime($request->dates[0])));
+        $date1 = new DateTime($fromdate);
 
-        $date1 = new DateTime($request->dates[0]);
+        //$date1 = new DateTime($request->dates[0]);
         $date2 = new DateTime($request->dates[1]);
-        $interval = $date1->diff($date2);
-        if ($interval->days > 5) {
-            return ["Limit  5 Days only  allowed between From and To Date."];
-        }
 
+        $interval = $date1->diff($date2);
+        if ($interval->days > 8) {
+            return ["Limit  8 Days only  allowed between From and To Date."];
+        }
+        // $message = '';
+        // return   $automessage = (new AutoShiftController)->renderData($request);
+        // if ($automessage != 'Nearest Shift is not found') {
+        //     $message = [
+        //         (new FiloShiftController)->renderData($request),
+        //         (new SingleShiftController)->renderData($request),
+        //         (new SplitShiftController)->renderData($request),
+        //         (new MultiShiftController)->renderData($request),
+        //         (new NightShiftController)->renderData($request)
+        //     ];
+        // }
+
+        // return [$automessage, $message];
 
         return array_merge(
             (new AutoShiftController)->renderData($request),
+
             (new FiloShiftController)->renderData($request),
             (new SingleShiftController)->renderData($request),
             (new SplitShiftController)->renderData($request),

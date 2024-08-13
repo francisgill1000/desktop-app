@@ -126,8 +126,7 @@ class AlarmLogsController extends Controller
                 Device::where("device_id", $columns[0])->update($data);
             }
         }
-
-
+        AlarmLogs::insert($records);
         try {
 
             $company_ids = Device::wherein("device_id", $device_ids)->pluck('company_id');
@@ -144,9 +143,6 @@ class AlarmLogsController extends Controller
         }
 
         try {
-            AlarmLogs::insert($records);
-
-
             // Logger::channel("custom")->info(count($records) . ' new logs has been inserted.');
             Storage::put("alarm/alarm-logs-count-" . $result['date'] . ".txt", $result['totalLines']);
             ///Storage::append("camera/camera-logs-count-" . $result['date'] . ".txt", $result['totalLines']);

@@ -64,8 +64,10 @@ class Kernel extends ConsoleKernel
         if (env('APP_ENV') != 'desktop') {
             $schedule->call(function () {
                 exec('pm2 reload 3');
-                info("Camera Log listener restarted");
-            })->everyMinute();
+                //info("Camera Log listener restarted");
+            })
+                ->everyMinute()
+                ->appendOutputTo(storage_path("kernal_logs/camera_log_listner/" . date("d-M-y") . "-camera-log-listner.log"));
         }
         (new DeviceController())->deviceAccessControllAllwaysOpen($schedule);
 

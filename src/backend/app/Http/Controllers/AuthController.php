@@ -206,16 +206,16 @@ class AuthController extends Controller
     {
 
         // Check if the user type is one of the predefined types
-        if (in_array($user->user_type, ["company", "admin", "department"])) {
+        if (in_array($user->user_type, ["master", "company", "admin", "department"])) {
             return $user->user_type;
         }
 
         $found = CompanyBranch::where('user_id', $user->id)->select('id', 'branch_name', "logo as branch_logo")->first();
 
-        if ($found) {
-            $user->branch_name = $found->branch_name;
-            $user->branch_logo = $found->logo;
-            $user->branch_id = $found->id; //$user->id;
+        if ($found || $user->user_type == "employee") {
+            $user->branch_name = $found->branch_name ?? "";
+            $user->branch_logo = $found->logo ?? "";
+            $user->branch_id = $found->id ?? ""; //$user->id;
 
             $user->load(["employee" => function ($q) {
                 $q->select(

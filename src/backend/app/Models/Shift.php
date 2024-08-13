@@ -78,7 +78,7 @@ class Shift extends Model
         // Auto Shift
         return self::orderBy("on_duty_time")
             ->where("company_id", $companyId)
-            ->where("branch_id", $branch_id)
+            // ->where("branch_id", $branch_id)
             ->where("isAutoShift", 1)
             ->withOut("shift_type")
             ->with("employee_schedule")
@@ -91,7 +91,9 @@ class Shift extends Model
                     "working_hours",
                     "overtime_interval",
                     "early_time",
-                    "shift_type_id"
+                    "shift_type_id",
+                    "beginning_in",
+                    "beginning_out",
                 ]
 
             )->toArray();

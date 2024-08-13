@@ -20,12 +20,16 @@ class NightShiftController extends Controller
         } else {
             $endDateString = $request->dates[0];
         }
+
+
+
         $company_id = $request->company_ids[0];
         $employee_ids = $request->employee_ids;
 
         // Convert start and end dates to DateTime objects
         $startDate = new \DateTime($startDateString);
         $endDate = new \DateTime($endDateString);
+        $endDate->modify('+1 day');
         $currentDate = new \DateTime();
 
         $response = [];
@@ -46,7 +50,7 @@ class NightShiftController extends Controller
         return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true);
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $isRequestFromAutoshift = false)
     {
         $params = [
             "company_id" => $id,
@@ -61,7 +65,17 @@ class NightShiftController extends Controller
             $params["UserIds"] = (new AttendanceLog)->getEmployeeIdsForNewLogsNightToRender($params);
         }
 
-        $logsEmployees =  (new AttendanceLog)->getLogsForRender($params);
+        //$logsEmployees =  (new AttendanceLog)->getLogsForRender($params);
+
+        $logsEmployees = [];
+
+
+        if ($isRequestFromAutoshift) {
+            $logsEmployees =  (new AttendanceLog)->getLogsForRenderOnlyAutoShift($params);
+        } else {
+            //$logsEmployees =  (new AttendanceLog)->getLogsForRender($params);
+            $logsEmployees =  (new AttendanceLog)->getLogsForRenderNotAutoShift($params);
+        }
 
         //update atendance table with shift ID if shift with employee not found 
         if (count($logsEmployees) == 0) {
@@ -76,10 +90,13 @@ class NightShiftController extends Controller
                     $model1->whereIn("employee_id", $UserIds);
                     $model1->where("date", $params["date"]);
                     $model1->where("company_id", $params["company_id"]);
+                    $model1->where("shift_id", 0);
+                    $model1->where("shift_type_id", 0);
                     $model1->update($data1);
                 }
             }
         }
+
 
         $items = [];
         $keys = [];
@@ -92,7 +109,7 @@ class NightShiftController extends Controller
             //     return isset($record["device"]["function"]) && ($record["device"]["function"] != "Out");
             // })->first();
 
-            $firstLog = collect($logs)->filter(function ($record) {
+            /*$firstLog = collect($logs)->filter(function ($record) {
                 return $record["log_type"] == "In";
             })->first();
 
@@ -102,6 +119,45 @@ class NightShiftController extends Controller
                 $firstLog = collect($logs)->filter(function ($record) {
                     return (isset($record["device"]["function"]) && ($record["device"]["function"] != "Out"));
                 })->first();
+            }
+*/
+            $firstLog = null;
+
+            $firstLog = collect($logs)->filter(function ($record) {
+                return $record["log_type"] == "In";
+            })->first();
+
+            $lastLog = collect($logs)->filter(function ($record) use ($firstLog) {
+                return $record["log_type"] == "Out" && $record["LogTime"] > $firstLog['LogTime'];
+            })->first();
+
+
+
+            if ($isRequestFromAutoshift) {
+
+                if ($firstLog == null) {
+                    $firstLog = collect($logs)->filter(function ($record) {
+                        return (isset($record["device"]["function"]) && ($record["device"]["function"] == "In"));
+                    })->first();
+                }
+                if ($lastLog == null) {
+                    $lastLog = collect($logs)->filter(function ($record) use ($firstLog) {
+                        return isset($record["device"]["function"]) && ($record["device"]["function"] == "Out") && $record["LogTime"] > $firstLog['LogTime'];
+                    })->first();
+                }
+            } else {
+
+                if ($firstLog == null) {
+
+                    $firstLog = collect($logs)->filter(function ($record) {
+                        return (isset($record["device"]["function"]) && ($record["device"]["function"] != "Out"));
+                    })->first();
+                }
+                if ($lastLog == null) {
+                    $lastLog = collect($logs)->filter(function ($record) use ($firstLog) {
+                        return isset($record["device"]["function"]) && ($record["device"]["function"] != "In") && $record["LogTime"] > $firstLog['LogTime'];
+                    })->first();
+                }
             }
 
 
@@ -126,7 +182,7 @@ class NightShiftController extends Controller
 
             if ($firstLog['LogTime'] < $beginningIn || $firstLog['LogTime'] > $beginningOut) {
                 $keys[] = $key;
-                $message .= "{$key} LogTime({$firstLog["LogTime"]}) is out of range ({$beginningIn} to {$beginningOut})";
+                $message .= "{$key} LogTime({$firstLog["LogTime"]}) OUT time  is out of range ({$beginningIn} to {$beginningOut})";
                 $message .= " Device: {$firstLog["DeviceID"]}";
                 continue;
             }
@@ -156,14 +212,26 @@ class NightShiftController extends Controller
                     $item["status"] = "LC";
                 }
             }
+            //commented because last log is not exist dual to device type is manual 
+            // $lastLog = $this->getLogsForOutOnly(
+            //     $item["company_id"],
+            //     $key,
+            //     $item["date"],
+            //     $shift,
+            //     $custom_render
+            // );
+            /*
+            $lastLog = collect($logs)->filter(function ($record) {
+                return $record["log_type"] == "Out";
+            })->last();
 
-            $lastLog = $this->getLogsForOutOnly(
-                $item["company_id"],
-                $key,
-                $item["date"],
-                $shift,
-                $custom_render
-            );
+
+            if ($lastLog == null) {
+
+                $lastLog = collect($logs)->filter(function ($record) {
+                    return (isset($record["device"]["function"]) && ($record["device"]["function"] != "In"));
+                })->last();
+            }*/
 
             if ($lastLog) {
 
@@ -186,7 +254,7 @@ class NightShiftController extends Controller
 
                 if ($lastLog['LogTime'] < $endingIn || $lastLog['LogTime'] > $endingOut) {
                     $keys[] = $key;
-                    $message .= "{$key} LogTime({$lastLog["LogTime"]}) is out of range ({$endingIn} to {$endingOut})";
+                    $message .= "{$key} LogTime({$lastLog["LogTime"]}) IN time  is out of range ({$endingIn} to {$endingOut})";
                     $message .= " Device: {$lastLog["DeviceID"]}";
                     continue;
                 }
@@ -198,7 +266,8 @@ class NightShiftController extends Controller
                 $item["out"] = $lastLog["time"] ?? "---";
 
                 if ($item["out"] !== "---") {
-                    $item["total_hrs"] = $this->calculatedHours($item["in"], $item["out"]);
+                    //$item["total_hrs"] = $this->calculatedHours($item["in"], $item["out"]);
+                    $item["total_hrs"] = $this->calculatedHours($firstLog['LogTime'], $lastLog['LogTime']);
                 }
 
                 if ($schedule["isOverTime"] ?? false) {
@@ -267,14 +336,17 @@ class NightShiftController extends Controller
 
     public function getLogsForOutOnly($company_id, $UserId, $date, $shift, $custom_render)
     {
+
+
         $model = AttendanceLog::query();
         $model->when(!$custom_render, fn ($q) => $q->where("checked", false));
         $model->where("company_id", $company_id);
         $model->where("UserID", $UserId);
         $model->where("LogTime", ">=", date("Y-m-d", strtotime($date . " +1 day")) . " " . $shift["ending_in"]);
-        $model->where("LogTime", "<=", date("Y-m-d", strtotime($date . " +1 day")) . " " . $shift["ending_out"]);
+        $model->where("LogTime", "<=", date("Y-m-d", strtotime($date . " +2 day")) . " " . $shift["ending_out"]);
         $model->distinct("LogTime", "UserID", "company_id");
         $model->orderBy("LogTime", "desc");
+        //$model->whereHas("device", fn ($q) => $q->whereIn("function", ["Out", "all"]));
         $model->whereHas("device", fn ($q) => $q->whereIn("function", ["Out", "all"]));
         $model->with(["schedule", "device"]);
         return $model->first();
@@ -283,7 +355,8 @@ class NightShiftController extends Controller
     public function calculatedHours($in, $out)
     {
 
-        $diff = abs(((strtotime($in)) - (strtotime($out) + 86400)));
+        //$diff = abs(((strtotime($in)) - (strtotime($out) + 86400)));
+        $diff =  strtotime($out) - strtotime($in);
         $h = floor($diff / 3600);
         $m = floor(($diff % 3600) / 60);
         return (($h < 10 ? "0" . $h : $h) . ":" . ($m < 10 ? "0" . $m : $m));

@@ -337,14 +337,65 @@ class AttendanceLog extends Model
             ->distinct("UserID", "company_id")
             ->pluck('UserID');
     }
-
-
-    public function getLogsForRender($params)
+    public function getLogsForRenderOnlyAutoShift($params)
     {
-
+        $days = 1;
+        if ($params['shift_type_id'] == 4) {
+            $days = 2;
+        }
 
         return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
-            ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +1 day")))
+            ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
+            ->whereIn("UserID", $params["UserIds"])
+            ->where("company_id", $params["company_id"])
+            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", true))
+            ->distinct("LogTime", "UserID", "company_id")
+            ->get()
+            ->load("device")
+            ->load(["schedule" => function ($q) use ($params) {
+                $q->where("company_id", $params["company_id"]);
+                $q->where("to_date", ">=", $params["date"]);
+                $q->where("shift_type_id", $params["shift_type_id"]);
+                $q->withOut("shift_type");
+                // $q->select("shift_id", "isOverTime", "employee_id", "shift_type_id", "shift_id", "shift_id");
+                $q->orderBy("to_date", "asc");
+            }])
+            ->groupBy(['UserID']);
+    }
+    public function getLogsForRenderNotAutoShift($params)
+    {
+        $days = 1;
+        if ($params['shift_type_id'] == 4) {
+            $days = 2;
+        }
+
+        return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
+            ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
+            ->whereIn("UserID", $params["UserIds"])
+            ->where("company_id", $params["company_id"])
+            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", false))
+            ->distinct("LogTime", "UserID", "company_id")
+            ->get()
+            ->load("device")
+            ->load(["schedule" => function ($q) use ($params) {
+                $q->where("company_id", $params["company_id"]);
+                $q->where("to_date", ">=", $params["date"]);
+                $q->where("shift_type_id", $params["shift_type_id"]);
+                $q->withOut("shift_type");
+                // $q->select("shift_id", "isOverTime", "employee_id", "shift_type_id", "shift_id", "shift_id");
+                $q->orderBy("to_date", "asc");
+            }])
+            ->groupBy(['UserID']);
+    }
+    public function getLogsForRender($params)
+    {
+        $days = 1;
+        if ($params['shift_type_id'] == 4) {
+            $days = 2;
+        }
+
+        return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
+            ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
             ->whereIn("UserID", $params["UserIds"])
             ->where("company_id", $params["company_id"])
             ->distinct("LogTime", "UserID", "company_id")
