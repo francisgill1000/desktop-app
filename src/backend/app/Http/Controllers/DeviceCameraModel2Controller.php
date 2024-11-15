@@ -264,12 +264,19 @@ class DeviceCameraModel2Controller extends Controller
             if ($this->sxdmSn == '')
                 $this->sxdmSn = $device_id;
 
-            // if ($session_id != '') {
-            //     $sessionId = $session_id;
-            // } else
-            //     $sessionId = $this->getActiveSessionId();
+            if ($session_id != '') {
+                $sessionId = $session_id;
+            } else {
 
-            $sessionId = $session_id;
+                $sessionId = (new SDKController())->getSessionusingDeviceIdData($device_id);
+                if ($sessionId == '' || $sessionId == null) {
+                    $sessionId = $this->getActiveSessionId();
+                    //$_SESSION[$value['device_id']] = $sessionId;
+                    if ($sessionId != '') (new SDKController())->storeSessionid($device_id, $sessionId);
+                }
+            }
+
+            //$sessionId = $session_id;
 
             // return $session_id;
 
@@ -612,6 +619,7 @@ class DeviceCameraModel2Controller extends Controller
 
     public function getActiveSessionId()
     {
+
         set_time_limit(120);
         // return array(
         //     'sxdmToken: ' . $this->sxdmToken, //get from Device manufacturer

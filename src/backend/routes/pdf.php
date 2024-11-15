@@ -40,6 +40,9 @@ Route::get('/multi_in_out_daily', [DailyController::class, 'mimo_daily_pdf']);
 Route::get('/multi_in_out_weekly', [WeeklyController::class, 'multi_in_out_weekly_pdf']);
 Route::get('/multi_in_out_monthly', [MonthlyController::class, 'multi_in_out_monthly_pdf']);
 
+Route::get('/multi_in_out_monthly_generate', [MonthlyController::class, 'multi_in_out_monthly_pdf_generate']);
+
+
 
 // -> pdf download
 Route::get('/multi_in_out_daily_download_pdf', [DailyController::class, 'mimo_daily_download']);

@@ -34,14 +34,36 @@ class ShiftController extends Controller
 
         $model->when($request->filled('search'), function ($q) use ($request) {
             $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->search%");
-            $q->orwhereHas('shift_type', fn (Builder $query) => $query->where('name', 'LIKE', "$request->search%"));
-            $q->orwhereHas('branch', fn (Builder $query) => $query->where('branch_name', 'LIKE', "$request->search%"));
+            $q->orwhereHas('shift_type', fn(Builder $query) => $query->where('name', 'LIKE', "$request->search%"));
+            $q->orwhereHas('branch', fn(Builder $query) => $query->where('branch_name', 'LIKE', "$request->search%"));
             $q->where("company_id", $request->company_id);
         });
 
         return $model->paginate($request->per_page);
     }
+    public function shiftDropdownlist(Request $request)
+    {
+        $model = Shift::query();
+        $model->with(["shift_type", "branch"]);
+        $model->where('company_id', $request->company_id);
 
+        // $model->when(request()->filled("branch_id"), function ($query) use ($request) {
+        //     return $query->where('branch_id', $request->branch_id);
+        // });
+
+        $model->withCount(["autoshift" => function ($q) use ($request) {
+            return $q->where("company_id", $request->company_id);
+        }]);
+
+        $model->when($request->filled('search'), function ($q) use ($request) {
+            $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->search%");
+            $q->orwhereHas('shift_type', fn(Builder $query) => $query->where('name', 'LIKE', "$request->search%"));
+            $q->orwhereHas('branch', fn(Builder $query) => $query->where('branch_name', 'LIKE', "$request->search%"));
+            $q->where("company_id", $request->company_id);
+        });
+
+        return $model->get();
+    }
     public function list_with_out_multi_in_out(Request $request)
     {
         $model = Shift::query();

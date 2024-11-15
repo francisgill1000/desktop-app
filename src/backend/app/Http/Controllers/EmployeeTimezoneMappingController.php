@@ -200,7 +200,7 @@ class EmployeeTimezoneMappingController extends Controller
     public function get_employeeswith_timezonename(Employee $employee, Request $request)
     {
         $employees['data'] = $employee
-            ->with(["timezone"])
+            ->with(["timezone","finger_prints","palms"])
             ->where('company_id', $request->company_id)
             ->when($request->filled('department_id'), function ($q) use ($request) {
                 if ($request->department_id != '---') {

@@ -78,9 +78,9 @@ class DeviceController extends Controller
 
         // array_push($cols, 'status.id');
 
-        $model->when(isset($cols) && count($cols) > 0, function ($q) use ($cols) {
-            $q->select($cols);
-        });
+        //$model->when(isset($cols) && count($cols) > 0, function ($q) use ($cols) {
+            //$q->select($cols);
+        //});
 
         $model->when($request->filled('sortBy'), function ($q) use ($request) {
             $sortDesc = $request->input('sortDesc');
@@ -241,7 +241,7 @@ class DeviceController extends Controller
         // Check if the file exists
         if (file_exists($filePath)) {
             // Create a response to download the file
-            return response()->download($filePath, $imageName);
+            return response()->download($filePath,  $request->name . "-" . $imageName)->deleteFileAfterSend(true);
         } else {
             // Return a 404 Not Found response if the file doesn't exist
             return 'File not found';
@@ -1085,14 +1085,12 @@ class DeviceController extends Controller
 
     public function checkDevicesHealthCompanyId($company_id = '')
     {
+
         $total_devices_count = Device::where("device_type", "!=", "Mobile")
             ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
             ->where("device_id", "!=", "Manual")
-            // ->where("device_type", "!=", "Manual")
-            ->where('device_id', 'NOT ILIKE', '%mobile%')
-
-
-            ->get()->count();;
+            ->where('device_id', "NOT " . (env('WILD_CARD') ?? 'ILIKE'), '%mobile%')
+            ->count();
 
         $devicesHealth = (new SDKController())->GetAllDevicesHealth();
 
@@ -1100,8 +1098,8 @@ class DeviceController extends Controller
             ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
             // ->where("device_type", "!=", "Manual")
             ->where("device_id", "!=", "Manual")
-            ->where("device_id", "!=", "Manual")
-            ->where('device_id', 'NOT ILIKE', '%mobile%')
+            ->where("device_id", "!=", "mobile")
+            // ->where('device_id', "NOT " . (env('WILD_CARD') ?? 'ILIKE'), '%mobile%')
 
 
             ->Where(function ($q) {

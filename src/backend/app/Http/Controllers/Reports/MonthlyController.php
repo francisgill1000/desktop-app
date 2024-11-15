@@ -130,6 +130,25 @@ class MonthlyController extends Controller
         return $report->stream($file_name);
     }
 
+    public function multi_in_out_monthly_pdf_generate(Request $request)
+    {
+        $data = $this->processPDF($request)->output();
+
+        $file_name = $request->file_name;
+
+        $id =  $request->company_id;
+
+        $status = $request->status;
+
+        $file_path = "pdf/$id/$file_name";
+
+        Storage::disk('local')->put($file_path, $data);
+
+        $msg = "Daily {$this->getStatusText($status)} has been generated for Company id: $id";
+
+        return $this->getMeta("Daily Report Generate", $msg) . "\n";
+    }
+
     public function monthly_download_csv(Request $request)
     {
 

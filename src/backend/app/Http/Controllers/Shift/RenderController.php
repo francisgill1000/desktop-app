@@ -35,6 +35,9 @@ class RenderController extends Controller
 
     public function renderLogs(Request $request)
     {
+
+        set_time_limit(60); // In seconds
+
         // return (new ShiftRenderController)->renderData($request);
 
         $shift_type_id = $request->shift_type_id;
@@ -43,12 +46,23 @@ class RenderController extends Controller
         $date1 = new DateTime($fromdate);
 
         //$date1 = new DateTime($request->dates[0]);
-        $date2 = new DateTime($request->dates[1]);
+        if (isset($request->dates[1])) {
+            $date2 = new DateTime($request->dates[1]);
 
-        $interval = $date1->diff($date2);
-        if ($interval->days > 8) {
-            return ["Limit  8 Days only  allowed between From and To Date."];
+            $interval = $date1->diff($date2);
+            if ($interval->days > 8) {
+                return ["Limit 8 Days only  allowed between From and To Date."];
+            }
         }
+
+
+
+
+        if (isset($request['employee_ids']) && count($request->employee_ids) > 20) {
+            return ["Limit  20 Employees  only "];
+        }
+
+
         // $message = '';
         // return   $automessage = (new AutoShiftController)->renderData($request);
         // if ($automessage != 'Nearest Shift is not found') {
@@ -582,9 +596,7 @@ class RenderController extends Controller
         return ["logs" => $logs, "total_hrs" => $total_hrs, "ot" => $ot];
     }
 
-    public function storeOrUpdate($items)
-    {
-    }
+    public function storeOrUpdate($items) {}
 
     public function renderOff(Request $request)
     {
@@ -697,8 +709,8 @@ class RenderController extends Controller
                 //$q->whereHas('shift', fn (Builder $query) =>  $query->where("from_date", "<=", $date));
                 //$q->whereHas('shift', fn (Builder $query) =>  $query->where("to_date", ">=", $date));
 
-                $q->whereHas('shift', fn (Builder $query) =>  $query->where("from_date", "<=", $date));
-                $q->whereHas('shift', fn (Builder $query) =>  $query->where("to_date", ">=", $date));
+                $q->whereHas('shift', fn(Builder $query) =>  $query->where("from_date", "<=", $date));
+                $q->whereHas('shift', fn(Builder $query) =>  $query->where("to_date", ">=", $date));
 
 
                 $q->orderBy("to_date", "asc");
@@ -828,7 +840,7 @@ class RenderController extends Controller
 
         $model->where("company_id", $company_id);
 
-        $model->whereHas("shift", fn ($q) => $q->where("weekend1", "Not Applicable"));
+        $model->whereHas("shift", fn($q) => $q->where("weekend1", "Not Applicable"));
 
         $model->when($user_id, function ($q) use ($user_id) {
             return $q->where("employee_id", $user_id);

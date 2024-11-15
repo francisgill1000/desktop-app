@@ -118,7 +118,7 @@ class AttendanceLog extends Model
         })
             // ->distinct("LogTime", "UserID", "company_id")
             ->when($request->filled('department_ids'), function ($q) use ($request) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department_ids));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department_ids));
             })
 
             ->with('device', function ($q) use ($request) {
@@ -149,7 +149,7 @@ class AttendanceLog extends Model
 
             ->when($request->filled('department'), function ($q) use ($request) {
 
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department));
             })
             ->when($request->filled('LogTime'), function ($q) use ($request) {
 
@@ -164,15 +164,15 @@ class AttendanceLog extends Model
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn(Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
             ->when($request->filled('employee_first_name'), function ($q) use ($request) {
                 $key = strtolower($request->employee_first_name);
-                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
             ->when($request->filled('branch_id'), function ($q) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
             })
 
             ->when($request->filled('sortBy'), function ($q) use ($request) {
@@ -250,7 +250,7 @@ class AttendanceLog extends Model
     public function getEmployeeIdsForNewLogsToRender_old($params)
     {
         return self::where("company_id", $params["company_id"])
-            ->when(!$params["custom_render"], fn ($q) => $q->where("checked", false))
+            ->when(!$params["custom_render"], fn($q) => $q->where("checked", false))
             ->where("company_id", $params["company_id"])
             ->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +1 day"))) // Check for logs on or before the next date
@@ -261,7 +261,7 @@ class AttendanceLog extends Model
     public function getEmployeeIdsForNewLogsToRender($params)
     {
         return self::where("company_id", $params["company_id"])
-            ->when(!$params["custom_render"], fn ($q) => $q->where("checked", false))
+            ->when(!$params["custom_render"], fn($q) => $q->where("checked", false))
             ->where("company_id", $params["company_id"])
             ->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +1 day"))) // Check for logs on or before the next date
@@ -272,7 +272,7 @@ class AttendanceLog extends Model
 
                     ->from('visitors');
             })
-            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", false))
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", false))
             ->distinct("UserID", "company_id")
             ->pluck('UserID');
     }
@@ -281,7 +281,7 @@ class AttendanceLog extends Model
 
 
         return self::where("company_id", $params["company_id"])
-            ->when(!$params["custom_render"], fn ($q) => $q->where("checked", false))
+            ->when(!$params["custom_render"], fn($q) => $q->where("checked", false))
             ->where("company_id", $params["company_id"])
             ->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +2 day"))) // Check for logs on or before the next date
@@ -292,7 +292,7 @@ class AttendanceLog extends Model
 
                     ->from('visitors');
             })
-            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", false))
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", false))
             ->distinct("UserID", "company_id")
             ->pluck('UserID');
     }
@@ -301,8 +301,8 @@ class AttendanceLog extends Model
 
 
         return self::where("company_id", $params["company_id"])
-            ->when(!$params["custom_render"], fn ($q) => $q->where("checked", false))
-            ->when(count($params["UserIds"]) > 0, fn ($q) => $q->whereIn("UserID", $params["UserIds"]))
+            ->when(!$params["custom_render"], fn($q) => $q->where("checked", false))
+            ->when($params["UserIds"] != null && count($params["UserIds"]) > 0, fn($q) => $q->whereIn("UserID", $params["UserIds"]))
             ->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +1 day"))) // Check for logs on or before the next date
             ->whereNotIn('UserID', function ($query) {
@@ -311,9 +311,9 @@ class AttendanceLog extends Model
                     ->where('visit_to', ">=", date('Y-m-d'))
                     ->from('visitors');
             })
-            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", true))
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", true))
             //->whereHas("device", fn ($q) => $q->whereIn("function", ["In", "all", "auto"]))
-            ->whereHas('device', fn ($q) => $q->where('device_type', '!=', 'Access Control'))
+            ->whereHas('device', fn($q) => $q->where('device_type', '!=', 'Access Control'))
             ->orderBy("LogTime", "asc")
             ->with(["employee" => function ($query) {
                 $query->withOut("schedule", "department", "designation", "sub_department", "user", "branch");
@@ -324,7 +324,7 @@ class AttendanceLog extends Model
     public function getVisitorIdsForNewLogsToRender($params)
     {
         return self::where("company_id", $params["company_id"])
-            ->when(!$params["custom_render"], fn ($q) => $q->where("checked", false))
+            ->when(!$params["custom_render"], fn($q) => $q->where("checked", false))
             ->where("company_id", $params["company_id"])
             ->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +1 day"))) // Check for logs on or before the next date
@@ -346,9 +346,13 @@ class AttendanceLog extends Model
 
         return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
-            ->whereIn("UserID", $params["UserIds"])
+            //->whereIn("UserID", $params["UserIds"])
+            ->when($params["UserIds"] != null, function ($q) use ($params) {
+
+                return $q->whereIn("UserID", $params["UserIds"]);
+            })
             ->where("company_id", $params["company_id"])
-            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", true))
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", true))
             ->distinct("LogTime", "UserID", "company_id")
             ->get()
             ->load("device")
@@ -371,9 +375,13 @@ class AttendanceLog extends Model
 
         return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
-            ->whereIn("UserID", $params["UserIds"])
+            //->whereIn("UserID", $params["UserIds"])
+            ->when($params["UserIds"] != null, function ($q) use ($params) {
+
+                return $q->whereIn("UserID", $params["UserIds"]);
+            })
             ->where("company_id", $params["company_id"])
-            ->whereHas("schedule", fn ($q) => $q->where("isAutoShift", false))
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", false))
             ->distinct("LogTime", "UserID", "company_id")
             ->get()
             ->load("device")
@@ -396,7 +404,11 @@ class AttendanceLog extends Model
 
         return self::with("visitor")->where("LogTime", ">=", $params["date"]) // Check for logs on or after the current date
             ->where("LogTime", "<=", date("Y-m-d", strtotime($params["date"] . " +" . $days . " day")))
-            ->whereIn("UserID", $params["UserIds"])
+            ->when($params["UserIds"] != null, function ($q) use ($params) {
+
+                return $q->whereIn("UserID", $params["UserIds"]);
+            })
+
             ->where("company_id", $params["company_id"])
             ->distinct("LogTime", "UserID", "company_id")
             ->get()

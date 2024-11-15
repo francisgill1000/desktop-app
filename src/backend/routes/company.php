@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\AlarmLogsController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AssignPermissionController;
@@ -158,6 +159,9 @@ Route::get('no-shift-employees/search/{key}', [DutyOrganizerController::class, '
 
 Route::apiResource('no-shift-employees', DutyOrganizerController::class);
 
+Route::apiResource('alarm_logs', AlarmLogsController::class);
+
+
 //  Employee
 Route::get('employeev1', [EmployeeController::class, "indexV1"]);
 Route::post('global-search', [GlobalSearchController::class, "globalSearch"]);
@@ -227,6 +231,8 @@ Route::get('/count', CountController::class);
 // dev started
 
 Route::apiResource('shift', ShiftController::class);
+Route::get('shift_dropdownlist', [ShiftController::class, 'shiftDropdownlist']);
+
 Route::get('get_shift', [ShiftController::class, 'getShift']);
 Route::post('update_single_shift', [ShiftController::class, 'updateSingleShift']);
 Route::get('shift_by_type', [ShiftController::class, 'shift_by_type']);

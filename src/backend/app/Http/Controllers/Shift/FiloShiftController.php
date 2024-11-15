@@ -165,7 +165,7 @@ class FiloShiftController extends Controller
                     $item["total_hrs"] = $this->getTotalHrsMins($item["in"], $item["out"]);
                 }
 
-                if ($schedule["isOverTime"] ?? false) {
+                if ($schedule["isOverTime"] ?? false && isset($shift["working_hours"])) {
                     $item["ot"] = $this->calculatedOT($item["total_hrs"], $shift["working_hours"], $shift["overtime_interval"]);
                 }
 

@@ -70,7 +70,7 @@ class AttendanceLogMissingController  extends Controller
 
 
 
-            $indexSerialNumber = 0;
+            $indexSerialNumber = 1;
 
             //find serial number 
             $indexSerialNumberModel = AttendanceLog::where("company_id", $company_id)

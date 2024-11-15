@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Jobs\TimezonePhotoUploadJob;
 use App\Models\Device;
-use App\Models\Employee;
 use App\Models\Timezone;
 use App\Models\TimezoneDefaultJson;
 use Exception;
@@ -115,9 +114,6 @@ class SDKController extends Controller
     }
     public function PersonAddRangePhotos(Request $request)
     {
-
-
-
         $url = env('SDK_URL') . "/Person/AddRange";
 
         if (env('APP_ENV') == 'desktop') {
@@ -135,6 +131,72 @@ class SDKController extends Controller
         Log::channel("camerasdk")->error(json_encode(["cameraResponse2" => $cameraResponse2, "cameraResponse1" => $cameraResponse1, "deviceResponse" => $deviceResponse]));
 
         return ["cameraResponse" => $cameraResponse1, "cameraResponse2" => $cameraResponse2, "deviceResponse" => $deviceResponse];
+    }
+
+    public function AddPerson(Request $request)
+    {
+        $cameraResponse1 = "";
+        $cameraResponse2 = "";
+        try {
+            $cameraResponse1 = $this->filterCameraModel1Devices($request);
+            $cameraResponse2 = $this->filterCameraModel2Devices($request);
+        } catch (\Exception $e) {
+        }
+
+        $payload = $request->all();
+        $personList = $payload['personList'];
+        $snList = $payload['snList'];
+
+        $deviceResponse = [];
+
+        foreach ($snList as $device_id) {
+            $url = env('SDK_URL') . "$device_id/AddPerson";
+            if (env('APP_ENV') == 'desktop') {
+                $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/$device_id/AddPerson";
+            }
+
+            foreach ($personList as $person) {
+                // $deviceResponse[] = AddPerson::dispatch($url, $person);
+                $deviceResponse[] = $this->processUploadPersons($url, $device_id, $person);
+            }
+        }
+
+        return ["cameraResponse" => $cameraResponse1, "cameraResponse2" => $cameraResponse2, "deviceResponse" => $deviceResponse];
+
+        // return ["cameraResponse" => $cameraResponse1, "cameraResponse2" => $cameraResponse2, "deviceResponse" => $deviceResponse];
+    }
+
+    public function processUploadPersons($url, $device_id, $person)
+    {
+        $image = public_path() . "/media/employee/profile_picture/" . $person["profile_picture_raw"];
+        $imageData = file_get_contents($image);
+        $person["faceImage"] = base64_encode($imageData);
+
+        try {
+            // Send HTTP POST request
+            $response = Http::timeout(30)
+                ->withoutVerifying()
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($url, $person);
+
+            return [
+                "name" => $person["name"],
+                "userCode" => $person["userCode"],
+                "device_id" => $device_id,
+                'status' => $response->status(),
+                'sdk_response' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            return [
+                "name" => $person["name"],
+                "userCode" => $person["userCode"],
+                "device_id" => $device_id,
+                'status' => 500,
+                'sdk_response' => $e->getMessage(),
+            ];
+        }
     }
     // public function PersonAddRange(Request $request)
     // {
@@ -455,7 +517,8 @@ class SDKController extends Controller
         }
         $returnFinalMessage = $this->mergeDevicePersonslist($returnFinalMessage);
         $returnContent = [
-            "data" => $returnFinalMessage, "status" => 200,
+            "data" => $returnFinalMessage,
+            "status" => 200,
             "message" => "",
             "transactionType" => 0
         ];
@@ -732,6 +795,50 @@ class SDKController extends Controller
             return [
                 "status" => 102,
                 "message" => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function getPersonAllV1($device_id)
+    {
+        $url = $this->buildUrl($device_id, 'GetPersonAll');
+
+        return $this->sendRequest($url);
+    }
+
+    public function getPersonDetailsV1($device_id, $user_code)
+    {
+        $url = $this->buildUrl($device_id, 'GetPersonDetail');
+
+        return $this->sendRequest($url, ['usercode' => $user_code]);
+    }
+
+    private function buildUrl($device_id, $endpoint)
+    {
+        $baseUrl = env('SDK_URL') . "/{$device_id}/{$endpoint}";
+
+        if (env('APP_ENV') == 'desktop') {
+            $baseUrl = "http://" . gethostbyname(gethostname()) . ":" . env('SDK_PORT') . "/{$device_id}/{$endpoint}";
+        }
+
+        return $baseUrl;
+    }
+
+    private function sendRequest($url, $data = [])
+    {
+        try {
+            $response = Http::timeout(3600)
+                ->withoutVerifying()
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->post($url, $data);
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return [
+                "status" => 102,
+                "message" => "Error: {$e->getMessage()}",
+                "trace" => $e->getTraceAsString(), // Optional: for debugging in development
             ];
         }
     }

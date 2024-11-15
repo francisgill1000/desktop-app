@@ -10,6 +10,7 @@ use App\Http\Requests\Employee\EmployeeRequest;
 use App\Http\Requests\Employee\EmployeeUpdateContact;
 use App\Http\Requests\Employee\EmployeeUpdateRequest;
 use App\Http\Requests\Employee\StoreRequest;
+use App\Http\Requests\Employee\StoreRequestFromDevice;
 use App\Http\Requests\Employee\UpdateRequest;
 use App\Imports\excelEmployeesData;
 use App\Models\Attendance;
@@ -20,6 +21,8 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Device;
 use App\Models\Employee;
+use App\Models\FingerPrint;
+use App\Models\Palm;
 use App\Models\Payroll;
 use App\Models\Payslips;
 use App\Models\ScheduleEmployee;
@@ -43,7 +46,7 @@ class EmployeeController extends Controller
     {
         $model = Employee::query();
         $model->where('company_id', request('company_id'));
-        $model->when(request()->filled('branch_id'), fn ($q) => $q->where('branch_id', request('branch_id')));
+        $model->when(request()->filled('branch_id'), fn($q) => $q->where('branch_id', request('branch_id')));
         //$model->excludeRelations();
         $model->with(["department", "sub_department", "designation"]);
         $model->select("profile_picture", "id",  "first_name as name",   "first_name", "last_name", "system_user_id",  "employee_id", "branch_id", "department_id", "designation_id", "sub_department_id");
@@ -264,18 +267,29 @@ class EmployeeController extends Controller
                     ->whereDate("expiry_date", "<=", $expiryDate);
             },
 
-            "branch", "department", "designation",
+            "branch",
+            "department",
+            "designation",
 
-            "user" => fn ($q) => $q->select("id", "email")
+            "user" => fn($q) => $q->select("id", "email")
         ]);
 
         $data->withOut("schedule");
 
         $data->select([
-            "id", "first_name", "last_name", "profile_picture",
-            "phone_number", "whatsapp_number", "employee_id",
-            "designation_id", "department_id", "user_id",
-            "system_user_id", "display_name", "branch_id"
+            "id",
+            "first_name",
+            "last_name",
+            "profile_picture",
+            "phone_number",
+            "whatsapp_number",
+            "employee_id",
+            "designation_id",
+            "department_id",
+            "user_id",
+            "system_user_id",
+            "display_name",
+            "branch_id"
         ]);
 
         return $data->paginate($request->per_page ?? 100);
@@ -323,18 +337,29 @@ class EmployeeController extends Controller
                     ->whereDate("expiry_date", "<=", $expiryDate);
             },
 
-            "branch", "department", "designation",
+            "branch",
+            "department",
+            "designation",
 
-            "user" => fn ($q) => $q->select("id", "email")
+            "user" => fn($q) => $q->select("id", "email")
         ]);
 
         $data->withOut("schedule");
 
         $data->select([
-            "id", "first_name", "last_name", "profile_picture",
-            "phone_number", "whatsapp_number", "employee_id",
-            "designation_id", "department_id", "user_id",
-            "system_user_id", "display_name", "branch_id"
+            "id",
+            "first_name",
+            "last_name",
+            "profile_picture",
+            "phone_number",
+            "whatsapp_number",
+            "employee_id",
+            "designation_id",
+            "department_id",
+            "user_id",
+            "system_user_id",
+            "display_name",
+            "branch_id"
         ]);
 
         return $this->print_pdf($request, $data->get()->toArray());
@@ -358,22 +383,22 @@ class EmployeeController extends Controller
             ->with(["reportTo", "schedule", "user", "department", "sub_department", "designation", "role", "payroll", "timezone"])
             ->where('company_id', $request->company_id)
             ->when($request->filled('department_id'), function ($q) use ($request) {
-                $q->whereHas('department', fn (Builder $query) => $query->where('department_id', $request->department_id));
+                $q->whereHas('department', fn(Builder $query) => $query->where('department_id', $request->department_id));
             })
             ->when($request->filled('search_column_name'), function ($q) use ($request, $text) {
                 $q->where($request->search_column_name, env('WILD_CARD') ?? 'ILIKE', "$text%");
             })
             ->when($request->filled('search_department_name'), function ($q) use ($request, $text) {
-                $q->whereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
+                $q->whereHas('department', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
             })
             ->when($request->filled('search_designation_name'), function ($q) use ($request, $text) {
-                $q->whereHas('designation', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
+                $q->whereHas('designation', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$text%"));
             })
             ->when($request->filled('searchBybasic_salary'), function ($q) use ($request, $text) {
-                $q->whereHas('payroll', fn (Builder $query) => $query->where('basic_salary', '>=', $text));
+                $q->whereHas('payroll', fn(Builder $query) => $query->where('basic_salary', '>=', $text));
             })
             ->when($request->filled('searchBynet_salary'), function ($q) use ($request, $text) {
-                $q->whereHas('payroll', fn (Builder $query) => $query->where('net_salary', '>=', $text));
+                $q->whereHas('payroll', fn(Builder $query) => $query->where('net_salary', '>=', $text));
             })
 
             ->paginate($request->perPage ?? 20);
@@ -653,7 +678,7 @@ class EmployeeController extends Controller
                 ->with(["user.branchLogin", "department", "sub_department", "designation", "timezone"])
                 ->where('company_id', $request->company_id)
                 ->when($request->filled('department_id'), function ($q) use ($request) {
-                    $q->whereHas('department', fn (Builder $query) => $query->where('department_id', $request->department_id));
+                    $q->whereHas('department', fn(Builder $query) => $query->where('department_id', $request->department_id));
                 })
                 ->when($request->filled('search_employee_id'), function ($q) use ($request, $key) {
                     //$q->where('employee_id', 'LIKE', "$key%");
@@ -676,16 +701,16 @@ class EmployeeController extends Controller
                     $q->where('local_email', 'LIKE', "$key%");
                 })
                 ->when($request->filled('search_department_name'), function ($q) use ($request, $key) {
-                    $q->whereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                    $q->whereHas('department', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
                     // $q->orWhereHas('sub_department', fn(Builder $query) => $query->where(DB::raw('lower(name)'), 'LIKE', "$key%"));
                 })
                 ->when($request->filled('search_shiftname'), function ($q) use ($request, $key) {
-                    $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
-                    $q->whereHas('schedule.shift', fn (Builder $query) => $query->whereNotNull('name'));
-                    $q->whereHas('schedule.shift', fn (Builder $query) => $query->where('name', '<>', '---'));
+                    $q->whereHas('schedule.shift', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                    $q->whereHas('schedule.shift', fn(Builder $query) => $query->whereNotNull('name'));
+                    $q->whereHas('schedule.shift', fn(Builder $query) => $query->where('name', '<>', '---'));
                 })
                 ->when($request->filled('search_timezonename'), function ($q) use ($request, $key) {
-                    $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                    $q->whereHas('timezone', fn(Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
                 })
                 ->paginate($request->perPage ?? 20);
         } else {
@@ -822,7 +847,8 @@ class EmployeeController extends Controller
             if ($isEmailExist[0]->employee) {
                 $name = $isEmailExist[0]->employee->first_name  . ' ' . $isEmailExist[0]->employee->last_name;
                 return [
-                    "status" => false, "errors" => ["email" => ['Employee Email is already exist with Name:' . $name]]
+                    "status" => false,
+                    "errors" => ["email" => ['Employee Email is already exist with Name:' . $name]]
 
                 ];
 
@@ -1536,5 +1562,102 @@ class EmployeeController extends Controller
 
         // Optionally, you can return or do something after the update loop
         return "$resultCount records has been updated";
+    }
+
+    public function employeeStoreFromDevice(StoreRequestFromDevice $request)
+    {
+        $employeesData = $request->validated()['employees'];
+        $insertData = [];
+        $results = [];
+
+        $fpArray = [];
+        $palmArray = [];
+
+        foreach ($employeesData as $employeeData) {
+            // Extract and set name fields
+            $nameAsArray = explode(" ", $employeeData["full_name"], 2);
+            $employeeData["display_name"] = $employeeData["full_name"];
+            $employeeData["first_name"] = $nameAsArray[0];
+            $employeeData["last_name"] = $nameAsArray[1] ?? "";
+
+            // Save profile picture if available
+            if (!empty($employeeData["profile_picture"])) {
+                try {
+                    $employeeData["profile_picture"] = $this->saveProfilePicture($employeeData);
+                } catch (\Exception $e) {
+                    $results[] = [
+                        'status' => false,
+                        'message' => 'Failed to save profile picture: ' . $e->getMessage(),
+                        'employee' => $employeeData
+                    ];
+                    continue;
+                }
+            }
+
+
+            foreach ($employeeData["fp"] as $value) {
+                $fpArray[] = [
+                    "fp" => $value,
+                    "employee_id" =>  $employeeData["employee_id"]
+                ];
+            }
+
+            foreach ($employeeData["palm"] as $value) {
+                $palmArray[] = [
+                    "palm" => $value,
+                    "employee_id" =>  $employeeData["employee_id"]
+                ];
+            }
+
+
+            unset($employeeData["fp"]);
+            unset($employeeData["palm"]);
+
+            $insertData[] = $employeeData;
+        }
+
+        try {
+            DB::transaction(function () use ($insertData, $palmArray, $fpArray) {
+                $company_id = array_column($insertData, "company_id")[0] ?? 0;
+                $employee_ids = array_column($insertData, "system_user_id");
+                Employee::insert($insertData);
+                FingerPrint::insert($fpArray);
+                Palm::insert($palmArray);
+                (new AttendanceController)->seedDefaultData($company_id, $employee_ids);
+            });
+
+            return $this->response("All employees successfully created.", true, true);
+        } catch (\Exception $e) {
+            // Rollback is automatically handled by DB::transaction() in case of exception
+            return $this->response("An error occurred: " . $e->getMessage(), false, false);
+        }
+    }
+
+    /**
+     * Save the base64 profile picture to the server.
+     *
+     * @param string $base64Image
+     * @return string The saved image name
+     */
+    private function saveProfilePicture($employeeData)
+    {
+        // Decode and save the base64 image
+        $imageData = base64_decode($employeeData["profile_picture"]);
+
+        if ($imageData === false) {
+            throw new \Exception('Invalid base64 image data');
+        }
+
+        $imageName = $employeeData["system_user_id"] . time() . '.png';
+        $publicDirectory = public_path('media/employee/profile_picture');
+
+        // Ensure directory exists
+        if (!file_exists($publicDirectory)) {
+            mkdir($publicDirectory, 0777, true);
+        }
+
+        file_put_contents($publicDirectory . '/' . $imageName, $imageData);
+
+        return $imageName;
     }
 }

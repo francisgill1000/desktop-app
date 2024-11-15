@@ -64,7 +64,7 @@ class DeleteOldLogFiles extends Command
         echo $path . " - Files count - " . count($files);
 
         $now = time();
-        $days30 = 30 * 24 * 60 * 60; //30Days days
+        $days30 = 5 * 24 * 60 * 60; //30Days days
 
 
 

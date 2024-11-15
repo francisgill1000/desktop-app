@@ -102,8 +102,8 @@ class VisitorController extends Controller
             });
         });
 
-        $model->when($request->filled("from_date"), fn ($q) => $q->whereDate("visit_from", '>=', $request->from_date));
-        $model->when($request->filled("to_date"), fn ($q) => $q->whereDate("visit_to", '<=', $request->to_date));
+        $model->when($request->filled("from_date"), fn($q) => $q->whereDate("visit_from", '>=', $request->from_date));
+        $model->when($request->filled("to_date"), fn($q) => $q->whereDate("visit_to", '<=', $request->to_date));
 
 
         // $startDate = Carbon::parse($request->from_date);
@@ -496,149 +496,150 @@ class VisitorController extends Controller
 
             $visitorData = $visitor->clone()->get();; // Visitor::where("id", $request->visitor_id)->get();
 
-            $zoneDevices = Zone::with(["devices"])->find($request->zone_id);
+            $zoneDevices = Zone::with(["devices"])->where("id", $request->zone_id)->first();
             $counter = 0;
             foreach ($zoneDevices->devices as $key => $device) {
                 $preparedJson = '';
 
-                $date  = new DateTime("now", new DateTimeZone($device['utc_time_zone'] != '' ? $device['utc_time_zone'] : 'Asia/Dubai'));
-                $currentDateTime = $date->format('Y-m-d H:i:00');
-                if (strtotime($currentDateTime) < strtotime($visitorData[0]["visit_to"] . ' ' . $visitorData[0]["time_out"])) {
+                if ($device->status_id == 1) {
 
-                    if ($counter == 0) {
+                    $date  = new DateTime("now", new DateTimeZone($device['utc_time_zone'] != '' ? $device['utc_time_zone'] : 'Asia/Dubai'));
+                    $currentDateTime = $date->format('Y-m-d H:i:00');
+                    if (strtotime($currentDateTime) < strtotime($visitorData[0]["visit_to"] . ' ' . $visitorData[0]["time_out"])) {
 
-                        $visitor->clone()->update([
-                            "system_user_id" => $request->system_user_id,
-                            "zone_id" => $request->zone_id,
-                            "status_id" => 4,
-                            "card_rfid_number" => $request->card_rfid_number,
-                            "card_rfid_password" => $request->card_rfid_password,
-                            "guard_changed_status_datetime" => date("Y-m-d H:i:s")
+                        if ($counter == 0) {
 
-                        ]);
-                        //upload photo 
-                        if (!$visitor) {
-                            return $this->response('Visitor cannot upload.', null, false);
+                            $visitor->clone()->update([
+                                "system_user_id" => $request->system_user_id,
+                                "zone_id" => $request->zone_id,
+                                "status_id" => 4,
+                                "card_rfid_number" => $request->card_rfid_number,
+                                "card_rfid_password" => $request->card_rfid_password,
+                                "guard_changed_status_datetime" => date("Y-m-d H:i:s")
+
+                            ]);
+                            //upload photo 
+                            if (!$visitor) {
+                                return $this->response('Visitor cannot upload.', null, false);
+                            }
+
+                            $counter++;
+
+                            $visitorData = Visitor::where("id", $request->visitor_id)->get();
                         }
 
-                        $counter++;
 
-                        $visitorData = Visitor::where("id", $request->visitor_id)->get();
-                    }
+                        $isCameraDevice = $device['device_category_name'] == "CAMERA" ? true : false;
 
 
-                    $isCameraDevice = $device['device_category_name'] == "CAMERA" ? true : false;
-
-
-                    if ($device['device_category_name'] == "CAMERA") {
+                        if ($device['device_category_name'] == "CAMERA") {
 
 
 
-                        try {
-                            if (env("APP_ENV") == "local") {
-                                $visitorData[0]["logo"] = "https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg";
+                            try {
+                                if (env("APP_ENV") == "local") {
+                                    $visitorData[0]["logo"] = "https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg";
 
-                                $imageData = file_get_contents("https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg");
-                            } else {
-                                $imageData = file_get_contents($visitorData[0]["logo"]);
-                            }
-
-
-                            $md5string = base64_encode($imageData);;
-
-
-                            $message[] = (new DeviceCameraController($device['camera_sdk_url']))->pushUserToCameraDevice($visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],  $visitorData[0]['system_user_id'], $md5string);
-                        } catch (\Throwable $th) {
-                        }
-                    } else if ($device['model_number'] == "OX-900") {
-
-
-                        if ($visitorData[0]["logo"] != '') {
-
-
-
-
-                            if (env("APP_ENV") == "local") {
-                                $visitorData[0]["logo"] = "https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg";
-
-                                $imageData = file_get_contents("https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg");
-                            } else {
-                                $imageData = file_get_contents($visitorData[0]['logo']);
-                            }
-                            $md5string = base64_encode($imageData);;
-
-
-                            $sdkResponse = (new DeviceCameraModel2Controller($device['camera_sdk_url']))->pushUserToCameraDevice($visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],  $request->system_user_id, $md5string, $device['device_id']);
-
-                            if ($request->qr_code_binary != '') {
-                                $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', ($request->qr_code_binary)));
-                                $imageName = $request->company_id . '_' . $request->system_user_id . ".png";
-                                $publicDirectory = public_path("visitor_qr_cdoes");
-                                if (!file_exists($publicDirectory)) {
-                                    mkdir($publicDirectory, 0777, true);
+                                    $imageData = file_get_contents("https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg");
+                                } else {
+                                    $imageData = file_get_contents($visitorData[0]["logo"]);
                                 }
 
-                                $filePath = $publicDirectory . '/' . $imageName;
-                                file_put_contents($filePath, $base64Image);
+
+                                $md5string = base64_encode($imageData);;
 
 
-                                $attachments = [];
-                                $attachments["media_url"] =  env('BASE_URL') . '\visitor_qr_cdoes/' . $imageName;
-                                $attachments["filename"] = $imageName;
-                                $company = Company::where('id', 2)->first();
-                                if ($visitorData[0]["phone_number"] != "") {
-                                    //whatsapp
-
-                                    $message  = "*Hi " .  $visitor["first_name"] . ' ' . $visitor["last_name"] . ',*\n\n';
-                                    $message  =  $message . "Your Visit Details as fallows.\n";
-                                    $message  =  $message . "Visit Date and Time:  " . $visitor['visit_from'] . " - " . $visitor['time_in']  . "\n";
-                                    $message  =  $message . "Till Date and Time  :  " . $visitor['visit_to'] . " - " . $visitor['time_out']  . "\n";
-                                    $message  =  $message . "Use QR Code (attached with this mail) as access card.\n";
-                                    $message  =  $message . " \n\n";
-                                    $message  =  $message . " \n\n";
-                                    $message  =  $message . "Regards,\n";
-                                    $message  =  $message . "*" . $company["name"] . "*\n";
-                                    (new WhatsappController())->sendWhatsappNotification($company, $message, $visitorData[0]["phone_number"], $attachments);
-                                }
-
-                                if ($visitorData[0]["email"] != '') {
-                                    $model = [
-                                        "subject" => "Visitor Details with QR Code on  " . $visitorData[0]["visit_from"],
-                                        "file" =>  $filePath,
-                                        "mail_content" => "mail_content",
-                                        "name" => $visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],
-                                        "visitor" =>  $visitorData[0],
-                                        "company" =>  $company
-                                    ];
-                                    Mail::to($visitorData[0]["email"])
-                                        ->send(new VisitorQRNotificationMail($model));
-                                }
+                                $message[] = (new DeviceCameraController($device['camera_sdk_url']))->pushUserToCameraDevice($visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],  $visitorData[0]['system_user_id'], $md5string);
+                            } catch (\Throwable $th) {
                             }
+                        } else if ($device['model_number'] == "OX-900") {
+
+
+                            if ($visitorData[0]["logo"] != '') {
 
 
 
-                            return  $sdkResponse;
+
+                                if (env("APP_ENV") == "local") {
+                                    $visitorData[0]["logo"] = "https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg";
+
+                                    $imageData = file_get_contents("https://backend.mytime2cloud.com/media/employee/profile_picture/1697544063.jpg");
+                                } else {
+                                    $imageData = file_get_contents($visitorData[0]['logo']);
+                                }
+                                $md5string = base64_encode($imageData);;
+
+
+                                $sdkResponse = (new DeviceCameraModel2Controller($device['camera_sdk_url']))->pushUserToCameraDevice($visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],  $request->system_user_id, $md5string, $device['device_id']);
+
+                                if ($request->qr_code_binary != '') {
+                                    $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', ($request->qr_code_binary)));
+                                    $imageName = $request->company_id . '_' . $request->system_user_id . ".png";
+                                    $publicDirectory = public_path("visitor_qr_cdoes");
+                                    if (!file_exists($publicDirectory)) {
+                                        mkdir($publicDirectory, 0777, true);
+                                    }
+
+                                    $filePath = $publicDirectory . '/' . $imageName;
+                                    file_put_contents($filePath, $base64Image);
+
+
+                                    $attachments = [];
+                                    $attachments["media_url"] =  env('BASE_URL') . '\visitor_qr_cdoes/' . $imageName;
+                                    $attachments["filename"] = $imageName;
+                                    $company = Company::where('id', 2)->first();
+                                    if ($visitorData[0]["phone_number"] != "") {
+                                        //whatsapp
+
+                                        $message  = "*Hi " .  $visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"] . ',*\n\n';
+                                        $message  =  $message . "Your Visit Details as fallows.\n";
+                                        $message  =  $message . "Visit Date and Time:  " . $visitorData[0]['visit_from'] . " - " . $visitorData[0]['time_in']  . "\n";
+                                        $message  =  $message . "Till Date and Time  :  " . $visitorData[0]['visit_to'] . " - " . $visitorData[0]['time_out']  . "\n";
+                                        $message  =  $message . "Use QR Code (attached with this mail) as access card.\n";
+                                        $message  =  $message . " \n\n";
+                                        $message  =  $message . " \n\n";
+                                        $message  =  $message . "Regards,\n";
+                                        $message  =  $message . "*" . $company["name"] . "*\n";
+                                        (new WhatsappController())->sendWhatsappNotification($company, $message, $visitorData[0]["phone_number"], $attachments);
+                                    }
+
+                                    if ($visitorData[0]["email"] != '') {
+                                        $model = [
+                                            "subject" => "Visitor Details with QR Code on  " . $visitorData[0]["visit_from"],
+                                            "file" =>  $filePath,
+                                            "mail_content" => "mail_content",
+                                            "name" => $visitorData[0]["first_name"] . ' ' . $visitorData[0]["last_name"],
+                                            "visitor" =>  $visitorData[0],
+                                            "company" =>  $company
+                                        ];
+                                        Mail::to($visitorData[0]["email"])
+                                            ->send(new VisitorQRNotificationMail($model));
+                                    }
+                                }
+
+
+
+                                return  $sdkResponse;
+                            }
+                        } else {
+
+
+                            $preparedJson = $this->prepareJsonForSDK($visitorData[0], $device['device_id'], $device['utc_time_zone']);
+                            $sdkResponse = '';
+
+
+                            try {
+
+                                (new SDKController)->processSDKRequestPersonAddJobJson('', $preparedJson);
+                            } catch (\Throwable $th) {
+                            }
                         }
                     } else {
 
-
-                        $preparedJson = $this->prepareJsonForSDK($visitorData[0], $device['device_id'], $device['utc_time_zone']);
-                        $sdkResponse = '';
-
-
-                        try {
-
-                            (new SDKController)->processSDKRequestPersonAddJobJson('', $preparedJson);
-                        } catch (\Throwable $th) {
-                        }
+                        return $this->response('ID is allocated.But, Pending to Push to Device.' . " Visting OutTime  is out of the date ", null, false);
                     }
-                } else {
-
-                    return $this->response('ID is allocated.But, Pending to Push to Device.' . " Visting OutTime  is out of the date ", null, false);
                 }
             }
-
-
 
 
 
