@@ -60,7 +60,7 @@ class Employee extends Model
 
     public function palms()
     {
-        return $this->hasMany(Palm::class, "employee_id")
+        return $this->hasMany(Palm::class, "employee_id","system_user_id")
             ->orderBy('created_at', 'desc') // Optionally, order the records
             ->limit(3); // Limiting to 3 records;
     }
@@ -68,7 +68,7 @@ class Employee extends Model
 
     public function finger_prints()
     {
-        return $this->hasMany(FingerPrint::class, "employee_id")
+        return $this->hasMany(FingerPrint::class, "employee_id","system_user_id")
             ->orderBy('created_at', 'desc') // Optionally, order the records
             ->limit(3); // Limiting to 3 records
     }

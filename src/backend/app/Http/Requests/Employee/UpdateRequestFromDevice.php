@@ -22,9 +22,8 @@ class UpdateRequestFromDevice extends FormRequest
             'rfid_card_number' => 'nullable',
             'rfid_card_password' => 'nullable',
             'fp' => 'array',
-            'palm' => 'array',
-            'employee_id' => ['required'],
-            'system_user_id' => ['required', 'regex:/^[1-9][0-9]*$/'],
+            'palm' => 'nullable|array',
+            'system_user_id' => 'required'
         ];
     }
 }
