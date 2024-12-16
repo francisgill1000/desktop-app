@@ -3,6 +3,7 @@
 /public/*
 /dist
 /src/backend/php
+/src/php
 /src/backend/storage
 .devdbrc
 *.txt

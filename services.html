@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cron Worker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center m-10">
+    <div class="bg-white shadow-md rounded-lg p-8 w-100">
+      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Cron Jobs</h1>
+      <div class="space-y-4">
+        <!-- Start Queue Worker -->
+        <button
+          id="startQueueWorker"
+          class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+        >
+          Start Queue Worker
+        </button>
+
+        <!-- Start Schedule Worker -->
+        <button
+          id="startScheduleWorker"
+          class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition"
+        >
+          Start Schedule Worker
+        </button>
+
+        <!-- Stop Worker -->
+        <button
+          id="stopWorker"
+          class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition"
+        >
+          Stop Worker
+        </button>
+
+        <!-- Clear Output -->
+        <button
+          id="clearContent"
+          class="w-full bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition"
+        >
+          Clear Logs
+        </button>
+      </div>
+      <div
+        id="output"
+        class="bg-gray-100 mt-6 p-4 rounded-lg h-64 overflow-y-auto border border-gray-300 text-sm text-gray-700 m-10"
+      ></div>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
