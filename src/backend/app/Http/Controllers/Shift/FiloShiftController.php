@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Shift;
 
+use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
@@ -199,6 +200,12 @@ class FiloShiftController extends Controller
             //     $model->insert($chunk);
             // }
             $model->insert($items);
+
+
+            try {
+                (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
+            } catch (\Throwable $e) {
+            }
 
             //if (!$custom_render) 
             {

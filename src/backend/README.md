@@ -98,3 +98,9 @@ END Snippet to add action to notitfication
 pm2 start java --  -jar  SxDeviceManager.jar
 
 composer require webklex/laravel-pdfmerger
+composer require simplesoftwareio/simple-qrcode
+composer require simplesoftwareio/simple-qrcode:4.2 --with-all-dependencies
+sudo apt-get install imagemagick
+
+
+

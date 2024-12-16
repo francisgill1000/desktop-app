@@ -41,3 +41,4 @@ Route::post('delete-employee-from-device', [EmployeeController::class, 'deleteEm
 Route::get('get-employee-device-details', [DeviceController::class, 'getDevicePersonDetails']);
 
 Route::post('employee-store-from-device', [EmployeeController::class, 'employeeStoreFromDevice']);
+Route::post('employee-update-from-device/{id}', [EmployeeController::class, 'employeeUpdateFromDevice']);

@@ -11,6 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\ReportNotification;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\WhatsappNotificationsLogController;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -140,11 +141,38 @@ class DailyController extends Controller
 
         $file_name = $this->getFileNameByStatus($status);
 
+        // Save the file in local storage
         $file_path = "pdf/$id/daily_$file_name.pdf";
-
         Storage::disk('local')->put($file_path, $data);
 
-        $msg = "Daily {$this->getStatusText($status)} has been generated for Company id: $id";
+
+
+
+        try {
+
+            $wahtsapp_file_path = "daily_pdf_reports/Daily_Report_{$request->daily_date}_{$this->getStatusText($status)}_{$id}.pdf";
+
+            $public_file_path = public_path($wahtsapp_file_path);
+
+            $publicDirectory = public_path('daily_pdf_reports');
+            if (!file_exists($publicDirectory)) {
+                mkdir($publicDirectory, 0777, true);
+            }
+            $dateformat = date('d-M-Y', strtotime($request->daily_date));
+            file_put_contents($public_file_path, Storage::disk('local')->get($file_path));
+            $msg = "Daily {$this->getStatusText($status)} has been generated for Company id: $id";
+            $link = env('BASE_URL') . "/" . $wahtsapp_file_path;
+            $company_name = $request->company_name ?? '';
+            $message = "Daily Report -  {$this->getStatusText($status)}\n" .
+                "Date: {$dateformat}\n" .
+                "Click Below Link for Daily Report\n\n" .
+                "{$link}\n\n" .
+
+                "Generated at: " . now()->format('d-m-Y H:i:s');
+            (new WhatsappNotificationsLogController())->addMessage($request->company_id, "", $message);
+        } catch (\Throwable $th) {
+            throw $th;
+        }
 
         return $this->getMeta("Daily Report Generate", $msg) . "\n";
     }

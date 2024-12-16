@@ -32,7 +32,7 @@ class EmployeeTimezoneMappingController extends Controller
             ->where('company_id', $request->company_id)
 
             ->when($request->filled('searchByTimezoneName'), function ($q) use ($request, $text) {
-                $q->whereHas('timezone', fn (Builder $query) => $query->where(DB::raw('lower(timezone_name)'), 'LIKE', "$text%"));
+                $q->whereHas('timezone', fn(Builder $query) => $query->where(DB::raw('lower(timezone_name)'), 'LIKE', "$text%"));
             })
             ->paginate($request->per_page);
     }
@@ -199,8 +199,14 @@ class EmployeeTimezoneMappingController extends Controller
     }
     public function get_employeeswith_timezonename(Employee $employee, Request $request)
     {
+        // return $columns = collect(DB::select('PRAGMA table_info(employees)'))
+        //     ->pluck('name') // Get the column names
+        //     ->toArray();
+
+
+
         $employees['data'] = $employee
-            ->with(["timezone","finger_prints","palms"])
+            ->with(["timezone", "finger_prints", "palms"])
             ->where('company_id', $request->company_id)
             ->when($request->filled('department_id'), function ($q) use ($request) {
                 if ($request->department_id != '---') {
@@ -210,7 +216,66 @@ class EmployeeTimezoneMappingController extends Controller
             ->when($request->filled('branch_id'), function ($q) use ($request) {
                 $q->where('branch_id', $request->branch_id);
             })
-            ->get();
+            ->get(
+                [
+                    "id",
+                    "first_name",
+                    "last_name",
+                    "profile_picture",
+                    "phone_number",
+                    "whatsapp_number",
+                    "phone_relative_number",
+                    "whatsapp_relative_number",
+                    "employee_id",
+                    "joining_date",
+                    "designation_id",
+                    "department_id",
+                    "user_id",
+                    "role_id",
+                    "sub_department_id",
+                    "overtime",
+                    "mobile_application",
+                    "relation",
+                    "file_no",
+                    "type",
+                    "title",
+                    "grade",
+                    "work_site",
+                    "status",
+                    "employee_role_id",
+                    "local_address",
+                    "local_tel",
+                    "local_mobile",
+                    "local_fax",
+                    "local_city",
+                    "local_country",
+                    "local_email",
+                    "local_residence_no",
+                    "home_address",
+                    "home_tel",
+                    "home_mobile",
+                    "home_fax",
+                    "home_city",
+                    "home_state",
+                    "home_country",
+                    "home_email",
+                    "company_id",
+                    "branch_id",
+                    "created_at",
+                    "updated_at",
+                    "isAutoShift",
+                    "system_user_id",
+                    "display_name",
+                    "timezone_id",
+                    "leave_group_id",
+                    "reporting_manager_id",
+                    "face_uuid",
+                    "rfid_card_number",
+                    "rfid_card_password",
+                    "lockDevice",
+                    // "full_name"
+                ]
+            );
         return $employees;
     }
     public function get_employeeswith_timezonename_id(Employee $employee, Request $request, $id)
@@ -229,9 +294,9 @@ class EmployeeTimezoneMappingController extends Controller
     public function gettimezonesinfo(EmployeeTimezoneMapping $model, Request $request)
     {
         return $model->where('company_id', $request->company_id)
-            ->when($request->filled('branch_id'), fn ($q) =>  $q->where('branch_id', $request->branch_id))
+            ->when($request->filled('branch_id'), fn($q) =>  $q->where('branch_id', $request->branch_id))
             ->when($request->filled('timezoneName'), function ($q) use ($request) {
-                $q->whereHas('timezone', fn (Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$request->timezoneName%"));
+                $q->whereHas('timezone', fn(Builder $query) => $query->where('timezone_name', env('WILD_CARD') ?? 'ILIKE', "$request->timezoneName%"));
             })
             ->when($request->filled('device'), function ($q) use ($request) {
                 $q->whereJsonContains('device_id', [['name' => "$request->device"]]);

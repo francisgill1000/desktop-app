@@ -24,7 +24,10 @@ class AlarmLogs extends Model
         'log_time',
 
     ];
-
+    public function  devices()
+    {
+        return $this->belongsTo(Device::class, 'device_id', 'device_id');
+    }
     protected static function boot()
     {
         parent::boot();

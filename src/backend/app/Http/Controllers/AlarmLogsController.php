@@ -5,6 +5,7 @@ namespace App\Http\Controllers;;
 use App\Models\AlarmLogs;
 use App\Models\Company;
 use App\Models\Device;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,9 +18,25 @@ class AlarmLogsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $model = AlarmLogs::where('company_id', $request->company_id);
+        if ($request->filled('from_date')) {
+            $startDate = Carbon::parse($request->from_date . ' 00:00:00');
+            $endDate = Carbon::parse($request->to_date . ' 23:59:59');
+
+
+            $model->whereBetween('log_time', [$startDate, $endDate]);
+        } else {
+            $startDate = Carbon::parse(date("Y-m-d") . ' 00:00:00');
+            $endDate = Carbon::parse(date("Y-m-d") . ' 23:59:59');
+
+
+            $model->whereBetween('log_time', [$startDate, $endDate]);
+        }
+        $model->with(["devices"])->orderBy("log_time", "desc");
+
+        return $model->paginate($request->input("per_page", 100));
     }
 
     /**
@@ -126,7 +143,8 @@ class AlarmLogsController extends Controller
                 Device::where("device_id", $columns[0])->update($data);
             }
         }
-        AlarmLogs::insert($records);
+
+
         try {
 
             $company_ids = Device::wherein("device_id", $device_ids)->pluck('company_id');
@@ -143,6 +161,9 @@ class AlarmLogsController extends Controller
         }
 
         try {
+            AlarmLogs::insert($records);
+
+
             // Logger::channel("custom")->info(count($records) . ' new logs has been inserted.');
             Storage::put("alarm/alarm-logs-count-" . $result['date'] . ".txt", $result['totalLines']);
             ///Storage::append("camera/camera-logs-count-" . $result['date'] . ".txt", $result['totalLines']);

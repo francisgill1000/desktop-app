@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Shift;
 
+use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
@@ -187,6 +188,8 @@ class MultiShiftController extends Controller
                     "device_out" => isset($nextLog['device']) ? ($nextLog['device']['short_name'] ?? $nextLog['device']['name'] ?? "---") : "---",
                     "total_minutes" => $this->minutesToHours($minutes),
                 ];
+
+
 
                 $item["total_hrs"] = $this->minutesToHours($totalMinutes);
 

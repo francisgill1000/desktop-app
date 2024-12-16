@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Shift;
 
+use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
@@ -187,6 +188,12 @@ class SplitShiftController extends Controller
             $model->where("date", $date);
             $model->where("company_id", $id);
             $model->delete();
+
+
+            try {
+                (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
+            } catch (\Throwable $e) {
+            }
 
             $chunks = array_chunk($items, 100);
 

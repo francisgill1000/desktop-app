@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\AddPerson;
 use App\Jobs\TimezonePhotoUploadJob;
 use App\Models\Device;
 use App\Models\Timezone;
@@ -150,13 +151,14 @@ class SDKController extends Controller
         $deviceResponse = [];
 
         foreach ($snList as $device_id) {
-            $url = env('SDK_URL') . "$device_id/AddPerson";
+            $url = env('SDK_URL') . "/$device_id/AddPerson";
             if (env('APP_ENV') == 'desktop') {
                 $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/$device_id/AddPerson";
             }
 
+            // $url = "https://sdk.mytime2cloud.com/OX-9662210080054/AddPerson";
+
             foreach ($personList as $person) {
-                // $deviceResponse[] = AddPerson::dispatch($url, $person);
                 $deviceResponse[] = $this->processUploadPersons($url, $device_id, $person);
             }
         }
@@ -171,6 +173,7 @@ class SDKController extends Controller
         $image = public_path() . "/media/employee/profile_picture/" . $person["profile_picture_raw"];
         $imageData = file_get_contents($image);
         $person["faceImage"] = base64_encode($imageData);
+        // return AddPerson::dispatch($url, $person);
 
         try {
             // Send HTTP POST request

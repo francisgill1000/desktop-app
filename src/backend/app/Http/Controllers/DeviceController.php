@@ -79,7 +79,7 @@ class DeviceController extends Controller
         // array_push($cols, 'status.id');
 
         //$model->when(isset($cols) && count($cols) > 0, function ($q) use ($cols) {
-            //$q->select($cols);
+        //$q->select($cols);
         //});
 
         $model->when($request->filled('sortBy'), function ($q) use ($request) {
@@ -198,7 +198,7 @@ class DeviceController extends Controller
 
 
         $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', ($request->face_image)));
-        $imageName = time() . ".png";
+        $imageName = (time() + rand(10000, 20000)) . ".png";
         $publicDirectory = public_path("temp");
         if (!file_exists($publicDirectory)) {
             mkdir($publicDirectory, 0777, true);
@@ -274,12 +274,12 @@ class DeviceController extends Controller
             }
 
             $model = Device::query();
-            $model->where("company_id", $request->company_id);
-            $model->where("device_id", $request->device_id);
-            $model->where("name", $request->name);
+            //$model->where("company_id", $request->company_id);
+            $model->with(["company"])->where("device_id", $request->device_id);
+            //$model->where("name", $request->name);
 
             if ($model->exists()) {
-                return $this->response('Device already exist.', null, true);
+                return $this->response('Device already exist with ' . $model->first()->company->name, null, false);
             }
 
             $data = $request->validated();
@@ -762,79 +762,81 @@ class DeviceController extends Controller
         foreach ($devices as $key => $device) {
 
 
+            if ($device["devices"]) {
 
-            $openJson =  $device['open_json'];
+                $openJson =  $device['open_json'];
 
-            $openJsonArray = json_decode($openJson, true);
+                $openJsonArray = json_decode($openJson, true);
 
-            foreach ($openJsonArray as  $key => $time) {
-
-
-                if (count($time) > 0) {
-                    foreach ($time as $keyDay => $timeValue) {
+                foreach ($openJsonArray as  $key => $time) {
 
 
-                        if ($weekDays[$keyDay] == date("D")) {
-
-                            $timeArray = explode(":", $timeValue);
-                            if (date("H:i") == $timeValue) {
-                                $file_name_raw = "kernal_logs/$date-device-HoldDoor-access-live.log";
-                                Storage::append($file_name_raw,  date("d-m-Y H:i:s")  . $device["devices"]->model_number . '-' . $device["devices"]->device_id . '_door_HoldDoor_logs-' . $timeValue);
+                    if (count($time) > 0) {
+                        foreach ($time as $keyDay => $timeValue) {
 
 
-                                if ($device["devices"]->model_number == 'OX-900') {
-                                    (new DeviceCameraModel2Controller($device["devices"]->camera_sdk_url))->openDoorAlways($device["devices"]);
-                                    $this->response('Always Open  Command is Successfull',  null, true);
-                                } else
+                            if ($weekDays[$keyDay] == date("D")) {
 
-                                    $result = (new SDKController)->handleCommand($device["devices"]->device_id, "HoldDoor");
+                                $timeArray = explode(":", $timeValue);
+                                if (date("H:i") == $timeValue) {
+                                    $file_name_raw = "kernal_logs/$date-device-HoldDoor-access-live.log";
+                                    Storage::append($file_name_raw,  date("d-m-Y H:i:s")  . $device["devices"]->model_number . '-' . $device["devices"]->device_id . '_door_HoldDoor_logs-' . $timeValue);
+
+
+                                    if ($device["devices"]->model_number == 'OX-900') {
+                                        (new DeviceCameraModel2Controller($device["devices"]->camera_sdk_url))->openDoorAlways($device["devices"]);
+                                        $this->response('Always Open  Command is Successfull',  null, true);
+                                    } else
+
+                                        $result = (new SDKController)->handleCommand($device["devices"]->device_id, "HoldDoor");
+                                }
+
+
+                                $schedule
+                                    ->command("task:AccessControlTimeSlots {$device["devices"]->device_id} HoldDoor")
+                                    ->cron($timeArray[1] . ' ' . $timeArray[0] . ' * * *')
+                                    ->withoutOverlapping()
+                                    ->appendOutputTo(storage_path("kernal_logs/$date-device-access-control-time-slot-open-logs.log"))
+                                    ->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
                             }
-
-
-                            $schedule
-                                ->command("task:AccessControlTimeSlots {$device["devices"]->device_id} HoldDoor")
-                                ->cron($timeArray[1] . ' ' . $timeArray[0] . ' * * *')
-                                ->withoutOverlapping()
-                                ->appendOutputTo(storage_path("kernal_logs/$date-device-access-control-time-slot-open-logs.log"))
-                                ->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
                         }
                     }
                 }
-            }
-            //
+                //
 
-            $closeJson =  $device['close_json'];
+                $closeJson =  $device['close_json'];
 
-            $closeJsonArray = json_decode($closeJson, true);
+                $closeJsonArray = json_decode($closeJson, true);
 
-            foreach ($closeJsonArray as  $key => $time) {
-                if (count($time) > 0) {
-                    foreach ($time as $keyDay => $timeValue) {
-
+                foreach ($closeJsonArray as  $key => $time) {
+                    if (count($time) > 0) {
+                        foreach ($time as $keyDay => $timeValue) {
 
 
-                        if ($weekDays[$keyDay] == date("D")) {
-                            // $file_name_raw = "kernal_logs/$date-device-close-access.log";
-                            // Storage::append($file_name_raw,  date("d-m-Y H:i:s") . '_door_close_logs-' . $timeValue);
 
-                            $timeArray = explode(":", $timeValue);
+                            if ($weekDays[$keyDay] == date("D")) {
+                                // $file_name_raw = "kernal_logs/$date-device-close-access.log";
+                                // Storage::append($file_name_raw,  date("d-m-Y H:i:s") . '_door_close_logs-' . $timeValue);
 
-                            if (date("H:i") == $timeValue) {
-                                $file_name_raw = "kernal_logs/$date-device-closeDoor-access-live.log";
-                                Storage::append($file_name_raw,  date("d-m-Y H:i:s") . $device["devices"]->model_number . '-' . $device["devices"]->device_id . '_door_closeDoor_logs-' . $timeValue);
-                                if ($device["devices"]->model_number == 'OX-900') {
-                                    (new DeviceCameraModel2Controller($device["devices"]->camera_sdk_url))->closeDoor($device["devices"]);
-                                    $this->response('Always Open  Command is Successfull',  null, true);
-                                } else
-                                    $result = (new SDKController)->handleCommand($device["devices"]->device_id, "CloseDoor");
+                                $timeArray = explode(":", $timeValue);
+
+                                if (date("H:i") == $timeValue) {
+                                    $file_name_raw = "kernal_logs/$date-device-closeDoor-access-live.log";
+                                    Storage::append($file_name_raw,  date("d-m-Y H:i:s") . $device["devices"]->model_number . '-' . $device["devices"]->device_id . '_door_closeDoor_logs-' . $timeValue);
+                                    if ($device["devices"]->model_number == 'OX-900') {
+                                        (new DeviceCameraModel2Controller($device["devices"]->camera_sdk_url))->closeDoor($device["devices"]);
+                                        $this->response('Always Open  Command is Successfull',  null, true);
+                                    } else
+                                        $result = (new SDKController)->handleCommand($device["devices"]->device_id, "CloseDoor");
+                                }
+
+                                $schedule
+                                    ->command("task:AccessControlTimeSlots {$device["devices"]->device_id} CloseDoor")
+                                    ->cron($timeArray[1] . ' ' . $timeArray[0] . ' * * *')
+                                    ->withoutOverlapping()
+                                    ->appendOutputTo(storage_path("kernal_logs/$date-device-access-control-time-slot-open-logs.log"))
+                                    ->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
                             }
-
-                            $schedule
-                                ->command("task:AccessControlTimeSlots {$device["devices"]->device_id} CloseDoor")
-                                ->cron($timeArray[1] . ' ' . $timeArray[0] . ' * * *')
-                                ->withoutOverlapping()
-                                ->appendOutputTo(storage_path("kernal_logs/$date-device-access-control-time-slot-open-logs.log"))
-                                ->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
                         }
                     }
                 }
@@ -1086,6 +1088,7 @@ class DeviceController extends Controller
     public function checkDevicesHealthCompanyId($company_id = '')
     {
 
+
         $total_devices_count = Device::where("device_type", "!=", "Mobile")
             ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
             ->where("device_id", "!=", "Manual")
@@ -1160,6 +1163,23 @@ class DeviceController extends Controller
             }
         }
 
+
+        //get offline devices list 
+        $offlineDevices = Device::with(["company"])->where("device_type", "!=", "Mobile")
+            ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
+            ->where("device_id", "!=", "Manual")
+            ->where('device_id', "NOT " . (env('WILD_CARD') ?? 'ILIKE'), '%mobile%')
+            ->where("status_id", 2)->get();
+
+        $test = [];
+        foreach ($offlineDevices as $key => $device) {
+            try {
+                $test[] = $message = "Company:" . $device->company->name . "\nDevice " . $device->name . " OFFLINE detected at  " . date("H:i:s d-m-Y ");
+                (new WhatsappNotificationsLogController())->addMessage($device->company_id, "", $message);
+            } catch (\Throwable $e) {
+                $test[] = $e;
+            }
+        }
 
 
         $offline_devices_count = $total_devices_count - $online_devices_count;

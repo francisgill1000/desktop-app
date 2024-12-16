@@ -40,6 +40,7 @@ class SyncAutoShift extends Command
             //throw $th;
             $error_message = 'Cron: ' . env('APP_NAME') . ': Exception in task:sync_auto  : Company Id :' . $id . ', : Date :' . $date . ', ' . $th;
             Logger::channel("custom")->error($error_message);
+
             echo $error_message;
         }
     }

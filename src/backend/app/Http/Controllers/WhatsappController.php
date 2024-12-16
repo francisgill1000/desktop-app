@@ -112,6 +112,8 @@ class WhatsappController extends Controller
 
     public function sentOTP($data)
     {
+
+        return false;
         try {
             if ($data['instance_id']) {
                 $response = Http::withoutVerifying()->get(env('WHATSAPP_URL'), [
@@ -156,6 +158,9 @@ class WhatsappController extends Controller
     //working method
     public function sendWhatsappNotification($company, $message, $number, $attachments = [])
     {
+
+
+        return false;
         $data = [
             'number' => $number,
             'type' => 'text',

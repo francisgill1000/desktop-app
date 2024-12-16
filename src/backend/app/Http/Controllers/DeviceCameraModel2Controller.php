@@ -27,10 +27,25 @@ class DeviceCameraModel2Controller extends Controller
 
         $url = $this->camera_sdk_url ?? gethostbyname(gethostname()) . ':8888';
         $this->camera_sdk_url = "$url";
-        $this->sxdmSn = $sxdmSn;
+        if ($sxdmSn != '')
+            $this->sxdmSn = $sxdmSn;
     }
 
+    public function getAllPersons($limit)
+    {
+        $data = [];
+        $json = '{
+             
+            "limit": ' . $limit . ',
+            "offset": 0,
+            "sort": "asc",
+            "query_string": ""
+          }';
+        $response = $this->postCURL('/api/persons/query', $json);
 
+
+        return $response;
+    }
     public function deletePersonFromDevice($system_user_id)
     {
         $data = [];
@@ -140,7 +155,45 @@ class DeviceCameraModel2Controller extends Controller
         }';
         $response = $this->postCURL('/api/devices/io', $json);
     }
+    public function getHistory($deviceId, $json)
+    {
 
+        // return    $response = '{
+        //     "query_id": "",
+        //     "data": [
+        //         {
+        //             "id_number": "",
+        //             "card_number": "",
+        //             "liveness": "true",
+        //             "person_name": "SATHISH KUMAR.P",
+        //             "picture_data": "data:image/jpg;base64, AAA=",
+        //             "pass_mode": "face",
+        //             "person_code": "3002",
+        //             "recognition_type": "staff",
+        //             "recognition_score": 70.664115905761719,
+        //             "health_code": 0,
+        //             "puid": "531987724894585701",
+        //             "verification_mode": "face_or_card",
+        //             "temperature": 0.0,
+        //             "passed": true,
+        //             "liveness_score": 99.992279052734375,
+        //             "clock_status": "Clock On",
+        //             "person_id": "3002",
+        //             "timestamp": "2024-11-15T09:31:17+05:30",
+        //             "mask": "unknown",
+        //             "therm": "unknown"
+        //         }
+        //     ],
+        //     "paging": {
+        //         "total": 1,
+        //         "offset": 0,
+        //         "limit": 1
+        //     }
+        // }';
+
+
+        return  $response = $this->postCURL('/api/passes/query', $json, $deviceId);
+    }
     public function resetDoorStatus($device)
     {
         $this->sxdmSn = $device->device_id;
@@ -586,11 +639,36 @@ class DeviceCameraModel2Controller extends Controller
         curl_close($curl);
         return  $response = json_decode($response, true);
     }
-    public function postCURL($serviceCall, $post_json)
+    public function postCURL($serviceCall, $post_json, $device_id = '')
     {
 
 
-        $sessionId = $this->getActiveSessionId();
+        //$sessionId = $this->getActiveSessionId();
+
+
+
+
+
+
+        $sessionId = (new SDKController())->getSessionusingDeviceIdData($device_id);
+        if ($sessionId == '' || $sessionId == null) {
+            $sessionId = $this->getActiveSessionId();
+            //$_SESSION[$value['device_id']] = $sessionId;
+            if ($sessionId != '') (new SDKController())->storeSessionid($device_id, $sessionId);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
         $curl = curl_init();
 
         curl_setopt_array($curl, array(

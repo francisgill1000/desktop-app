@@ -122,6 +122,7 @@ class Controller extends BaseController
             "All" => "All",
             "A" => "Absent",
             "M" => "Missing",
+            "ME" => "Missing",
             "P" => "Present",
             "O" => "Week Off",
             "L" => "Leave",
@@ -412,7 +413,7 @@ class Controller extends BaseController
     public function processImage($folder): string
     {
         $base64Image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', request('logo')));
-        $imageName = time() . ".png";
+        $imageName = (time() + rand(10000, 20000)) . ".png";
         $publicDirectory = public_path($folder);
         if (!file_exists($publicDirectory)) {
             mkdir($publicDirectory);

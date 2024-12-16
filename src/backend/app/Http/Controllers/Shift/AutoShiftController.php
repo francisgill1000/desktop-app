@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Shift;
 
+use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 
 use Illuminate\Support\Arr;
@@ -485,6 +486,9 @@ class AutoShiftController extends Controller
                 Attendance::where("company_id", $id)
                     ->where("employee_id", $UserID)
                     ->where("date", $date)->update($itemData);
+
+
+
 
                 //------------
                 if ($nearestShift == null) {

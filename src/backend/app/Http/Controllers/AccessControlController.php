@@ -18,13 +18,13 @@ class AccessControlController extends Controller
 
         $model->where("company_id", $request->company_id);
 
-        $model->where('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date : date("Y-m-d"));
+        $model->where('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date . " 00:00:00" : date("Y-m-d 00:00:00"));
 
-        $model->where('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date : date("Y-m-d"));
+        $model->where('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date . " 23:59:59"  : date("Y-m-d 23:59:59"));
 
-        $model->whereHas('device', fn ($q) => $q->whereIn('device_type', ["all", "Access Control"]));
+        $model->whereHas('device', fn($q) => $q->whereIn('device_type', ["all", "Access Control"]));
 
-        $model->whereHas('employee', fn ($q) => $q->where("company_id", $request->company_id));
+        $model->whereHas('employee', fn($q) => $q->where("company_id", $request->company_id));
 
         $model->when(request()->filled("report_type"), function ($query) use ($request) {
             if ($request->report_type == "Allowed") {
@@ -71,7 +71,7 @@ class AccessControlController extends Controller
         })
             // ->distinct("LogTime", "UserID", "company_id")
             ->when($request->filled('department_ids'), function ($q) use ($request) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department_ids));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department_ids));
             })
 
             ->with('device', function ($q) use ($request) {
@@ -81,7 +81,7 @@ class AccessControlController extends Controller
 
             ->when($request->filled('department'), function ($q) use ($request) {
 
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department));
             })
 
             ->when($request->filled('device'), function ($q) use ($request) {
@@ -91,23 +91,23 @@ class AccessControlController extends Controller
                 $q->where('UserID', $request->system_user_id);
             })
             ->when($request->filled('mode'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('mode', $request->mode));
+                $q->whereHas('device', fn(Builder $query) => $query->where('mode', $request->mode));
             })
             ->when($request->filled('function'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('function', $request->function));
+                $q->whereHas('device', fn(Builder $query) => $query->where('function', $request->function));
             })
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn(Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
             ->when($request->filled('employee_first_name'), function ($q) use ($request) {
                 $key = strtolower($request->employee_first_name);
-                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
             ->when($request->filled('branch_id'), function ($q) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
             })
 
             ->when(
@@ -142,13 +142,13 @@ class AccessControlController extends Controller
 
         $model->where("company_id", $request->company_id);
 
-        $model->whereDate('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date : date("Y-m-d"));
+        $model->whereDate('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date . " 00:00:00" : date("Y-m-d 00:00:00"));
 
-        $model->whereDate('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date : date("Y-m-d"));
+        $model->whereDate('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date . " 23:59:59" : date("Y-m-d 23:59:59"));
 
-        $model->whereHas('device', fn ($q) => $q->whereIn('device_type', ["all", "Access Control"]));
+        $model->whereHas('device', fn($q) => $q->whereIn('device_type', ["all", "Access Control"]));
 
-        $model->whereHas('employee', fn ($q) => $q->where("company_id", $request->company_id));
+        $model->whereHas('employee', fn($q) => $q->where("company_id", $request->company_id));
 
         $model->when(request()->filled("report_type"), function ($query) use ($request) {
             if ($request->report_type == "Allowed") {
@@ -186,7 +186,7 @@ class AccessControlController extends Controller
         })
             // ->distinct("LogTime", "UserID", "company_id")
             ->when($request->filled('department_ids'), function ($q) use ($request) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department_ids));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department_ids));
             })
 
             ->with('device', function ($q) use ($request) {
@@ -196,7 +196,7 @@ class AccessControlController extends Controller
 
             ->when($request->filled('department'), function ($q) use ($request) {
 
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department));
             })
             ->when($request->filled('LogTime'), function ($q) use ($request) {
 
@@ -209,23 +209,23 @@ class AccessControlController extends Controller
                 $q->where('UserID', $request->system_user_id);
             })
             ->when($request->filled('mode'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('mode', $request->mode));
+                $q->whereHas('device', fn(Builder $query) => $query->where('mode', $request->mode));
             })
             ->when($request->filled('function'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('function', $request->function));
+                $q->whereHas('device', fn(Builder $query) => $query->where('function', $request->function));
             })
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn(Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
             ->when($request->filled('employee_first_name'), function ($q) use ($request) {
                 $key = strtolower($request->employee_first_name);
-                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
             ->when($request->filled('branch_id'), function ($q) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
             })
 
             ->when(
@@ -268,13 +268,13 @@ class AccessControlController extends Controller
 
         $model->where("company_id", $request->company_id);
 
-        $model->whereDate('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date : date("Y-m-d"));
+        $model->whereDate('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date . " 00:00:00" : date("Y-m-d  00:00:00"));
 
-        $model->whereDate('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date : date("Y-m-d"));
+        $model->whereDate('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date . " 23:59:59"  : date("Y-m-d  23:59:59"));
 
-        $model->whereHas('device', fn ($q) => $q->whereIn('device_type', ["all", "Access Control"]));
+        $model->whereHas('device', fn($q) => $q->whereIn('device_type', ["all", "Access Control"]));
 
-        $model->whereHas('employee', fn ($q) => $q->where("company_id", $request->company_id));
+        $model->whereHas('employee', fn($q) => $q->where("company_id", $request->company_id));
 
         $model->when(request()->filled("report_type"), function ($query) use ($request) {
             if ($request->report_type == "Allowed") {
@@ -314,7 +314,7 @@ class AccessControlController extends Controller
         })
             // ->distinct("LogTime", "UserID", "company_id")
             ->when($request->filled('department_ids'), function ($q) use ($request) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department_ids));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department_ids));
             })
 
             ->with('device', function ($q) use ($request) {
@@ -324,7 +324,7 @@ class AccessControlController extends Controller
 
             ->when($request->filled('department'), function ($q) use ($request) {
 
-                $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department));
             })
             ->when($request->filled('LogTime'), function ($q) use ($request) {
 
@@ -337,23 +337,23 @@ class AccessControlController extends Controller
                 $q->where('UserID', $request->system_user_id);
             })
             ->when($request->filled('mode'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('mode', $request->mode));
+                $q->whereHas('device', fn(Builder $query) => $query->where('mode', $request->mode));
             })
             ->when($request->filled('function'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('function', $request->function));
+                $q->whereHas('device', fn(Builder $query) => $query->where('function', $request->function));
             })
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn(Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
             ->when($request->filled('employee_first_name'), function ($q) use ($request) {
                 $key = strtolower($request->employee_first_name);
-                $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
             })
             ->when($request->filled('branch_id'), function ($q) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
             })
 
             ->when(

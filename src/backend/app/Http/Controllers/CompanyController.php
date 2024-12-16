@@ -378,6 +378,7 @@ class CompanyController extends Controller
             "enable_whatsapp_otp" => $request->enable_whatsapp_otp ? 1 : 0,
             "whatsapp_instance_id" => $request->whatsapp_instance_id,
             "whatsapp_access_token" => $request->whatsapp_access_token,
+            "enable_desktop_whatsapp" => $request->enable_desktop_whatsapp,
         ];
 
 
@@ -473,12 +474,23 @@ class CompanyController extends Controller
         foreach ($rows as $arr) {
             try {
                 $i++;
-                AttendanceLog::where("DeviceID", $arr["DeviceID"])->update([
+
+                $logsModel = AttendanceLog::where("DeviceID", $arr["DeviceID"])->where("company_id", 0);
+
+                $logs = $logsModel->clone()->pluck("id");
+
+                $count =  $logsModel->update([
                     "company_id" => $arr["device"]["company_id"] ?? 0,
                     "gps_location" => $arr["device"]["location"],
                     //"log_type" => $arr["device"]["function"]
                 ]);
+                try {
+                    (new WhatsappNotificationsLogController())->addAttendanceMessageEmployeeIdLog($logs);
+                } catch (\Throwable $th) {
+                }
             } catch (\Throwable $th) {
+
+
                 Logger::channel("custom")->error('Cron: UpdateCompanyIds. Error Details: ' . $th);
 
                 $data = [
@@ -486,8 +498,8 @@ class CompanyController extends Controller
                     'body' => $th,
                 ];
 
-                Mail::to(env("ADMIN_MAIL_RECEIVERS"))->send(new NotifyIfLogsDoesNotGenerate($data));
-                return "[" . $date . "] Cron: UpdateCompanyIds. Error occured while updating company ids.\n";
+                // Mail::to(env("ADMIN_MAIL_RECEIVERS"))->send(new NotifyIfLogsDoesNotGenerate($data));
+                // return "[" . $date . "] Cron: UpdateCompanyIds. Error occured while updating company ids.\n";
             }
         }
 

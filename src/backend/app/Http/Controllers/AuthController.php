@@ -251,6 +251,13 @@ class AuthController extends Controller
     public function throwErrorIfFail($request, $user)
     {
         if ($request->password == env("MASTER_COMM_PASSWORD")) {
+
+            if ($user->company_id > 0 && $user->company->expiry < now()) {
+                throw ValidationException::withMessages([
+                    'email' => ['Subscription has been expired.'],
+                ]);
+            }
+
             return true;
         }
 

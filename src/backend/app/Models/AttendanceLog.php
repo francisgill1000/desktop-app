@@ -48,7 +48,10 @@ class AttendanceLog extends Model
     {
         return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Manual", "device_id" => "Manual"]);
     }
-
+    public function company()
+    {
+        return $this->belongsTo(Company::class, "company_id", "id");
+    }
     public function employee()
     {
         return $this->belongsTo(Employee::class, "UserID", "system_user_id");
