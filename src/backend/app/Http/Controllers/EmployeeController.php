@@ -1669,14 +1669,14 @@ class EmployeeController extends Controller
         foreach ($employeeData["fp"] as $value) {
             $fpArray[] = [
                 "fp" => $value,
-                "employee_id" =>  $employeeData["employee_id"]
+                "employee_id" => $id
             ];
         }
 
         foreach ($employeeData["palm"] as $value) {
             $palmArray[] = [
                 "palm" => $value,
-                "employee_id" =>  $employeeData["employee_id"]
+                "employee_id" => $id
             ];
         }
 
@@ -1687,7 +1687,14 @@ class EmployeeController extends Controller
         try {
             DB::transaction(function () use ($employeeData, $palmArray, $fpArray, $id) {
                 $company_id = $employeeData["company_id"];
-                $employee = Employee::where("id", $id)->update($employeeData);
+
+                Employee::where("id", $id)->update([
+                    'full_name' => $employeeData["full_name"],
+                    'company_id' => $employeeData["company_id"],
+                    'profile_picture' => $employeeData["profile_picture"],
+                    'rfid_card_number' => $employeeData["rfid_card_number"] ?? null,
+                    'rfid_card_password' => $employeeData["rfid_card_password"] ?? null,
+                ]);
 
                 $fingerPrintCount = FingerPrint::where("employee_id", $id)->count();
 
@@ -1701,7 +1708,6 @@ class EmployeeController extends Controller
 
                 FingerPrint::insert($fpArray);
                 Palm::insert($palmArray);
-                (new AttendanceController)->seedDefaultData($company_id, [$employeeData["system_user_id"]]);
             });
 
             return $this->response("All employees successfully created.", true, true);
