@@ -1,14 +1,10 @@
 const { ipcRenderer } = require("electron");
 
 // Start Queue Worker
-document.getElementById("startQueueWorker").addEventListener("click", () => {
+document.getElementById("startWorkers").addEventListener("click", () => {
   ipcRenderer.send("start-worker", "queue:work");
 });
 
-// Start Schedule Worker
-document.getElementById("startScheduleWorker").addEventListener("click", () => {
-  ipcRenderer.send("start-worker", "schedule:work");
-});
 
 // Stop Worker
 document.getElementById("stopWorker").addEventListener("click", () => {
