@@ -93,11 +93,15 @@ class AttendanceController extends Controller
 
         $insertedCount = 0;
 
-        // $attendance = Attendance::query();
-        // $attendance->where("company_id", $company_id);
-        // $attendance->whereIn("employee_id", $employees);
-        // $attendance->whereMonth("date", date("m"));
-        // $attendance->delete();
+
+        $attendance = Attendance::query();
+        $attendance->where("company_id", $company_id);
+        if (count($UserIds) > 0) {
+            $attendance->where("employee_id", $UserIds[0]);
+        }
+        $attendance->whereMonth("date", date("m"));
+        $attendance->delete();
+
 
         foreach ($chunks as $chunk) {
             Attendance::insert($chunk);

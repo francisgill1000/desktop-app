@@ -126,17 +126,14 @@ class NightShiftController extends Controller
             $lastLog = null;
 
             $firstLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "In";
+                return $record["log_type"] == "In" || $record["log_type"] == null || $record["log_type"] == "Auto";
             })->first();
 
             if ($firstLog) {
                 $lastLog = collect($logs)->filter(function ($record) use ($firstLog) {
-                    return $record["log_type"] == "Out" && $record["LogTime"] > $firstLog['LogTime'];
+                    return ($record["log_type"] == "Out" || $record["log_type"] == null || $record["log_type"] == "Auto") && $record["LogTime"] > $firstLog['LogTime'];
                 })->first();
             }
-
-
-
 
             if ($isRequestFromAutoshift) {
 

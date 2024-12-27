@@ -117,11 +117,11 @@ class SingleShiftController extends Controller
             $firstLog = null;
 
             $firstLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "In";
+                return $record["log_type"] == "In" || $record["log_type"] == null || $record["log_type"] == "Auto";
             })->first();
 
             $lastLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "Out";
+                return $record["log_type"] == "Out" || $record["log_type"] == null || $record["log_type"] == "Auto";
             })->last();
 
             if ($isRequestFromAutoshift) {
