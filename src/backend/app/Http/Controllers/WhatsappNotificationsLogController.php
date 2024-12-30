@@ -12,6 +12,7 @@ use App\Models\WhatsappNotificationsLog;
 use DateTime;
 use Exception;
 use Illuminate\Http\Request;
+use WebSocket\Client;
 
 class WhatsappNotificationsLogController extends Controller
 {
@@ -152,6 +153,26 @@ class WhatsappNotificationsLogController extends Controller
                         "message" => $message,
                         "created_datetime" => date("Y-m-d H:i:s")
                     ]);
+
+
+                    try {
+                        // Create a WebSocket client
+                        $client = new Client("wss://139.59.69.241:7779", [
+                            'timeout' => 5, // Timeout in seconds
+                            'context' => stream_context_create([
+                                'ssl' => [
+                                    'verify_peer' => false,
+                                    'verify_peer_name' => false,
+                                ],
+                            ]),
+                        ]);
+
+                        // Send the message
+                        $client->send(json_encode("DB"));
+                    } catch (\Exception $e) {
+                        // Handle exceptions
+                        //"Error: " . $e->getMessage();
+                    }
                 }
             }
 

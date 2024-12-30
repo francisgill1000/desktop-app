@@ -1726,14 +1726,6 @@ class EmployeeController extends Controller
             return $this->response("An error occurred: " . $e->getMessage(), false, false);
         }
     }
-
-
-    /**
-     * Save the base64 profile picture to the server.
-     *
-     * @param string $base64Image
-     * @return string The saved image name
-     */
     private function saveProfilePicture($employeeData)
     {
         // Decode and save the base64 image

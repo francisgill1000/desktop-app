@@ -308,6 +308,17 @@ class ScheduleEmployeeController extends Controller
         }
     }
 
+    public function deleteAll(Request $request)
+    {
+        $record = ScheduleEmployee::whereCompanyId($request->company_id)->whereIn('id', $request->ids);
+
+        if ($record->delete()) {
+            return response()->json(['status' => true, 'message' => 'ScheduleEmployee Successfully Deleted']);
+        } else {
+            return response()->json(['status' => false, 'message' => 'ScheduleEmployee cannot Deleted']);
+        }
+    }
+
     public function assignSchedule()
     {
         $companyIds = Company::pluck("id");

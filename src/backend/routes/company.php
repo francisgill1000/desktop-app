@@ -54,6 +54,7 @@ use App\Http\Controllers\SubDepartmentController;
 use App\Http\Controllers\TimeTableController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VisaController;
+use App\Http\Controllers\WhatsappNotificationsLogController;
 use App\Models\DeviceNotifications;
 use App\Models\ReportNotificationLogs;
 use Illuminate\Http\Request;
@@ -314,3 +315,8 @@ Route::get('leave-group-list', [LeaveGroupsController::class, 'dropdownList']);
 
 
 Route::post('register', [RegisterController::class, 'store']);
+
+
+Route::post('send-whatsapp-wessage', function (Request $request) {
+    return (new WhatsappNotificationsLogController())->addMessage($request->company_id, $request->mobile_number, $request->message);
+});

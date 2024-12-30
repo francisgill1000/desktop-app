@@ -178,11 +178,18 @@ class Employee extends Model
     }
     public function getProfilePictureRawAttribute()
     {
-        $arr = explode('media/employee/profile_picture/', $this->profile_picture);
-        return    $arr[1] ?? '';
-        // return asset(env('BUCKET_URL') . '/' . $value);
+        // Ensure profile_picture exists and is not empty
+        if (empty($this->profile_picture)) {
+            return ''; // Return an empty string if profile_picture is not set
+        }
 
+        // Split the path string
+        $arr = explode('media/employee/profile_picture/', $this->profile_picture);
+
+        // Return the part after 'media/employee/profile_picture/' or an empty string if not found
+        return isset($arr[1]) ? $arr[1] : '';
     }
+
     public function getCreatedAtAttribute($value): string
     {
         return date('d M Y', strtotime($value));
@@ -236,12 +243,18 @@ class Employee extends Model
         return $this->hasMany(Attendance::class, "employee_id", "system_user_id");
     }
 
+
     public function today_absent()
     {
         return $this->hasOne(Attendance::class, "employee_id", "system_user_id")->where("status", "A")->whereDate("date", date("Y-m-d"));
     }
 
     public function attendance_logs()
+    {
+        return $this->hasMany(AttendanceLog::class, "UserID", "system_user_id");
+    }
+
+    public function today_logs()
     {
         return $this->hasMany(AttendanceLog::class, "UserID", "system_user_id");
     }
@@ -596,6 +609,65 @@ class Employee extends Model
         if (!$request->sortBy) {
             $model->orderBy('first_name', 'asc');
         }
+
+        $model->select(
+            "id",
+            "first_name",
+            "last_name",
+            "profile_picture",
+            "phone_number",
+            "whatsapp_number",
+            "phone_relative_number",
+            "whatsapp_relative_number",
+            "employee_id",
+            "joining_date",
+            "designation_id",
+            "department_id",
+            "user_id",
+            "role_id",
+            "sub_department_id",
+            "overtime",
+            "mobile_application",
+            "relation",
+            "file_no",
+            "type",
+            "title",
+            "grade",
+            "work_site",
+            "status",
+            "employee_role_id",
+            "local_address",
+            "local_tel",
+            "local_mobile",
+            "local_fax",
+            "local_city",
+            "local_country",
+            "local_email",
+            "local_residence_no",
+            "home_address",
+            "home_tel",
+            "home_mobile",
+            "home_fax",
+            "home_city",
+            "home_state",
+            "home_country",
+            "home_email",
+            "company_id",
+            "branch_id",
+            "created_at",
+            "updated_at",
+            "isAutoShift",
+            "system_user_id",
+            "display_name",
+            "timezone_id",
+            "leave_group_id",
+            "reporting_manager_id",
+            "face_uuid",
+            "rfid_card_number",
+            "rfid_card_password",
+            "lockDevice",
+            // "full_name"
+        );
 
         return $model;
     }

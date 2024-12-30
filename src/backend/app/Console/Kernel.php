@@ -88,8 +88,13 @@ class Kernel extends ConsoleKernel
         $companyIds = Company::pluck("id");
         //step 1 ;
 
+
         foreach ($companyIds as $companyId) {
 
+            $schedule->command("pdf:generate $companyId")->dailyAt('03:35')->runInBackground();
+
+            $schedule->command("pdf:access-control-report-generate {$companyId} " . date("Y-m-d", strtotime("yesterday")))
+                ->dailyAt('04:35')->runInBackground();
 
             $company_log = date("Y-m-d") . "-C" . $companyId;
             $schedule
@@ -145,8 +150,11 @@ class Kernel extends ConsoleKernel
 
             $schedule
                 ->command("render:night_shift {$companyId} " . date("Y-m-d", strtotime("yesterday")))
-                ->everyTenMinutes()
-                ->appendOutputTo(storage_path("kernal_logs/shifts/night_shift_new/$company_log.log"));
+                ->everyTenMinutes();
+
+            $schedule
+                ->command("render:multi_shift {$companyId} " . date("Y-m-d", strtotime("yesterday")))
+                ->everyTenMinutes();
 
             $schedule
                 ->command("task:sync_visitor_attendance {$companyId} " . date("Y-m-d"))

@@ -260,23 +260,6 @@ class AutoShiftController extends Controller
         }
 
         return null;
-
-
-
-
-
-        // $current_time = date("H:i", $log_time);
-
-        // $matching_shift = array_filter($shifts, function ($shift) use ($current_time) {
-        //     return $current_time >= $shift['beginning_in'] && $current_time <= $shift['beginning_out'];
-        // });
-
-        // if (!empty($matching_shift)) {
-        //     $shift = array_values($matching_shift)[0]; // Get the first matching shift
-        //     return  $shift;
-        // } else {
-        //     return null;
-        // }
     }
     public function findClosest_old($arr, $n, $target, $date)
     {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reports;
 
 use App\Exports\AttendanceExport;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateAttendanceReport;
 use App\Models\Attendance;
 use App\Models\Company;
 use App\Models\Department;
@@ -21,6 +22,10 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class MonthlyController extends Controller
 {
+    public $requestPayload;
+
+    public $employeeId;
+
     public function monthly(Request $request)
     {
         $file_name = "Attendance Report";
@@ -110,6 +115,10 @@ class MonthlyController extends Controller
 
     public function multi_in_out_monthly_download_pdf(Request $request)
     {
+        if (request("company_id", 0) == 22) {
+            return $this->PDFMerge("D");
+        }
+
         $file_name = "Attendance Report";
         if (isset($request->from_date) && isset($request->to_date)) {
             $file_name = "Attendance Report - " . $request->from_date . ' to ' . $request->to_date;
@@ -120,6 +129,11 @@ class MonthlyController extends Controller
 
     public function multi_in_out_monthly_pdf(Request $request)
     {
+
+        if (request("company_id", 0) == 22) {
+            return $this->PDFMerge();
+        }
+
         // $report = $this->processPDF($request);
         $report = $this->processPDF($request);
         $file_name = "Attendance Report";
@@ -823,5 +837,217 @@ class MonthlyController extends Controller
         fclose($file);
         // return $data;
         return Pdf::loadView('pdf.csv', compact('data'))->stream();
+    }
+
+    public function PDFGeneration()
+    {
+
+        ini_set('memory_limit', '512M'); // Adjust to the required value
+
+        set_time_limit(60);
+
+        $requestPayload = [
+            'company_id' => 22,
+            'status' => "-1",
+            'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
+            "status_slug" => $this->getStatusSlug("-1")
+        ];
+
+        $this->requestPayload =  $requestPayload;
+
+        $employees = Employee::whereCompanyId($requestPayload["company_id"])->take(100)->get();
+
+        $totalEmployees = $employees->count();
+
+        $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
+        $company['report_type'] = $this->getStatusText($requestPayload['status']);
+
+        // Dont use in production -----------------------------------------------------------------------
+        DB::table("jobs")->truncate();
+        DB::table("failed_jobs")->truncate();
+        // Dont use in production -----------------------------------------------------------------------
+
+
+        foreach ($employees as $index => $employee) {
+
+            $employeeId = $employee->system_user_id;
+            $this->employeeId = $employee->system_user_id;
+
+
+            // $company_id = $this->requestPayload["company_id"];
+            // $date = $this->requestPayload["date"];
+            // $status_slug = $this->requestPayload["status_slug"];
+
+            // $model = $this->getModel($requestPayload);
+
+            // $data = $model->get();
+
+            // $collection = $model->clone()->get();
+
+            // $info = (object) [
+            //     'total_absent' => $model->clone()->where('status', 'A')->count(),
+            //     'total_present' => $model->clone()->where('status', 'P')->count(),
+            //     'total_off' => $model->clone()->where('status', 'O')->count(),
+            //     'total_missing' => $model->clone()->where('status', 'M')->count(),
+            //     'total_leave' => $model->clone()->where('status', 'L')->count(),
+            //     'total_holiday' => $model->clone()->where('status', 'H')->count(),
+            //     'total_early' => $model->clone()->where('early_going', '!=', '---')->count(),
+            //     'total_hours' => $this->getTotalHours(array_column($collection->toArray(), 'total_hrs')),
+            //     'total_ot_hours' => $this->getTotalHours(array_column($collection->toArray(), 'ot')),
+            //     'total_leave' => 0,
+            // ];
+
+            // $arr = [
+            //     'data' => $data,
+            //     'company' => $company,
+            //     'info' => $info,
+            //     "employee" => $employee
+            // ];
+
+            // $template = "Template1";
+
+
+
+            // $filesPath = public_path("reports/companies/$company_id/$date/$status_slug/$template");
+
+            // if (!file_exists($filesPath)) {
+            //     mkdir($filesPath, 0777, true);
+            // }
+
+            // return $output = Pdf::loadView("pdf.attendance_reports.$template-multi-new", $arr)->stream();
+
+            // $file_name = "$employeeId.pdf";
+
+            // file_put_contents($filesPath . '/' . $file_name, $output);
+
+            GenerateAttendanceReport::dispatch($index + 1, $employeeId, $company, $employee, $requestPayload, $totalEmployees);
+        }
+
+        return "Report generating in background. will be available after few minutes on PDF TAB";
+    }
+
+    public function getModel($requestPayload)
+    {
+
+        $model = Attendance::query();
+
+        $model->where('company_id', $requestPayload["company_id"]);
+
+        $model->with(['shift_type', 'last_reason', 'branch']);
+
+        if (!empty($requestPayload["status"])) {
+            if ($requestPayload["status"] != "-1") {
+                $model->where('status', $requestPayload["status"]);
+            }
+
+            if ($requestPayload["status"] == "ME") {
+                $model->where('is_manual_entry', true);
+            }
+
+            if ($requestPayload["status"] == "LC") {
+                $model->where('late_coming', "!=", "---");
+            }
+
+            if ($requestPayload["status"] == "EG") {
+                $model->where('early_going', "!=", "---");
+            }
+
+            if ($requestPayload["status"] == "OT") {
+                $model->where('ot', "!=", "---");
+            }
+        }
+
+        $model->whereHas('employee', function ($q) {
+            $q->where('company_id', $this->requestPayload["company_id"]);
+            $q->where('status', 1);
+            $q->select('system_user_id', 'display_name', "department_id", "first_name", "last_name", "profile_picture", "employee_id", "branch_id");
+            $q->with(['department', 'branch']);
+        });
+
+        $model->with([
+            'employee' => function ($q) {
+                $q->where('company_id', $this->requestPayload["company_id"]);
+                $q->where('status', 1);
+                $q->select('system_user_id', 'full_name', 'display_name', "department_id", "first_name", "last_name", "profile_picture", "employee_id", "branch_id");
+                $q->with(['department', 'branch']);
+            }
+        ]);
+
+        $model->with('device_in', function ($q) {
+            $q->where('company_id', $this->requestPayload["company_id"]);
+        });
+
+        $model->with('device_out', function ($q) {
+            $q->where('company_id', $this->requestPayload["company_id"]);
+        });
+
+        $model->with('shift', function ($q) {
+            $q->where('company_id', $this->requestPayload["company_id"]);
+        });
+
+        $model->with('schedule', function ($q) {
+            $q->where('company_id', $this->requestPayload["company_id"]);
+        });
+
+        $model->whereDoesntHave('device_in', fn($q) => $q->where('device_type', 'Access Control'));
+
+        $model->whereDoesntHave('device_out', fn($q) => $q->where('device_type', 'Access Control'));
+
+        $model->where('employee_id', $this->employeeId);
+
+        $model->whereBetween('date', [date("Y-m-01"), date("Y-m-31")]);
+
+        $model->orderBy('date', 'asc');
+
+        return $model;
+    }
+
+    public function PDFMerge($action = "I")
+    {
+        $employeeIds = [];
+
+        $company_id = request("company_id", 0);
+
+        $status = $this->getStatusSlug(request("status", 0));
+
+        $employee_id = request("employee_id", 0);
+
+        if (!empty($employee_id)) {
+            $employeeIds = is_array($employee_id) ? $employee_id : explode(",", $employee_id);
+        }
+
+        // if (count($employeeIds) > 100) {
+        //     return 'Only 100 Employee allowed';
+        // }
+
+        $template = request("report_template", 0);
+
+        $filesDirectory = public_path("reports/companies/$company_id/$template/$status");
+
+        // Check if the directory exists
+        if (!is_dir($filesDirectory)) {
+            return response()->json(['error' => 'Directory not found'], 404);
+        }
+
+        $pdfFiles = glob($filesDirectory . '/*.pdf');
+
+        if (count($employeeIds)) {
+            $pdfFiles = [];
+            foreach ($employeeIds as $value) {
+                if (glob($filesDirectory . "/$value.pdf")) {
+                    $pdfFiles[] = glob($filesDirectory . "/$value.pdf")[0];
+                }
+            }
+        }
+        // Get all PDF files in the directory
+
+        if (empty($pdfFiles)) {
+            return 'No PDF files found';
+        }
+        if ($action == "I") {
+            return (new Controller)->mergePdfFiles($pdfFiles, $action);
+        }
+
+        return (new Controller)->mergePdfFiles($pdfFiles, $action);
     }
 }

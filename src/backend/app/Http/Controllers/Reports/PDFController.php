@@ -14,6 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateAccessControlReport;
 use App\Models\AttendanceLog;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -82,36 +83,20 @@ class PDFController extends Controller
         return Pdf::setPaper('a4', 'landscape')->loadView('pdf.access_control_reports.report', ["chunks" => $chunks])->stream();
     }
 
-    public function accessControlReportPrint(AttendanceLog $model, Request $request)
+    public function accessControlReportPrint()
     {
-        $data = $this->processFilters($request)->get()->toArray();
-
-        if ($request->debug) return $data;
-
-        $chunks = array_chunk($data, 10);
-
-        return Pdf::setPaper('a4', 'landscape')->loadView('pdf.access_control_reports.report', [
-            "chunks" => $chunks,
-            "company" => Company::whereId(request("company_id") ?? 0)->first(),
-            "params" => $request->all(),
-
-        ])->stream();
+        $company_id = request("company_id", 0);
+        $from_date = request("from_date", date("Y-m-d"));
+        $to_date = request("to_date", date("Y-m-d"));
+        return $this->PDFMerge("I", $company_id, $from_date, $to_date);
     }
 
-    public function accessControlReportDownload(AttendanceLog $model, Request $request)
+    public function accessControlReportDownload()
     {
-        $data = $this->processFilters($request)->get()->toArray();
-
-        if ($request->debug) return $data;
-
-        $chunks = array_chunk($data, 10);
-
-        return Pdf::setPaper('a4', 'landscape')->loadView('pdf.access_control_reports.report', [
-            "chunks" => $chunks,
-            "company" => Company::whereId(request("company_id") ?? 0)->first(),
-            "params" => $request->all(),
-
-        ])->download();
+        $company_id = request("company_id", 0);
+        $from_date = request("from_date", date("Y-m-d"));
+        $to_date = request("to_date", date("Y-m-d"));
+        return $this->PDFMerge("D", $company_id, $from_date, $to_date);
     }
 
 
@@ -122,11 +107,11 @@ class PDFController extends Controller
 
         $model->where("company_id", $request->company_id);
 
-        $model->where('LogTime', '>=', $request->filled("from_date") && $request->from_date !== 'null' ? $request->from_date : date("Y-m-d"));
+        $model->where('LogTime', '>=', request()->filled("from_date") && request("from_date") !== 'null' ? request("from_date") . " 00:00:00" : date("Y-m-d 00:00:00"));
 
-        $model->where('LogTime', '<=', $request->filled("to_date") && $request->to_date !== 'null' ? $request->to_date : date("Y-m-d"));
+        $model->where('LogTime', '<=', request()->filled("to_date") && request("to_date") !== 'null' ? request("to_date") .  " 23:59:59" : date("Y-m-d 23:59:59"));
 
-        $model->whereHas('device', fn ($q) => $q->whereIn('device_type', ["all", "Access Control"]));
+        $model->whereHas('device', fn($q) => $q->whereIn('device_type', ["all", "Access Control"]));
 
 
         // $model->where(function ($m) use ($request) {
@@ -157,7 +142,7 @@ class PDFController extends Controller
 
         // ->distinct("LogTime", "UserID", "company_id")
         $model->when($request->filled('department_ids'), function ($q) use ($request) {
-            $q->whereHas('employee', fn (Builder $query) => $query->where('department_id', $request->department_ids));
+            $q->whereHas('employee', fn(Builder $query) => $query->where('department_id', $request->department_ids));
         })
 
             ->with('device', function ($q) use ($request) {
@@ -172,15 +157,15 @@ class PDFController extends Controller
                 $q->where('UserID', $request->system_user_id);
             })
             ->when($request->filled('mode'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('mode', $request->mode));
+                $q->whereHas('device', fn(Builder $query) => $query->where('mode', $request->mode));
             })
             ->when($request->filled('function'), function ($q) use ($request) {
-                $q->whereHas('device', fn (Builder $query) => $query->where('function', $request->function));
+                $q->whereHas('device', fn(Builder $query) => $query->where('function', $request->function));
             })
             ->when($request->filled('devicelocation'), function ($q) use ($request) {
                 if ($request->devicelocation != 'All Locations') {
 
-                    $q->whereHas('device', fn (Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
+                    $q->whereHas('device', fn(Builder $query) => $query->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->devicelocation%"));
                 }
             })
 
@@ -189,9 +174,48 @@ class PDFController extends Controller
             })
 
             ->when($request->filled('branch_id'), function ($q) {
-                $q->whereHas('employee', fn (Builder $query) => $query->where('branch_id', request("branch_id")));
+                $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
             });
 
         return $model;
+    }
+
+    public function PDFMerge($action = "I", $company_id, $from_date, $to_date)
+    {
+        $filesDirectory = public_path("access_control_reports/companies/$company_id");
+
+        // Check if the directory exists
+        if (!is_dir($filesDirectory)) {
+            return response()->json(['error' => 'Directory not found'], 404);
+        }
+
+        // $pdfFiles = glob($filesDirectory . '/*.pdf');
+        $pdfFiles = [];
+
+        // Convert start and end dates to DateTime objects
+        $startDate = new \DateTime($from_date);
+        $endDate = new \DateTime($to_date);
+
+        while ($startDate <= $endDate) {
+
+            $date = $startDate->format("Y-m-d");
+
+            if (glob($filesDirectory . "/$date.pdf")) {
+                $pdfFiles[] = glob($filesDirectory . "/$date.pdf")[0];
+            }
+
+            $startDate->modify('+1 day');
+        }
+
+
+        if (empty($pdfFiles)) {
+            return 'No PDF files found';
+        }
+
+        if ($action == "I") {
+            return (new Controller)->mergePdfFiles($pdfFiles, $action, "Access-Control-Report.pdf");
+        }
+
+        return (new Controller)->mergePdfFiles($pdfFiles, $action, "Access-Control-Report.pdf");
     }
 }

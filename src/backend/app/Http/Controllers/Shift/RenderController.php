@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Shift;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateAttendanceReport;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeLeaves;
 use App\Models\Holidays;
@@ -76,6 +78,24 @@ class RenderController extends Controller
         // }
 
         // return [$automessage, $message];
+
+        $requestPayload = [
+            'company_id' => $request->company_id,
+            'status' => "-1",
+            'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
+            "status_slug" => (new Controller)->getStatusSlug("-1")
+        ];
+
+        $employees = Employee::whereCompanyId($requestPayload["company_id"])
+            ->whereIn("system_user_id", $request->employee_ids)
+            ->get();
+
+        $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
+
+        foreach ($employees as $employee) {
+            GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
+            GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
+        }
 
         return array_merge(
             (new AutoShiftController)->renderData($request),

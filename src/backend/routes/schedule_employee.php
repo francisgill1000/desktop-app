@@ -14,6 +14,9 @@ Route::get('scheduled_employees', [ScheduleEmployeeController::class, 'scheduled
 Route::get('not_scheduled_employees', [ScheduleEmployeeController::class, 'not_scheduled_employees']);
 Route::post('schedule_employee/delete/selected', [ScheduleEmployeeController::class, 'deleteSelected']);
 
+Route::post('schedule_employee/delete-all', [ScheduleEmployeeController::class, 'deleteAll']);
+
+
 Route::post('/assignSchedule', [ScheduleEmployeeController::class, 'assignSchedule']);
 Route::post('/assignScheduleByManual', [ScheduleEmployeeController::class, 'assignScheduleByManual']);
 

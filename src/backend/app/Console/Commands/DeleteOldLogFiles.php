@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Attendance;
+use App\Models\AttendanceLog;
+use App\Models\WhatsappNotificationsLog;
 use Illuminate\Console\Command;
 
 
@@ -47,6 +50,20 @@ class DeleteOldLogFiles extends Command
 
         $path = "/var/www/mytime2cloud/camera-xml-logs"; //"/mytime2cloud/backend/storage/app";
         $this->deleteAttendanceLogFiles($path);
+
+
+
+        // Delete Old logs from database 
+        //delete whatsapp notification logs 
+        $previousDate = date('Y-m-d', strtotime('-5 days'));
+        WhatsappNotificationsLog::where("sent_status", true)->where("created_at", "<=", $previousDate . " 00:00:00")->delete();
+
+
+        // $previousDate = date('Y-m-d', strtotime('-366 days'));
+        // AttendanceLog::where("created_at", "<=", $previousDate . " 00:00:00")->delete();
+
+        // $previousDate = date('Y-m-d', strtotime('-180 days'));
+        // Attendance::where("date", "<=", $previousDate)->delete();
     }
 
     public function deleteAttendanceLogFiles($path)
@@ -64,7 +81,7 @@ class DeleteOldLogFiles extends Command
         echo $path . " - Files count - " . count($files);
 
         $now = time();
-        $days30 = 5 * 24 * 60 * 60; //30Days days
+        $days30 = 5 * (24 * 60 * 60); //5Days days
 
 
 

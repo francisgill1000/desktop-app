@@ -21,7 +21,11 @@ Route::get('/process_reports', [DailyController::class, 'process_reports']);
 
 
 Route::get('report', [ReportController::class, 'index']);
+Route::post('attendance-report-old', [ReportController::class, 'fetchDataOLD']);
+Route::post('attendance-report-new', [ReportController::class, 'fetchDataNEW']);
 
+Route::get('pdf-generation', [MonthlyController::class, 'PDFGeneration']);
+Route::get('pdf-report-merge', [MonthlyController::class, 'PDFMerge']);
 
 //daily
 Route::get('/daily', [DailyController::class, 'daily']);

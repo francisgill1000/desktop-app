@@ -25,6 +25,55 @@ class ReportController extends Controller
         return $this->multiInOut($model->get(), $request->per_page ?? 1000);
     }
 
+    public function fetchDataOLD(Request $request)
+    {
+        //    return $request->all();
+        $model = (new Attendance)->processAttendanceModel($request);
+
+        if ($request->shift_type_id == 1) {
+            return $this->general($model, $request->per_page ?? 1000);
+        }
+
+        return $this->multiInOut($model->get(), $request->per_page ?? 1000);
+    }
+
+    public function fetchDataNEW(Request $request)
+    {
+        $perPage = $request->per_page ?? 100;
+
+        $model = (new Attendance)->processAttendanceModel($request);
+
+        $data = $model->paginate($perPage);
+
+        // only for multi in/out
+        if ($request->shift_type_id == 2) {
+            foreach ($data as $value) {
+
+                $logs = $value->logs ?? [];
+
+                $logs = array_pad($logs, 7, [
+                    "in" => "---",
+                    "out" => "---",
+                    "device_in" => "---",
+                    "device_out" => "---",
+                ]);
+
+                // Populate log details for each entry
+                foreach ($logs as $index => $log) {
+                    $value["in" . ($index + 1)] = $log["in"];
+                    $value["out" . ($index + 1)] = $log["out"];
+                    $value["device_in" . ($index + 1)] = $log["device_in"];
+                    $value["device_out" . ($index + 1)] = $log["device_out"];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+
+
+
     public function general($model, $per_page = 100)
     {
         return $model->paginate($per_page);
