@@ -24,11 +24,13 @@ class SharjahUniversityAPI extends Controller
     {
 
         $token = "---"; //$this->getToken();
+        
         $logFile = "sharjah_attendance_api_logs/"   . now()->format('d-m-Y') . ".log";
 
         Storage::append($logFile, date("Y-m-d H:i:s") . ' token :' . $token . PHP_EOL);
 
         $postData = [];
+
         if ($token != '') {
             foreach ($attendanceArray as $key => $attendance) {
                 //Storage::append($logFile, date("Y-m-d H:i:s") . ' company_id :' . $attendance['company_id'] . PHP_EOL);
@@ -43,8 +45,6 @@ class SharjahUniversityAPI extends Controller
 
                     if ($attendance['company_id'] == 1 &&  (env('APP_ENV') == 'desktop')) {
 
-
-
                         $data = collect($attendance)->only([
                             'employee_id',
                             'logDate',
@@ -55,26 +55,25 @@ class SharjahUniversityAPI extends Controller
                             'date'
                         ])->toArray();
 
-                        if ($data["out"] == '---') {
+                        if ($data["in"] !== '---') {
                             $dateString = $data["date"] . ' ' . $data["in"];
                             $dateTime = new DateTime($dateString);
                             $isoDate = $dateTime->format('Y-m-d\TH:i:s.v\Z');
 
-                            $postData[]  = [
+                            $postData[] = [
                                 "employeeID" => $data["employee_id"],
                                 "logDate" => $isoDate,
                                 "terminalID" => $data["device_id_in"],
                                 "createdDate" => $isoDate,
                                 "functionNo" => "in",
                                 "depNo" => null,
-
                             ];
-                        } else {
+                        }
 
+                        if ($data["out"] !== '---') {
                             $dateString = $data["date"] . ' ' . $data["out"];
                             $dateTime = new DateTime($dateString);
                             $isoDate = $dateTime->format('Y-m-d\TH:i:s.v\Z');
-
                             $postData[] = [
                                 "employeeID" => $data["employee_id"],
                                 "logDate" => $isoDate,
@@ -82,17 +81,8 @@ class SharjahUniversityAPI extends Controller
                                 "createdDate" => $isoDate,
                                 "functionNo" => "out",
                                 "depNo" => null,
-
                             ];
                         }
-
-
-
-
-
-                        //////$response =  $this->pushToAPI($token, $postData);
-
-                        //Storage::append($logFile, date("Y-m-d H:i:s") . ':' . $response . PHP_EOL);
                     }
                 } catch (\Throwable $e) {
 

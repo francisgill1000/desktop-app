@@ -40,11 +40,8 @@ class RenderController extends Controller
 
         set_time_limit(60); // In seconds
 
-        // return (new ShiftRenderController)->renderData($request);
-
-        $shift_type_id = $request->shift_type_id;
-
         $fromdate = date('Y-m-d', strtotime('-1 day', strtotime($request->dates[0])));
+
         $date1 = new DateTime($fromdate);
 
         //$date1 = new DateTime($request->dates[0]);
@@ -57,44 +54,29 @@ class RenderController extends Controller
             }
         }
 
-
-
-
         if (isset($request['employee_ids']) && count($request->employee_ids) > 20) {
             return ["Limit  20 Employees  only "];
         }
 
+        if (!$request->is_request_from_kernel) {
 
-        // $message = '';
-        // return   $automessage = (new AutoShiftController)->renderData($request);
-        // if ($automessage != 'Nearest Shift is not found') {
-        //     $message = [
-        //         (new FiloShiftController)->renderData($request),
-        //         (new SingleShiftController)->renderData($request),
-        //         (new SplitShiftController)->renderData($request),
-        //         (new MultiShiftController)->renderData($request),
-        //         (new NightShiftController)->renderData($request)
-        //     ];
-        // }
+            $requestPayload = [
+                'company_id' => $request->company_id,
+                'status' => "-1",
+                'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
+                "status_slug" => (new Controller)->getStatusSlug("-1")
+            ];
 
-        // return [$automessage, $message];
+            $employees = Employee::whereCompanyId($requestPayload["company_id"])
+                ->whereIn("system_user_id", $request->employee_ids)
+                ->get();
 
-        $requestPayload = [
-            'company_id' => $request->company_id,
-            'status' => "-1",
-            'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
-            "status_slug" => (new Controller)->getStatusSlug("-1")
-        ];
+            $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
 
-        $employees = Employee::whereCompanyId($requestPayload["company_id"])
-            ->whereIn("system_user_id", $request->employee_ids)
-            ->get();
-
-        $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
-
-        foreach ($employees as $employee) {
-            GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
-            GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
+            foreach ($employees as $employee) {
+                GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
+                GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
+            }
         }
 
         return array_merge(
@@ -107,16 +89,6 @@ class RenderController extends Controller
             (new NightShiftController)->renderData($request),
 
         );
-
-        // if ($shift_type_id == 5) {
-        //     return (new SplitShiftController)->renderData($request);
-        // } else if ($shift_type_id == 2) {
-        //     return (new MultiShiftController)->renderData($request);
-        // }
-        // return array_merge(
-        //     (new FiloShiftController)->renderData($request),
-        //     (new SingleShiftController)->renderData($request)
-        // );
     }
 
     public function renderMultiInOut(Request $request)

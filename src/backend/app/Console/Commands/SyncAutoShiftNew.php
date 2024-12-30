@@ -62,7 +62,8 @@ class SyncAutoShiftNew extends Command
                 'employee_ids' => [],
                 'dates' => array($date, $date),
                 'shift_type_id' => 1,
-                'auto_render' => $auto_render
+                'auto_render' => $auto_render,
+                'is_request_from_kernel' => true,
             );
 
             //calling manual render method to pull all 
