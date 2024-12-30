@@ -76,7 +76,7 @@ class SingleShiftController extends Controller
 
 
 
-        //update atendance table with shift ID if shift with employee not found 
+        //update atendance table with shift ID if shift with employee not found
         if (count($logsEmployees) == 0) {
             $employees = (new Employee())->GetEmployeeWithShiftDetails($params);
             foreach ($employees as $key => $value) {
@@ -117,11 +117,11 @@ class SingleShiftController extends Controller
             $firstLog = null;
 
             $firstLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "In" || $record["log_type"] == null || $record["log_type"] == "Auto";
+                return $record["log_type"] == "In" || $record["log_type"] == null || $record["log_type"] == "Auto" || $record["log_type"] == "auto";
             })->first();
 
             $lastLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "Out" || $record["log_type"] == null || $record["log_type"] == "Auto";
+                return $record["log_type"] == "Out" || $record["log_type"] == null || $record["log_type"] == "Auto" || $record["log_type"] == "auto";
             })->last();
 
             if ($isRequestFromAutoshift) {

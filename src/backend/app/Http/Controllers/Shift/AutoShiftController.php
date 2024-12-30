@@ -240,27 +240,30 @@ class AutoShiftController extends Controller
 
         return strtotime($dateTime);
     }
-    public function findClosest($shifts, $count, $logs, $date)
+
+    public function findClosest($shifts, $count, $logs, $date): ?array
     {
-        foreach ($logs as $logTime) {
-            if ($logTime["log_type"] == null || $logTime["log_type"] == "Auto" || $logTime["log_type"] == "In"  || $logTime["device"]["function"] == "In") {
-                $current_time = date("H:i", strtotime($logTime["LogTime"]));
+        foreach ($logs as $log) {
+            $logType = strtolower($log['log_type'] ?? '');
+            $deviceFunction = strtolower($log['device']['function'] ?? '');
 
-                $matching_shift = array_filter($shifts, function ($shift) use ($current_time) {
-                    return $current_time >= $shift['beginning_in'] && $current_time <= $shift['beginning_out'];
-                });
+            if (in_array($logType, ['auto', 'in', ''], true) || in_array($deviceFunction, ['in'], true)) {
+                $currentTime = date('H:i', strtotime($log['LogTime']));
 
-                if (!empty($matching_shift)) {
-                    $shift = array_values($matching_shift)[0]; // Get the first matching shift
-                    //return  [$shift, $logs];
+                $matchingShift = array_values(array_filter($shifts, function ($shift) use ($currentTime) {
+                    return $currentTime >= $shift['beginning_in'] && $currentTime <= $shift['beginning_out'];
+                }));
 
-                    return $shift;
+                if (!empty($matchingShift)) {
+                    return $matchingShift[0]; // Return the first matching shift
                 }
             }
         }
 
-        return null;
+        return null; // No matching shift found
     }
+
+
     public function findClosest_old($arr, $n, $target, $date)
     {
         if (count($arr) == 0) return false;
@@ -448,9 +451,10 @@ class AutoShiftController extends Controller
 
             //return $row;
             if (count($shifts) > 0) {
+
                 $nearestShift = $this->findClosest($shifts, count($shifts), $row, $date);
 
-                //clear old Attendance shift data 
+                //clear old Attendance shift data
                 $itemData = [
                     "total_hrs" => "---",
                     "in" =>   "---",
@@ -505,7 +509,7 @@ class AutoShiftController extends Controller
 
                 $result = $this->renderRelatedShiftype($nearestShift['shift_type_id'], $UserID, $params);
 
-                // if (!$params["custom_render"]) 
+                // if (!$params["custom_render"])
                 {
                     // AttendanceLog::where("company_id", $id)->where("UserID", $UserID)->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
 
