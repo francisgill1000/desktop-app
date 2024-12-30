@@ -78,7 +78,7 @@ class NightShiftController extends Controller
             $logsEmployees =  (new AttendanceLog)->getLogsForRenderNotAutoShift($params);
         }
 
-        //update atendance table with shift ID if shift with employee not found
+        //update atendance table with shift ID if shift with employee not found 
         if (count($logsEmployees) == 0) {
             $employees = (new Employee())->GetEmployeeWithShiftDetails($params);
             foreach ($employees as $key => $value) {
