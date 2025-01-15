@@ -105,26 +105,11 @@ class Kernel extends ConsoleKernel
                 //->withoutOverlapping()
                 ->appendOutputTo(storage_path("kernal_logs/shifts/auto/$company_log.log")); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
 
-            $schedule->command("task:sync_auto_shift {$companyId} " . date("Y-m-d") . " false")->everyFourMinutes();
-            $schedule->command("task:sync_auto_shift {$companyId} " . date("Y-m-d") . " true")->everyThirtyMinutes();
+            $schedule
+                ->command("task:sync_auto_shift $companyId " . date("Y-m-d"))
+                ->everyTenMinutes();
 
             $schedule->command("send_notificatin_for_offline_devices {$companyId}")->everySixHours();
-
-            $schedule
-                ->command("task:sync_auto_shift {$companyId} " . date("Y-m-d") . " false")
-                ->everyFourMinutes()
-                //->everyFiveMinutes()
-
-                //->withoutOverlapping()
-                ->appendOutputTo(storage_path("kernal_logs/shifts/auto/$company_log.log")); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
-
-            $schedule
-                ->command("task:sync_auto_shift {$companyId} " . date("Y-m-d") . " true")
-                ->everyThirtyMinutes()
-                //->everyFiveMinutes()
-
-                //->withoutOverlapping()
-                ->appendOutputTo(storage_path("kernal_logs/shifts/auto/$company_log.log")); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
 
 
             //if ($companyId == 1) 

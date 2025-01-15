@@ -8,6 +8,7 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log as Logger;
 
 class SyncAutoShiftNew extends Command
@@ -17,7 +18,7 @@ class SyncAutoShiftNew extends Command
      *
      * @var string
      */
-    protected $signature = 'task:sync_auto_shift  {company_id} {date} {auto_render}';
+    protected $signature = 'task:sync_auto_shift {company_id} {date}';
 
     /**
      * The console command description.
@@ -25,63 +26,90 @@ class SyncAutoShiftNew extends Command
      * @var string
      */
     protected $description = 'Sync Auto Shift';
-
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
     public function handle()
     {
+        $localIp = gethostbyname(gethostname());
+        $port = 8000;
+        $endpoint = "http://$localIp:$port/api/render_logs";
 
         $id = $this->argument("company_id");
-
         $date = $this->argument("date");
-
-        $auto_render = $this->argument("auto_render");
 
         $employeeIds = Employee::where("company_id", $id)
             ->whereHas("schedule", fn($q) => $q->where("isAutoShift", true))
             ->pluck("system_user_id");
 
         try {
-            //echo (new AutoShiftController)->render($id, $date, [], false) . "\n";
-            // echo (new AutoShiftController)->renderStep1($id, $date, [], false) . "\n";//testing
+            // Log the start of the process
+            Logger::channel('custom')->info('Starting SyncAutoShiftNew process', [
+                'company_id' => $id,
+                'date' => $date,
+                'endpoint' => $endpoint,
+            ]);
 
+            // Chunk the employee IDs array into batches of 20
+            $employeeIds->chunk(5)->each(function ($chunk) use ($id, $date, $endpoint) {
+                $params = [
+                    'date' => '',
+                    'UserID' => '',
+                    'updated_by' => 26,
+                    'company_ids' => [$id],
+                    'manual_entry' => true,
+                    'reason' => '',
+                    'employee_ids' => $chunk->toArray(),
+                    'dates' => [$date, $date],
+                    'shift_type_id' => 2,
+                    'company_id' => $id,
+                ];
 
-            //----------------------------
-            // $params = [
-            //     "company_id" => $id,
-            //     "date" => $date,
-            //     "custom_render" => false,
-            //     "UserIds" => [],
-            // ];
+                try {
+                    // Log the parameters for the current chunk
+                    Logger::channel('custom')->info('Sending request to endpoint', [
+                        'chunk' => $chunk->toArray(),
+                        'params' => $params,
+                    ]);
 
-            // // $employee_ids = (new AttendanceLog())->getEmployeeIdsForNewLogsToRenderAuto($params);
-            $requestArray = array(
-                'date' => '',
-                'UserID' => '',
-                'updated_by' => 26,
-                'company_ids' => array($id),
-                'manual_entry' => true,
-                'reason' => '',
-                'employee_ids' => $employeeIds,
-                'dates' => array($date, $date),
-                'shift_type_id' => 1,
-                'auto_render' => $auto_render,
-                'is_request_from_kernel' => true,
-            );
+                    // Call the endpoint using Http facade
+                    $response = Http::withoutVerifying()->get($endpoint, $params);
 
-            //calling manual render method to pull all 
-            $renderRequest = Request::create('/render_logs', 'get', $requestArray);
+                    // Log the response
+                    if ($response->successful()) {
+                        Logger::channel('custom')->info('Request successful', [
+                            'chunk' => $chunk->toArray(),
+                            'response' => $response->json(),
+                        ]);
+                        echo "Success: Processed chunk\n";
+                    } else {
+                        Logger::channel('custom')->error('Request failed', [
+                            'chunk' => $chunk->toArray(),
+                            'status' => $response->status(),
+                            'error_body' => $response->body(),
+                        ]);
+                        echo "Error: {$response->status()} - {$response->body()}\n";
+                    }
+                } catch (\Exception $e) {
+                    // Log any unexpected errors during the request
+                    Logger::channel('custom')->critical('Unexpected error during request', [
+                        'chunk' => $chunk->toArray(),
+                        'exception_message' => $e->getMessage(),
+                    ]);
+                    echo "Critical Error: {$e->getMessage()}\n";
+                }
+            });
 
-            echo json_encode((new RenderController())->renderLogs($renderRequest)) . '--------' . $auto_render;
-        } catch (\Throwable $th) {
-            //throw $th;
-            $error_message = 'Cron: ' . env('APP_NAME') . ': Exception in task:sync_auto_shift  : Company Id :' . $id . ', : Date :' . $date . ', ' . $th;
-            Logger::channel("custom")->error($error_message);
-            Logger::channel("custom")->error($requestArray);
-            echo $error_message;
+            // Log the completion of the process
+            Logger::channel('custom')->info('SyncAutoShiftNew process completed successfully', [
+                'company_id' => $id,
+                'date' => $date,
+            ]);
+        } catch (\Exception $e) {
+            // Log any unexpected errors in the overall process
+            Logger::channel('custom')->critical('Unexpected error in SyncAutoShiftNew process', [
+                'company_id' => $id,
+                'date' => $date,
+                'exception_message' => $e->getMessage(),
+            ]);
+            echo "Critical Error in Process: {$e->getMessage()}\n";
         }
     }
 }
