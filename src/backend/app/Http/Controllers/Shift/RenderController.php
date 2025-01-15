@@ -58,26 +58,26 @@ class RenderController extends Controller
             return ["Limit  20 Employees  only "];
         }
 
-        if (!$request->is_request_from_kernel) {
+        //if (!$request->is_request_from_kernel) {
 
-            $requestPayload = [
-                'company_id' => $request->company_id,
-                'status' => "-1",
-                'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
-                "status_slug" => (new Controller)->getStatusSlug("-1")
-            ];
+        //     $requestPayload = [
+        //         'company_id' => $request->company_id,
+        //         'status' => "-1",
+        //         'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
+        //         "status_slug" => (new Controller)->getStatusSlug("-1")
+        //     ];
 
-            $employees = Employee::whereCompanyId($requestPayload["company_id"])
-                ->whereIn("system_user_id", $request->employee_ids)
-                ->get();
+        //     $employees = Employee::whereCompanyId($requestPayload["company_id"])
+        //         ->whereIn("system_user_id", $request->employee_ids)
+        //         ->get();
 
-            $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
+        //     $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
 
-            foreach ($employees as $employee) {
-                GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
-                GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
-            }
-        }
+        //     foreach ($employees as $employee) {
+        //         GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
+        //         GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
+        //     }
+        // }
 
         return array_merge(
             (new AutoShiftController)->renderData($request),

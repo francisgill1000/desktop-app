@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Http\Controllers\Shift\AutoShiftController;
 use App\Http\Controllers\Shift\RenderController;
 use App\Models\AttendanceLog;
+use App\Models\Employee;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log as Logger;
@@ -36,7 +37,12 @@ class SyncAutoShiftNew extends Command
         $id = $this->argument("company_id");
 
         $date = $this->argument("date");
+
         $auto_render = $this->argument("auto_render");
+
+        $employeeIds = Employee::where("company_id", $id)
+            ->whereHas("schedule", fn($q) => $q->where("isAutoShift", true))
+            ->pluck("system_user_id");
 
         try {
             //echo (new AutoShiftController)->render($id, $date, [], false) . "\n";
@@ -59,7 +65,7 @@ class SyncAutoShiftNew extends Command
                 'company_ids' => array($id),
                 'manual_entry' => true,
                 'reason' => '',
-                'employee_ids' => [],
+                'employee_ids' => $employeeIds,
                 'dates' => array($date, $date),
                 'shift_type_id' => 1,
                 'auto_render' => $auto_render,

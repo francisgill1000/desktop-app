@@ -163,7 +163,8 @@ class SingleShiftController extends Controller
                 }
             }
 
-            if ($shift && $lastLog && count($logs) > 1) {
+            if ($shift && $lastLog && count($logs) > 1 && $firstLog["time"] !== $lastLog["time"]) {
+
                 $item["status"] = "P";
                 $item["device_id_out"] = $lastLog["DeviceID"] ?? "---";
                 $item["out"] = $lastLog["time"] ?? "---";
@@ -193,6 +194,7 @@ class SingleShiftController extends Controller
                     }
                 }
             }
+
             $items[] = $item;
         }
 
