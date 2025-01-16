@@ -1,20 +1,16 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Shift;
 
-use App\Http\Controllers\Shift\AutoShiftController;
-use App\Http\Controllers\Shift\RenderController;
-use App\Models\AttendanceLog;
 use App\Models\Employee;
 use Illuminate\Console\Command;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log as Logger;
 
-class SyncAutoShiftNew extends Command
+class SyncAutoShift extends Command
 {
     /**
-     * The name and signature of the console command.
+     * The name and signature of the console command sync_auto_shift.
      *
      * @var string
      */
