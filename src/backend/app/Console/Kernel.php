@@ -44,12 +44,12 @@ class Kernel extends ConsoleKernel
         //-------------Shift Related Commands-------------------//
         $schedule
             ->command("task:sync_auto_shift $companyId " . date("Y-m-d"))
-            ->everyMinute()
+            ->everyFifteenMinutes()
             ->runInBackground();
 
         $schedule
             ->command("task:sync_except_auto_shift $companyId " . date("Y-m-d"))
-            ->everyMinute()
+            ->everyFifteenMinutes()
             ->runInBackground();
 
         //-------------Shift Related Commands End -------------------//
