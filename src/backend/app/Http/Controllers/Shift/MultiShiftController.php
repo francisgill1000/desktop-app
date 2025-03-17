@@ -7,7 +7,10 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncMultiShiftDualDayJob;
 use App\Models\Employee;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 
 class MultiShiftController extends Controller
@@ -251,5 +254,40 @@ class MultiShiftController extends Controller
         $this->logOutPut($this->logFilePath, "[" . $date . " " . date("H:i:s") .  "] " . "$logsUpdated " . " updated logs");
         $this->logOutPut($this->logFilePath, $message);
         return $message;
+    }
+
+    public function sync(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'required|numeric',
+            'from_date' => 'required|date_format:Y-m-d',
+            'to_date' => 'required|date_format:Y-m-d',
+            'UserID' => 'nullable',
+        ]);
+
+        $id = $request->input('company_id');
+        $startDate = Carbon::parse($request->input('from_date'));
+        $endDate = Carbon::parse($request->input('to_date'));
+        $flag = 'true';
+        $UserID = $request->input('UserID');
+
+        // Check if the date range exceeds 5 days
+        if ($startDate->diffInDays($endDate) > 5) {
+            return response()->json(['error' => 'You cannot select more than 5 dates.'], 400);
+        }
+
+
+        if ($startDate->greaterThan($endDate)) {
+            return response()->json(['error' => 'Start date must be before end date.'], 400);
+        }
+
+        while ($startDate->lte($endDate)) {
+            SyncMultiShiftDualDayJob::dispatch($id, $startDate->toDateString(), $flag, $UserID);
+            $startDate->addDay();
+        }
+
+        return response()->json([
+            'message' => 'Report has been regerated!',
+        ]);
     }
 }

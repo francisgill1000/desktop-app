@@ -53,3 +53,4 @@ Route::get('access_control_report', [AccessControlController::class, 'index']);
 
 Route::post('renderAutoRequest', [AutoShiftController::class, 'renderRequest']);
 
+Route::post('/sync-multi-shift-dual-day-range', [MultiShiftController::class, 'sync']);
