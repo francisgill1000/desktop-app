@@ -129,8 +129,10 @@ class MonthlyController extends Controller
 
     public function multi_in_out_monthly_pdf(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', 300); // Increase to 5 minutes
 
-        if (request("company_id", 0) == 22) {
+        if (request("shift_type_id", 0) == 2) {
             return $this->PDFMerge();
         }
 
@@ -1022,7 +1024,7 @@ class MonthlyController extends Controller
 
         $template = request("report_template", 0);
 
-        $filesDirectory = public_path("reports/companies/$company_id/$template/$status");
+        $filesDirectory = public_path("reports/companies/$company_id/$template/Summary");
 
         // Check if the directory exists
         if (!is_dir($filesDirectory)) {

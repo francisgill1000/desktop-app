@@ -32,7 +32,7 @@ class StoreRequest extends FormRequest
             'employee_ids' => 'required|array',
             'device_ids' => 'required|array',
             'company_id' => 'required',
-            'branch_id' => 'required',
+            //'branch_id' => 'required',
         ];
     }
 }

@@ -90,7 +90,12 @@ class AttendanceLogCameraController extends Controller
                 "UserID" => $columns[0],
                 "DeviceID" => $columns[1],
                 "LogTime" => substr(str_replace("T", " ", $columns[2]), 0, -3),
-                "SerialNumber" => $columns[3]
+                "SerialNumber" => $columns[3],
+                "log_date_time" => substr(str_replace("T", " ", $columns[2]), 0, -3),
+                "index_serial_number" => $columns[3],
+                "log_date" => explode('T', $columns[2])[0] ?? date("Y-m-d"),
+
+                "log_type" => null,
             ];
 
 
@@ -193,7 +198,7 @@ class AttendanceLogCameraController extends Controller
             $columns = explode(',', $row);
 
             $isDuplicateLogTime = $this->verifyDuplicateLog($columns);
-            //$isDuplicateLogTime = false;
+           // $isDuplicateLogTime = false;
             if (!$isDuplicateLogTime) {
                 $datetime = substr(str_replace("T", " ", $columns[2]), 0, 16);
 
@@ -203,7 +208,12 @@ class AttendanceLogCameraController extends Controller
                         "UserID" => $columns[0],
                         "DeviceID" => $columns[1],
                         "LogTime" => substr(str_replace("T", " ", $columns[2]), 0, -3),
-                        "SerialNumber" => $columns[3]
+                        "SerialNumber" => $columns[3],
+                        "log_date_time" => substr(str_replace("T", " ", $columns[2]), 0, -3),
+                        "index_serial_number" => $columns[3],
+                        "log_date" =>  explode('T', $columns[2])[0] ?? date("Y-m-d"),
+
+                        "log_type" => null,
                     ];
 
 
@@ -545,7 +555,7 @@ class AttendanceLogCameraController extends Controller
         });
         $model->when($request->filled('search_device_name'), function ($q) use ($request) {
             $key = strtolower($request->search_device_name);
-            $q->whereHas('device', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+            $q->whereHas('device', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
         });
         $model->when($request->filled('search_device_id'), function ($q) use ($request) {
             $q->where('DeviceID', 'LIKE', "$request->search_device_id%");

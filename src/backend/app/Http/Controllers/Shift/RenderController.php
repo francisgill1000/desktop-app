@@ -38,6 +38,8 @@ class RenderController extends Controller
     public function renderLogs(Request $request)
     {
 
+        // return ["Regeneration not allowd. contact to admin"];
+
         set_time_limit(60); // In seconds
 
         $fromdate = date('Y-m-d', strtotime('-1 day', strtotime($request->dates[0])));
@@ -58,36 +60,41 @@ class RenderController extends Controller
             return ["Limit  20 Employees  only "];
         }
 
-        //if (!$request->is_request_from_kernel) {
+        if ($request->channel == "kernel") {
+            if ($request->shift_type_id == 0) {
+                return array_merge(
+                    // 1,6
+                    (new FiloShiftController)->renderData($request),
 
-        //     $requestPayload = [
-        //         'company_id' => $request->company_id,
-        //         'status' => "-1",
-        //         'date' => date("Y-m-d", strtotime("-1 day")), // Yesterday's date
-        //         "status_slug" => (new Controller)->getStatusSlug("-1")
-        //     ];
+                    (new SingleShiftController)->renderData($request),
+                );
+            }
 
-        //     $employees = Employee::whereCompanyId($requestPayload["company_id"])
-        //         ->whereIn("system_user_id", $request->employee_ids)
-        //         ->get();
+            if ($request->shift_type_id == 2) {
+                return (new MultiShiftController)->renderData($request);
+            } else if ($request->shift_type_id == 3) {
+                return array_merge(
+                    (new AutoShiftController)->renderData($request),
 
-        //     $company = Company::whereId($requestPayload["company_id"])->with('contact:id,company_id,number')->first(["logo", "name", "company_code", "location", "p_o_box_no", "id"]);
 
-        //     foreach ($employees as $employee) {
-        //         GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template1");
-        //         GenerateAttendanceReport::dispatch($employee->system_user_id, $company, $employee, $requestPayload, "Template2");
-        //     }
-        // }
+                    (new SingleShiftController)->renderData($request),
+                    (new SplitShiftController)->renderData($request),
+                    (new NightShiftController)->renderData($request),
+                );
+            } else if ($request->shift_type_id == 4) {
+                return (new NightShiftController)->renderData($request);
+            } else if ($request->shift_type_id == 5) {
+                return (new SplitShiftController)->renderData($request);
+            }
+        }
+
 
         return array_merge(
             (new AutoShiftController)->renderData($request),
-
-            (new FiloShiftController)->renderData($request),
             (new SingleShiftController)->renderData($request),
             (new SplitShiftController)->renderData($request),
             (new MultiShiftController)->renderData($request),
             (new NightShiftController)->renderData($request),
-
         );
     }
 

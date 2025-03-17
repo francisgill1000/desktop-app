@@ -16,16 +16,16 @@ class LeaveGroupsController extends Controller
     {
         $model = LeaveGroups::query();
         $model->where('company_id', request('company_id'));
-        $model->when(request()->filled('branch_id'), fn ($q) => $q->where('branch_id', request('branch_id')));
+        $model->when(request()->filled('branch_id'), fn($q) => $q->where('branch_id', request('branch_id')));
         $model->select("id", "group_name as name");
         $model->orderBy(request('order_by') ?? "id", request('sort_by_desc') ? "desc" : "asc");
-        return $model->get(["id","name"]);
+        return $model->get(["id", "name"]);
     }
     public function getDefaultModelSettings($request, $id = '')
     {
         $model = LeaveGroups::query();
         $model->where('company_id', $request->company_id);
-        $model->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id',  $request->branch_id));
+        $model->when($request->filled('branch_id'), fn($q) => $q->where('branch_id',  $request->branch_id));
         if ($id > 0) {
             $model->where('id', $id);
         }
@@ -196,5 +196,80 @@ class LeaveGroupsController extends Controller
         } else {
             return $this->response('Leave Groups cannot delete.', null, false);
         }
+    }
+
+    public function totalLeaveQuota($id, Request $request)
+    {
+        $company_id = $request->company_id ?? 0;
+        $employee_id = $request->employee_id ?? 0;
+        $year = $request->year ?? date("Y");
+
+        $payload = LeaveGroups::with("leave_count.leave_type")->withSum('leave_count as total_leave_days', 'leave_type_count')
+            ->findOrFail($id);
+
+        $leaveCountArray = $payload->leave_count->toArray();
+
+        $employeeLeaves = EmployeeLeaves::where('company_id', $company_id)
+            ->whereIn('leave_type_id', array_column($leaveCountArray, "leave_type_id"))
+            ->where('employee_id', $employee_id)
+            ->whereYear('created_at', $year)
+            ->select(
+                DB::raw("COUNT(CASE WHEN status = 0 THEN 1 END) AS pending"),
+                DB::raw("COUNT(CASE WHEN status = 1 THEN 1 END) AS approved"),
+                DB::raw("COUNT(CASE WHEN status = 2 THEN 1 END) AS rejected"),
+            )
+            ->groupBy("employee_leaves.id")
+            ->first();
+
+        $payload->pending = 0;
+        $payload->approved = 0;
+        $payload->rejected = 0;
+        $payload->balance = 0;
+
+        if ($employeeLeaves) {
+            $payload->pending = $employeeLeaves->pending;
+            $payload->approved = $employeeLeaves->approved;
+            $payload->rejected = $employeeLeaves->rejected;
+            $payload->balance = $payload->total_leave_days - $employeeLeaves->approved;
+        }
+
+        $payload->year = $year;
+
+        return $payload;
+    }
+
+    public function yearlyLeaveQuota($id, Request $request)
+    {
+        $company_id = $request->company_id ?? 0;
+        $employee_id = $request->employee_id ?? 0;
+        // Calculate the start and end dates for the last 12 months
+        $endDate = now(); // Current date
+        $startDate = now()->subMonths(12); // 12 months ago from today
+
+        // Fetch data for the last 12 months
+        $leaves = EmployeeLeaves::where('company_id', $company_id)
+            ->where('employee_id', $employee_id)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where("status", 1)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $monthNames = [];
+        $monthValues = [];
+
+        // Loop through the last 12 months
+        for ($i = 0; $i < 12; $i++) {
+            $monthStart = now()->subMonths($i)->startOfMonth(); // Start of the month
+            $monthEnd = now()->subMonths($i)->endOfMonth(); // End of the month
+            $monthName = $monthStart->format('M'); // Format as (Feb)
+            $monthlyLeaves = $leaves->filter(function ($item) use ($monthStart, $monthEnd) {
+                return $item->created_at >= $monthStart && $item->created_at <= $monthEnd;
+            });
+
+            $monthNames[] = $monthName;
+            $monthValues[] = $monthlyLeaves->isEmpty() ? 0 : $monthlyLeaves->count();
+        }
+
+        return ["month_names" => array_reverse($monthNames), "month_values" => array_reverse($monthValues)];
     }
 }

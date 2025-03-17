@@ -62,7 +62,7 @@ class CompanyController extends Controller
 
     public function CompanyList(Company $Company)
     {
-        return $Company->select('id', 'name')->orderBy("name", "asc")->get();
+        return $Company->select('id', 'name', 'company_code')->orderBy("name", "asc")->get();
     }
 
     public function index(Company $model, Request $request)
@@ -484,10 +484,10 @@ class CompanyController extends Controller
                     "gps_location" => $arr["device"]["location"],
                     //"log_type" => $arr["device"]["function"]
                 ]);
-                try {
-                    (new WhatsappNotificationsLogController())->addAttendanceMessageEmployeeIdLog($logs);
-                } catch (\Throwable $th) {
-                }
+                // try {
+                //     (new WhatsappNotificationsLogController())->addAttendanceMessageEmployeeIdLog($logs);
+                // } catch (\Throwable $th) {
+                // }
             } catch (\Throwable $th) {
 
 
@@ -546,5 +546,15 @@ class CompanyController extends Controller
 
         return "[" . $date . "] Cron: UpdateCompanyIds. $i Logs has been merged with Company IDS.\n"; //."Details: " . json_encode($result) . ".\n";
 
+    }
+    public function shortInfo($id)
+    {
+        $company = Company::with("user:id,company_id,email")->find($id);
+
+        if (!$company) {
+            return response()->json(['error' => 'Company not found'], 404);
+        }
+
+        return $company;
     }
 }

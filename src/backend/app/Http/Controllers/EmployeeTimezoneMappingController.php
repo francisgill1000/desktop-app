@@ -8,6 +8,8 @@ use App\Models\CompanyBranch;
 use App\Models\Employee;
 use App\Models\EmployeeTimezoneMapping;
 use App\Models\Timezone;
+use App\Models\TimezoneEmployees;
+
 use function PHPUnit\Framework\isJson;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -46,8 +48,60 @@ class EmployeeTimezoneMappingController extends Controller
     public function store(StoreRequest $request)
     {
 
+        $slots = Timezone::where("timezone_id", $request->timezone_id)->value("intervals_raw_data") ?? [];
+
+        $slotsCount = count(json_decode($slots));
+
+        $payload = $request->validated();
+
+        //$payload["timezone_id"] = $slotsCount == 336 ? 1 : $request->timezone_id;
+
+        $payload["timezone_id"] = $request->timezone_id;
+
+
+
+
         try {
-            $record = EmployeeTimezoneMapping::create($request->validated());
+
+            foreach ($request->device_id as $device) {
+
+                foreach ($request->employee_id as $employee) {
+
+
+                    //delete where device and employee already mapped //delete and insert new 
+                    TimezoneEmployees::where("company_id", $request->company_id)
+                        ->where("device_table_id", $device['id'])
+                        ->where("employee_table_id", $employee['id'])
+                        ->delete();
+
+
+
+                    $count = TimezoneEmployees::where("company_id", $request->company_id)
+                        ->where("company_id", $request->company_id)
+                        ->where("timezone_table_id", $request->timezone_table_id)
+                        ->where("device_table_id", $device['id'])
+                        ->where("employee_table_id", $employee['id'])
+                        ->where("device_timezone_id",  $request->timezone_id)
+
+
+
+                        ->count();
+                    if ($count == 0) {
+                        $dataTimezoneEmp = [
+                            "company_id" => $request->company_id,
+                            "timezone_table_id" => $request->timezone_table_id,
+                            "device_table_id" => $device['id'],
+                            "employee_table_id" => $employee['id'],
+                            "device_timezone_id" => $request->timezone_id
+
+                        ];
+                        $record = TimezoneEmployees::create($dataTimezoneEmp);
+                    }
+                }
+            }
+            $record = EmployeeTimezoneMapping::create($payload);
+
+
 
             if ($record) {
 
@@ -61,8 +115,14 @@ class EmployeeTimezoneMappingController extends Controller
                 $finalArray['SDKResponse'] = $SDKresponse;
 
                 $finalArray['recordResponse'] = $record;
+
+                log_message('EmployeeTimezoneMapping Successfully created.' . json_encode($finalArray), "sdk_timezone_employee_mapping");
+
+
                 return $this->response('EmployeeTimezoneMapping Successfully created.', $finalArray, true);
             } else {
+
+
                 return $this->response('EmployeeTimezoneMapping cannot create.', null, false);
             }
         } catch (\Throwable $th) {
@@ -134,19 +194,20 @@ class EmployeeTimezoneMappingController extends Controller
     }
     public function update(UpdateRequest $request, EmployeeTimezoneMapping $EmployeeTimezoneMapping)
     {
+        $slots = Timezone::where("timezone_id", $request->timezone_id)->value("intervals_raw_data") ?? [];
+
+        $slotsCount = count(json_decode($slots));
+
+        $payload = $request->all();
+
+        $payload["timezone_id"] = $slotsCount == 336 ? 1 : $request->timezone_id;
+
         try {
-
-            //updating default timezone id which are already exist in TimezoneName
-            if ($request->timezone_id) {
-                Employee::where('timezone_id', $request->timezone_id)
-                    ->update(['timezone_id' => 1]);
-            }
-
-            $record = $EmployeeTimezoneMapping->update($request->all());
+            $record = $EmployeeTimezoneMapping->update($payload);
 
             if ($record) {
 
-                $SDKjsonRequest = $this->prepareSDKrequestjson($request->all());
+                $SDKjsonRequest = $this->prepareSDKrequestjsonForUpdate($payload);
 
                 $SDKObj = new SDKController;
                 //$SDKresponse = ($SDKObj->processSDKRequest("localhost:5000/Person/AddRange", $SDKjsonRequest));
@@ -183,19 +244,57 @@ class EmployeeTimezoneMappingController extends Controller
     public function deleteTimezone(Request $request)
     {
 
-        if ($request->timezone_id) {
-            Employee::where('timezone_id', $request->timezone_id)
-                ->update(['timezone_id' => 1]);
-        }
-        $record = EmployeeTimezoneMapping::where('id', $request->id)->delete();
 
-        // //updating default timezone id which are already exist in TimezoneName
+        //reset timezone  on Device with 1 full access  
+        $previousTimezones =   TimezoneEmployees::with(["device", "employee"])
+            ->where("company_id", $request->company_id)
+            ->where("timezone_table_id", $request->timezone_id)
+            ->get();
 
-        if ($record) {
-            return $this->response('EmployeeTimezoneMapping successfully deleted.', $record, true);
-        } else {
-            return $this->response('EmployeeTimezoneMapping cannot delete.', null, false);
+
+        foreach ($previousTimezones as $key => $empTimezone) {
+
+            $jsonData = [
+                'personList' => [
+                    [
+                        'name' => $empTimezone->employee["display_name"],
+                        'userCode' => $empTimezone->employee["system_user_id"],
+                        'timeGroup' => 1, //reset to 1//full access
+                    ]
+                ],
+                'snList' =>  [$empTimezone->device["device_id"],]
+            ];
+
+            (new SDKController())->processSDKTimeZoneONEJSONData(null, $jsonData);
         }
+
+        //delete Employee data  from table 
+        TimezoneEmployees::where("company_id", $request->company_id)
+            ->where("timezone_table_id", $request->timezone_id)
+            ->delete();
+
+        EmployeeTimezoneMapping::where("company_id", $request->company_id)
+            ->where("timezone_id", $request->timezone_id)
+            ->delete();
+
+
+
+
+
+
+        // if ($request->timezone_id) {
+        //     Employee::where('timezone_id', $request->timezone_id)
+        //         ->update(['timezone_id' => 1]);
+        // }
+        // $record = EmployeeTimezoneMapping::where('id', $request->id)->delete();
+
+        // // //updating default timezone id which are already exist in TimezoneName
+
+        // if ($record) {
+        //     return $this->response('EmployeeTimezoneMapping successfully deleted.', $record, true);
+        // } else {
+        //     return $this->response('EmployeeTimezoneMapping cannot delete.', null, false);
+        // }
     }
     public function get_employeeswith_timezonename(Employee $employee, Request $request)
     {
@@ -310,5 +409,35 @@ class EmployeeTimezoneMappingController extends Controller
 
             ->with(["timezone", "branch"])
             ->paginate($request->per_page);
+    }
+
+    public function prepareSDKrequestjsonForUpdate($phpArray)
+    {
+
+        $finalArray = [];
+        if (!isJson($phpArray)) {
+            $phpArray = json_decode($phpArray, true);
+        } else {
+            $phpArray = $phpArray;
+        }
+
+        $personsListArray = [];
+        $snListArray = array_column($phpArray['device_id'], 'device_id');
+
+        foreach ($phpArray['employee_id'] as $list) {
+            Employee::where("id", $list['id'])->update(['timezone_id' => $phpArray['timezone_id']]);
+            //$row['expiry'] = "2089-12-31 23:59:59";
+            $personsListArray[] = [
+                "name" => $list['display_name'],
+                "userCode" => $list['system_user_id'],
+                "timeGroup" => $phpArray['timezone_id'],
+                "cardData" => $list['rfid_card_number'],
+                "password" => $list['rfid_card_password'],
+            ];
+        }
+
+        $finalArray['snList'] = $snListArray;
+        $finalArray['personList'] = $personsListArray;
+        return $finalArray;
     }
 }

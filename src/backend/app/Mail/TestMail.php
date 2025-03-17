@@ -6,11 +6,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 
-class TestMail extends Mailable implements ShouldQueue
+class TestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,11 +17,8 @@ class TestMail extends Mailable implements ShouldQueue
      * @return void
      */
     public $model;
-    
-    public function __construct($model)
-    {
-        $this->model = $model;
-    }
+
+    public function __construct() {}
 
     /**
      * Build the message.
@@ -33,14 +27,8 @@ class TestMail extends Mailable implements ShouldQueue
      */
     public function build()
     {
-        $this->subject($this->model->subject);
 
-        $company_id = $this->model->company_id;
-
-        foreach ($this->model->reports as $file){
-            $this->attach(storage_path("app/$company_id/$file"));
-        }
-
-        return $this->view('emails.report')->with(["body" => $this->model->body]);
+        $this->subject("Test Subject " . date("Y-m-d H:i:s"));
+        return $this->view('emails.report')->with(["body" => "Test Mail" . date("Y-m-d H:i:s")]);
     }
 }

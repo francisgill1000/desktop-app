@@ -43,7 +43,7 @@ class SyncAttendanceMissingShiftIds extends Command
             (new EmployeeController)->AttendanceForMissingScheduleIds($id, '', $date);
         } catch (\Throwable $th) {
             //throw $th;
-            $error_message = 'Cron: ' . env('APP_NAME') . ': Exception in task:sync_auto_shift  : Company Id :' . $id . ', : Date :' . $date . ', ' . $th;
+            $error_message = 'Cron: ' . env('APP_NAME') . ': Exception in task:sync_attendance_missing_shift_ids  : Company Id :' . $id . ', : Date :' . $date . ', ' . $th;
             Logger::channel("custom")->error($error_message);
             echo $error_message;
         }

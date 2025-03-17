@@ -12,6 +12,11 @@ Route::get('/get_logs_from_sdk', [RecordController::class, 'get_logs_from_sdk'])
 
 Route::post('/getDevicesCountForTimezone', [SDKController::class, 'getDevicesCountForTimezone']);
 Route::post('/{id}/WriteTimeGroup', [SDKController::class, 'processTimeGroup']);
+Route::post('/{id}/WriteResetDefaultTimeGroup', [SDKController::class, 'WriteResetDefaultTimeGroup']);
+
+
+
+
 //Route::post('/Person/AddRange', [SDKController::class, 'PersonAddRange']);
 // Route::post('/Person/AddRange/Photos', [SDKController::class, 'PersonAddRangePhotos']);
 

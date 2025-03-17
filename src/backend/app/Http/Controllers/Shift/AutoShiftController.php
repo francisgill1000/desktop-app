@@ -357,7 +357,7 @@ class AutoShiftController extends Controller
         // while ($startDate <= $currentDate && $startDate <= $endDate) {
         while ($startDate <= $endDate) {
             //$response[] = $this->render($company_id, $startDate->format("Y-m-d"), $employee_ids, true);
-            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), $employee_ids, $request->filled("auto_render") ? false : true);
+            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), $employee_ids, $request->filled("auto_render") ? false : true, true, $request->channel ?? "unknown");
 
             $startDate->modify('+1 day');
         }
@@ -367,7 +367,7 @@ class AutoShiftController extends Controller
 
     public function renderRequest(Request $request)
     {
-        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->UserIds, true);
+        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->UserIds, true, $request->channel ?? "unknown");
     }
     public function renderStep1($id, $date, $UserIds = [], $custom_render = false)
     {
@@ -412,7 +412,7 @@ class AutoShiftController extends Controller
         return $response;
     }
 
-    public function render($id, $date, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $UserIds = [], $custom_render = false, $channel = "unknown")
     {
 
 
@@ -507,7 +507,12 @@ class AutoShiftController extends Controller
 
 
 
-                $result = $this->renderRelatedShiftype($nearestShift['shift_type_id'], $UserID, $params);
+                $result = $this->renderRelatedShiftype($nearestShift['shift_type_id'], $UserID, $params, $channel);
+
+                $message .= "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto The Log(s) has been rendered against " . $UserID . " SYSTEM USER ID.\n";
+
+                $message .= " Nearest shift ({$nearestShift['name']})";
+                $message .= " Notes: " . json_encode($result);
 
                 // if (!$params["custom_render"])
                 {
@@ -516,13 +521,13 @@ class AutoShiftController extends Controller
                     AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)
                         ->where("LogTime", ">=", $date . ' 00:00:00')
                         ->where("LogTime", "<=", $date . ' 23:59:00')
-                        ->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
+                        ->update([
+                            "checked" => true,
+                            "checked_datetime" => date('Y-m-d H:i:s'),
+                            "channel" => $channel,
+                            "log_message" => substr($message, 0, 200)
+                        ]);
                 }
-
-                $message .= "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto The Log(s) has been rendered against " . $UserID . " SYSTEM USER ID.\n";
-
-                $message .= " Nearest shift ({$nearestShift['name']})";
-                $message .= " Notes: " . json_encode($result);
             }
         }
 
@@ -530,7 +535,7 @@ class AutoShiftController extends Controller
         return $message;
     }
 
-    public function renderRelatedShiftype($shift_type_id, $UserID, $params)
+    public function renderRelatedShiftype($shift_type_id, $UserID, $params, $channel)
     {
         $arr = [
             1 => FiloShiftController::class,
@@ -540,6 +545,6 @@ class AutoShiftController extends Controller
             6 => SingleShiftController::class,
         ];
 
-        return (new $arr[$shift_type_id])->render($params['company_id'], $params['date'], $shift_type_id, [$UserID], true, true);
+        return (new $arr[$shift_type_id])->render($params['company_id'], $params['date'], $shift_type_id, [$UserID], true, true, $channel);
     }
 }

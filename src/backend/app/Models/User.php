@@ -33,6 +33,7 @@ class User extends Authenticatable
         'employee_role_id',
         'email_verified_at',
         'enable_whatsapp_otp',
+        'order',
     ];
 
     protected $with = ['assigned_permissions'];
@@ -108,8 +109,8 @@ class User extends Authenticatable
         parent::boot();
 
         // Order by name DESC
-        static::addGlobalScope('order', function (Builder $builder) {
-            $builder->orderBy('id', 'desc');
-        });
+        // static::addGlobalScope('order', function (Builder $builder) {
+        //     $builder->orderBy('id', 'desc');
+        // });
     }
 }

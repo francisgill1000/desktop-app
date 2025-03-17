@@ -10,9 +10,10 @@ class AdminController extends Controller
 {
     public function index()
     {
-        return User::with("company")
+        return User::with("company", "role")
             ->where("company_id", request("company_id", 0))
             ->where("user_type", "admin")
+            ->orderBy("order", "asc")
             ->paginate(request("per_page", 15));
     }
 
@@ -20,27 +21,36 @@ class AdminController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255',
             'password' => 'required|string|min:8|confirmed',
-            'role_id' => 'required',
+            'role_id' => 'required|numeric',
+            'order' => 'required|numeric',
             'company_id' => 'required',
+            'branch_id' => 'nullable',
         ]);
 
-        $user = [
+        $userData = [
             "name" => $validatedData['name'],
             "email" => $validatedData['email'],
             "password" => Hash::make($validatedData['password']),
             "role_id" => $validatedData['role_id'],
             "company_id" => $validatedData['company_id'],
+            "branch_id" => $validatedData['branch_id'],
             "is_master" => 1,
             "first_login" => 1,
             "user_type" => "admin",
+            "order" => $validatedData['order'] ?? 0,
         ];
 
         try {
-            return User::create($user);
+            $user = User::updateOrCreate(
+                ['email' => $validatedData['email']], // Condition to find an existing record
+                $userData // Data to update or insert
+            );
+
+            return $user;
         } catch (\Exception $e) {
-            return $e->getMessage();
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -55,13 +65,17 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
             'password' => 'required|string|min:8|confirmed',
-            'role_id' => 'required',
+            'order' => 'required|numeric',
+            'role_id' => 'required|numeric',
+            'branch_id' => 'nullable',
         ]);
 
         $admin =  [
             "name" => $validatedData['name'],
             "email" => $validatedData['email'],
+            "order" => $validatedData['order'],
             "role_id" => $validatedData['role_id'],
+            "branch_id" => $validatedData['branch_id'],
         ];
 
 

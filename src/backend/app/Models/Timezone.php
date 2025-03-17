@@ -19,6 +19,10 @@ class Timezone extends Model
     {
         return $this->belongsTo(EmployeeTimezoneMapping::class, 'timezone_id', 'timezone_id');
     }
+    public function employees()
+    {
+        return $this->hasMany(TimezoneEmployees::class, 'timezone_table_id', 'id');
+    }
 
     public function branch()
     {

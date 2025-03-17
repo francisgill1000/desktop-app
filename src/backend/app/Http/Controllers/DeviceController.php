@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Log as Logger;
 
 class DeviceController extends Controller
 {
@@ -51,7 +52,14 @@ class DeviceController extends Controller
 
         $cols = $request->cols;
         $model->with(['status', 'company', 'companyBranch']);
-        $model->where('company_id', $request->company_id);
+
+        if (!$request->source)
+            $model->where('company_id', $request->company_id);
+
+
+        if ($request->filter_company_id)
+            $model->where('company_id', $request->filter_company_id);
+
         $model->when($request->filled('name'), function ($q) use ($request) {
             $q->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->name%");
         });
@@ -62,7 +70,12 @@ class DeviceController extends Controller
             $q->where('location', env('WILD_CARD') ?? 'ILIKE', "$request->location%");
         });
         $model->when($request->filled('device_id'), function ($q) use ($request) {
-            $q->where('device_id', env('WILD_CARD') ?? 'ILIKE', "%$request->device_id%");
+            $q->where(function ($qq) use ($request) {
+                $qq->where('device_id', env('WILD_CARD') ?? 'ILIKE', "%$request->device_id%");
+                $qq->Orwhere('model_number', env('WILD_CARD') ?? 'ILIKE', "$request->device_id%");
+                $qq->Orwhere('name', env('WILD_CARD') ?? 'ILIKE', "$request->device_id%");
+                $qq->Orwhere('location', env('WILD_CARD') ?? 'ILIKE', "$request->device_id%");
+            });
         });
         $model->when($request->filled('device_type'), function ($q) use ($request) {
             $q->where('device_type', env('WILD_CARD') ?? 'ILIKE', "$request->device_type%");
@@ -73,6 +86,11 @@ class DeviceController extends Controller
         $model->when($request->filled('branch_id'), function ($q) use ($request) {
             $q->where('branch_id', $request->branch_id);
         });
+
+        // $model->when($request->filled('model_number'), function ($q) use ($request) {
+        //     $q->where('model_number', env('WILD_CARD') ?? 'ILIKE', "$request->model_number%");
+        //     $q->Orwhere('name', env('WILD_CARD') ?? 'ILIKE', "$request->model_number%");
+        // });
 
 
 
@@ -329,8 +347,10 @@ class DeviceController extends Controller
             "device" => $device,
         ];
     }
-    public function getLastRecordsHistory($id = 0, $count = 0, Request $request)
+    public function getLastRecordsHistory_old($id = 0, $count = 0, Request $request)
     {
+        $startTime = microtime(true); // Start time
+        $startMemory = memory_get_usage(); // Get memory usage before query
 
         // return Employee::select("system_user_id")->where('company_id', $request->company_id)->get();
 
@@ -374,8 +394,80 @@ class DeviceController extends Controller
         //$model->orderByDesc("LogTime");
         $logs = $model->paginate($request->per_page);
 
+        $endMemory = memory_get_usage(); // Get memory usage after query
+
+        $executionTime = microtime(true) - $startTime; // Calculate execution time
+        $memoryUsed = $endMemory - $startMemory;
+
+        // return response()->json([
+        //     'execution_time' => $executionTime,
+        //     'memory_used' => number_format($memoryUsed / 1024, 2) . ' KB',
+        //     'data' => $logs
+        // ]);
+
         return $logs;
     }
+
+    public function getLastRecordsHistory($id = 0, $count = 0, Request $request)
+    {
+        $model = AttendanceLog::query();
+
+        $model->where("company_id", $id);
+
+        if ($request->filled("branch_id")) {
+            $model->whereIn("UserID", function ($query) use ($request) {
+                $query->select("system_user_id")
+                    ->from("employees")
+                    ->where("branch_id", $request->branch_id);
+            });
+        }
+
+        if ($request->filled("department_id") && $request->department_id > 0) {
+            $model->whereIn("UserID", function ($query) use ($request) {
+                $query->select("system_user_id")
+                    ->from("employees")
+                    ->where("department_id", $request->department_id);
+            });
+        }
+
+        $model->with('employee', function ($q) use ($request) {
+            $q->where('company_id', $request->company_id);
+            $q->withOut(["schedule",  "sub_department", "user"]);
+
+            $q->select(
+                "first_name",
+                "last_name",
+                "profile_picture",
+                "employee_id",
+                "branch_id",
+                "system_user_id",
+                "display_name",
+                "timezone_id",
+            );
+        });
+
+        $model->with('device', function ($q) use ($request) {
+            $q->where('company_id', $request->company_id);
+            $q->select(
+                "id",
+                "company_id",
+                "branch_id",
+                "status_id",
+                "name",
+                "short_name",
+                "device_id",
+                "location",
+                "model_number",
+            );
+        });
+
+        $model->where('LogTime', '>', date('Y-m-01'));
+        $model->where('LogTime', '<=', date('Y-m-d 23:59:59'));
+        $model->orderBy('LogTime', 'DESC');
+        return $model->paginate(request("per_page",10));
+    }
+
+
     public function updateDeviceCamVIISettingsToSDK(Request $request)
     {
         if ($request->deviceSettings['device_id'] > 0) {
@@ -989,7 +1081,7 @@ class DeviceController extends Controller
                             ]);
 
                             if ($record) {
-                                return $this->response('Time has been synced to the Device.', Device::with(['status', 'company'])->where("device_id", $device_id)->first(), true);
+                                return $this->response("Time <b>$currentDateTime</b> has been synced to the Device.", null, true);
                             } else {
                                 return $this->response('Time cannot synced to the Device.', null, false);
                             }
@@ -1085,9 +1177,11 @@ class DeviceController extends Controller
         return $this->checkDevicesHealthCompanyId($request->company_id);
     }
 
-    public function checkDevicesHealthCompanyId($company_id = '')
+    public function checkDevicesHealthCompanyId($company_id = 0)
     {
 
+        //log_message("----------------------------------", "check_device_health");
+        //log_message("step1-checkDevicesHealthCompanyId_" . $company_id, "check_device_health");
 
         $total_devices_count = Device::where("device_type", "!=", "Mobile")
             ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
@@ -1127,6 +1221,43 @@ class DeviceController extends Controller
                     $DeviceDateTime = $date->format('Y-m-d H:i:00');
                     $online_devices_count++;
                     Device::where("device_id", $companyDevice_id)->update(["status_id" => 1, "last_live_datetime" => $DeviceDateTime]);
+
+
+                    try {
+                        if ($company_id == 0) {
+
+
+                            //update missing logs - By Date - Morning 
+                            $requestArray = array(
+                                'device_id' => $companyDevice_id,
+                                'date' => date("Y-m-d"),
+                                'source' => "device_healthcheck",
+
+                            );
+                            $renderRequest = Request::create('/readMissingRecords', 'get', $requestArray);
+                            (new AttendanceLogMissingController())->GetMissingLogs($renderRequest);
+
+
+                            // // update missing logs - By Recent Serial Number 
+                            // $requestArray = array(
+                            //     'device_id' => $companyDevice_id,
+                            //     'date' => date("Y-m-d"),
+                            //     'source' => "device_healthcheck_serial_number",
+
+
+                            // );
+                            // $renderRequest = Request::create('/readMissingRecords', 'get', $requestArray);
+                            // (new AttendanceLogMissingController())->GetMissingLogs($renderRequest);
+                        }
+                    } catch (\Exception $e) {
+
+
+                        // $this->info("Cron:  DeviceController.php  - GetMissingLogs. Error Details: " . $e->getMessage());
+                        // Logger::error("Cron:  DeviceController.php  - GetMissingLogs. Error Details: " . $e->getMessage());
+
+                        //log_message("step3-exception_read_missing_logs_" . $company_id . "_device_" . $companyDevice_id . $e->getMessage(), "check_device_health");
+                    }
+                    // (new ThemeController)->whatsappTodayStats($renderRequest);
                 } else {
                     // $offline_devices_count++;
                     Device::where("device_id", $companyDevice_id)->update(["status_id" => 2,]);
@@ -1134,7 +1265,7 @@ class DeviceController extends Controller
                     // info($count . "companies has been updated");
                 }
             }
-            $company_id = $Device["company_id"];
+            ////$company_id = $Device["company_id"];
         } //for 
 
         $array_unique = array_unique($companiesIds);

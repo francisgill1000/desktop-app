@@ -4,10 +4,18 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Employee;
+use App\Models\Payroll;
+use Carbon\Carbon;
+use DateTime;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use NumberFormatter;
+
 
 class ReportController extends Controller
 {
@@ -70,9 +78,6 @@ class ReportController extends Controller
 
         return $data;
     }
-
-
-
 
     public function general($model, $per_page = 100)
     {
@@ -253,5 +258,772 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function performanceReport(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $branch_id = $request->input('branch_id', 0);
+
+
+        $fromDate = $request->input('from_date', date("Y-m-d"));
+        $toDate = $request->input('to_date', date("Y-m-d"));
+
+
+        $department_ids = $request->department_ids;
+
+        if (gettype($department_ids) !== "array") {
+            $department_ids = explode(",", $department_ids);
+        }
+
+        $employeeIds = [];
+
+        if (!empty($request->employee_id)) {
+            $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
+        }
+
+        $model = Attendance::where('company_id', $companyId)
+            ->when($branch_id, function ($q) use ($branch_id) {
+                $q->whereHas('employee', fn($query) => $query->where('branch_id', $branch_id));
+            })
+
+            ->when(count($department_ids), function ($q) use ($department_ids) {
+                $q->whereHas('employee', fn($query) => $query->whereIn('department_id',   $department_ids));
+            })
+            ->when(count($employeeIds), function ($q) use ($employeeIds) {
+                $q->whereIn('employee_id', $employeeIds);
+            })
+
+            ->whereBetween('date', [$fromDate, $toDate]);
+
+        $model->select(
+            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
+            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
+            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
+            'employee_id',
+            $this->getStatusCountWithSuffix('P'), // Present count
+            $this->getStatusCountWithSuffix('A'), // Absent count
+            $this->getStatusCountWithSuffix('L'), // Leave count
+            $this->getStatusCountWithSuffix('M'), // Missing count
+            $this->getStatusCountWithSuffix('LC'), // Late Coming count
+            $this->getStatusCountWithSuffix('EG'), // Early Going count
+
+            $this->getStatusCountValue('P'), // Present count
+            $this->getStatusCountValue('A'), // Absent count
+            $this->getStatusCountValue('L'), // Leave count
+            $this->getStatusCountValue('M'), // Missing count
+            $this->getStatusCountValue('LC'), // Late Coming count
+            $this->getStatusCountValue('EG'), // Early Going count
+
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
+            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+        );
+
+        $model->whereHas("employee", fn($q) => $q->where("company_id", request("company_id")));
+
+        $model->with(["employee" => function ($q) {
+            $q->where("company_id", request("company_id"));
+            $q->withOut("schedule", "user");
+            $q->with("reporting_manager:id,reporting_manager_id,first_name");
+            $q->with(["schedule_all" => function ($q) {
+                $q->where("company_id", request("company_id"));
+                $q->select([
+                    "id",
+                    "shift_id",
+                    "employee_id",
+                    "shift_type_id",
+                    "company_id",
+                ]);
+                $q->with(["shift" => function ($q) {
+                    $q->select([
+                        "id",
+                        "working_hours",
+                        "days",
+                    ]);
+                }]);
+            }]);
+            $q->select(
+                "first_name",
+                "last_name",
+                "profile_picture",
+                "phone_number",
+                "whatsapp_number",
+                "employee_id",
+                "joining_date",
+                "designation_id",
+                "department_id",
+                "user_id",
+                "sub_department_id",
+                "overtime",
+                "title",
+                "status",
+                "company_id",
+                "branch_id",
+                "system_user_id",
+                "display_name",
+                "full_name",
+                "home_country",
+                "reporting_manager_id",
+                "local_email",
+                "home_email",
+                "leave_group_id"
+            );
+        }])
+            ->groupBy('employee_id');
+
+
+        return $model->paginate($request->per_page ?? 100);
+    }
+
+    public function summaryReport(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $branch_id = $request->input('branch_id', 0);
+
+
+        $fromDate = $request->input('from_date', date("Y-m-d"));
+        $toDate = $request->input('to_date', date("Y-m-d"));
+
+
+        $department_ids = $request->department_ids;
+
+        if (gettype($department_ids) !== "array") {
+            $department_ids = explode(",", $department_ids);
+        }
+
+        $employeeIds = [];
+
+        if (!empty($request->employee_id)) {
+            $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
+        }
+
+        $model = Attendance::where('company_id', $companyId)
+            ->when($branch_id, function ($q) use ($branch_id) {
+                $q->whereHas('employee', fn($query) => $query->where('branch_id', $branch_id));
+            })
+
+            ->when(count($department_ids), function ($q) use ($department_ids) {
+                $q->whereHas('employee', fn($query) => $query->whereIn('department_id',   $department_ids));
+            })
+            ->when(count($employeeIds), function ($q) use ($employeeIds) {
+                $q->whereIn('employee_id', $employeeIds);
+            })
+
+            ->whereBetween('date', [$fromDate, $toDate]);
+
+        $model->select(
+            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
+            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
+            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
+            'employee_id',
+            $this->getStatusCountWithSuffix('P'), // Present count
+            $this->getStatusCountWithSuffix('A'), // Absent count
+            $this->getStatusCountWithSuffix('L'), // Leave count
+            $this->getStatusCountWithSuffix('M'), // Missing count
+            $this->getStatusCountWithSuffix('LC'), // Late Coming count
+            $this->getStatusCountWithSuffix('EG'), // Early Going count
+
+            $this->getStatusCountValue('P'), // Present count
+            $this->getStatusCountValue('A'), // Absent count
+            $this->getStatusCountValue('L'), // Leave count
+            $this->getStatusCountValue('M'), // Missing count
+            $this->getStatusCountValue('LC'), // Late Coming count
+            $this->getStatusCountValue('EG'), // Early Going count
+
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
+            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+        );
+
+        $model->whereHas("employee", fn($q) => $q->where("company_id", request("company_id")));
+
+        $model->with(["employee" => function ($q) {
+            $q->where("company_id", request("company_id"));
+            $q->withOut("schedule", "user");
+            $q->with("reporting_manager:id,reporting_manager_id,first_name");
+            $q->with(["schedule_all" => function ($q) {
+                $q->where("company_id", request("company_id"));
+                $q->select([
+                    "id",
+                    "shift_id",
+                    "employee_id",
+                    "shift_type_id",
+                    "company_id",
+                ]);
+                $q->with(["shift" => function ($q) {
+                    $q->select([
+                        "id",
+                        "working_hours",
+                        "days",
+                    ]);
+                }]);
+            }]);
+            $q->select(
+                "first_name",
+                "last_name",
+                "profile_picture",
+                "phone_number",
+                "whatsapp_number",
+                "employee_id",
+                "joining_date",
+                "designation_id",
+                "department_id",
+                "user_id",
+                "sub_department_id",
+                "overtime",
+                "title",
+                "status",
+                "company_id",
+                "branch_id",
+                "system_user_id",
+                "display_name",
+                "full_name",
+                "home_country",
+                "reporting_manager_id",
+                "local_email",
+                "home_email",
+                "leave_group_id"
+            );
+        }])
+            ->groupBy('employee_id');
+
+
+        return $model->paginate($request->per_page ?? 100);
+    }
+
+    public function summaryReportDownload(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $branch_id = $request->input('branch_id', 0);
+
+
+        $fromDate = $request->input('from_date', date("Y-m-d"));
+        $toDate = $request->input('to_date', date("Y-m-d"));
+
+
+        $department_ids = $request->department_ids;
+
+        if (gettype($department_ids) !== "array") {
+            $department_ids = explode(",", $department_ids);
+        }
+
+        $employeeIds = [];
+
+        if (!empty($request->employee_id)) {
+            $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
+        }
+
+        $model = Attendance::where('company_id', $companyId)
+            ->when($branch_id, function ($q) use ($branch_id) {
+                $q->whereHas('employee', fn($query) => $query->where('branch_id', $branch_id));
+            })
+
+            ->when(count($department_ids), function ($q) use ($department_ids) {
+                $q->whereHas('employee', fn($query) => $query->whereIn('department_id',   $department_ids));
+            })
+            ->when(count($employeeIds), function ($q) use ($employeeIds) {
+                $q->whereIn('employee_id', $employeeIds);
+            })
+
+            ->whereBetween('date', [$fromDate, $toDate]);
+
+        $model->select(
+            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
+            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
+            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
+            'employee_id',
+            $this->getStatusCountWithSuffix('P'), // Present count
+            $this->getStatusCountWithSuffix('A'), // Absent count
+            $this->getStatusCountWithSuffix('L'), // Leave count
+            $this->getStatusCountWithSuffix('M'), // Missing count
+            $this->getStatusCountWithSuffix('LC'), // Late Coming count
+            $this->getStatusCountWithSuffix('EG'), // Early Going count
+
+            $this->getStatusCountValue('P'), // Present count
+            $this->getStatusCountValue('A'), // Absent count
+            $this->getStatusCountValue('L'), // Leave count
+            $this->getStatusCountValue('M'), // Missing count
+            $this->getStatusCountValue('LC'), // Late Coming count
+            $this->getStatusCountValue('EG'), // Early Going count
+
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
+            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
+            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+        );
+
+        $model->whereHas("employee_report_only", fn($q) => $q->where("company_id", request("company_id")));
+
+        $model->with(["employee_report_only" => function ($q) {
+            $q->where("company_id", request("company_id"));
+            $q->withOut("schedule", "user");
+            $q->with("reporting_manager:id,reporting_manager_id,first_name");
+            $q->with(["schedule_all" => function ($q) {
+                $q->where("company_id", request("company_id"));
+                $q->select([
+                    "id",
+                    "shift_id",
+                    "employee_id",
+                    "shift_type_id",
+                    "company_id",
+                ]);
+                $q->with(["shift" => function ($q) {
+                    $q->select([
+                        "id",
+                        "working_hours",
+                        "days",
+                    ]);
+                }]);
+            }]);
+            $q->select(
+                "first_name",
+                "last_name",
+                "profile_picture",
+                "phone_number",
+                "whatsapp_number",
+                "employee_id",
+                "joining_date",
+                "designation_id",
+                "department_id",
+                "user_id",
+                "sub_department_id",
+                "overtime",
+                "title",
+                "status",
+                "company_id",
+                "branch_id",
+                "system_user_id",
+                "display_name",
+                "full_name",
+                "home_country",
+                "reporting_manager_id",
+                "local_email",
+                "home_email",
+                "leave_group_id"
+            );
+        }])
+            ->groupBy('employee_id');
+
+
+        return $model->paginate($request->per_page ?? 100);
+    }
+
+    function getStatusCountWithSuffix($status)
+    {
+        return DB::raw("LPAD(COUNT(CASE WHEN status = '{$status}' THEN 1 END)::text, 2, '0') AS {$status}_count");
+    }
+
+    function getStatusCountValue($status)
+    {
+        return DB::raw("COUNT(CASE WHEN status = '$status' THEN 1 END) AS {$status}_count_value");
+    }
+
+    public function lastSixMonthsPerformanceReport(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $employeeId = $request->input('employee_id', 0);
+
+        $startMonth = Carbon::now()->subMonths(5)->startOfMonth()->toDateString();  // Removes time
+        $endMonth = Carbon::now()->endOfMonth()->toDateString();  // Removes time
+        // $endMonth = Carbon::now()->toDateString();  // Removes time
+
+
+        $startMonthOnly = Carbon::now()->subMonths(5)->startOfMonth();
+        $endMonthOnly = Carbon::now()->endOfMonth();
+
+        $months = [];
+        for ($month = $startMonthOnly; $month <= $endMonthOnly; $startMonthOnly->addMonth()) {
+            $months[] = [
+                'year' => $month->year,
+                'month' => $month->month,
+            ];
+        }
+
+        // Now, use these dates in your query
+        $query = DB::table('attendances')
+            ->select(
+                DB::raw('EXTRACT(YEAR FROM date) AS year'),
+                DB::raw('EXTRACT(MONTH FROM date) AS month'),
+                DB::raw('COUNT(CASE WHEN status = \'P\' THEN 1 ELSE NULL END) AS present_count'),
+                DB::raw('COUNT(CASE WHEN status = \'A\' THEN 1 ELSE NULL END) AS absent_count'),
+            )
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$startMonth, $endMonth])  // Date-only comparison
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM date)'), DB::raw('EXTRACT(MONTH FROM date)'))
+            ->orderBy(DB::raw('EXTRACT(YEAR FROM date)'), 'desc')
+            ->orderBy(DB::raw('EXTRACT(MONTH FROM date)'), 'desc')
+            ->get();
+
+        $queryResults = [];
+
+
+        foreach ($months as $month) {
+            $found = false;
+            foreach ($query as $result) {
+
+                $monthFormatted = str_pad($month['month'], 2, '0', STR_PAD_LEFT);
+
+                $month_year = date("M Y", strtotime("{$month['year']}-{$monthFormatted}-01"));
+
+                if ($result->year == $month['year'] && $result->month == $month['month']) {
+                    $found = true;
+                    $queryResults[] = (object) [
+                        'year' => $month['year'],
+                        'month' => $month['month'],
+                        'present_count' => $result->present_count,
+                        'absent_count' => $result->absent_count,
+                        'month_year' => date("M y", strtotime($month_year))
+                    ];
+                    break;
+                }
+            }
+
+            if (!$found) {
+                // If the month was not found in the results, add it with counts as 0
+                $queryResults[] = (object) [
+                    'year' => $month['year'],
+                    'month' => $month['month'],
+                    'present_count' => 0,
+                    'absent_count' => 31,
+                    'month_year' => date("M y", strtotime($month_year))
+                ];
+            }
+        }
+
+        return response()->json($queryResults);
+    }
+
+    public function lastSixMonthsSalaryReport(Request $request)
+    {
+        $startMonthOnly = Carbon::now()->subMonths(6)->startOfMonth();
+        $endMonthOnly = Carbon::now()->subMonths(1)->endOfMonth();
+
+        $result = [];
+
+        for ($month_year = $startMonthOnly; $month_year <= $endMonthOnly; $startMonthOnly->addMonth()) {
+            $year = $month_year->year;
+            $month = str_pad($month_year->month, 2, "0", STR_PAD_LEFT);
+            $result[] = $this->getRenderedSalary($request->company_id, $request->employee_id, $month, $year);
+        }
+
+        return array_reverse($result);
+    }
+
+    public function previousMonthSalaryReport(Request $request)
+    {
+        // Get the first day of the previous month
+        $previousMonth = date("m", strtotime("first day of previous month"));
+        $year = date("Y", strtotime("first day of previous month"));
+
+        // Ensure the month is two digits (e.g., "01" for January)
+        $month = str_pad($previousMonth, 2, "0", STR_PAD_LEFT);
+
+        // Call the method to get the rendered salary report
+        $response = $this->getRenderedSalary($request->company_id, $request->employee_id, $month, $year);
+
+        return $response;
+    }
+
+    public function currentMonthHoursReport(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'company_id' => 'required|integer|min:1',
+            'employee_id' => 'required|integer|min:1',
+        ]);
+
+        $companyId = $request->input('company_id');
+        $employeeId = $request->input('employee_id');
+        $previousMonth = date('m', strtotime('last month'));
+
+        try {
+            // Base query for the current month, company, and employee
+            $baseQuery = DB::table('attendances')
+                ->where('company_id', $companyId)
+                ->where('employee_id', $employeeId)
+                ->whereMonth('date', $previousMonth);
+
+            // Fetch total performed hours
+            $totalHours = (clone $baseQuery)->where('status', 'P')->pluck('total_hrs')->toArray();
+            $totalPerformedHours = $this->sumTimeValues($totalHours);
+
+            // Fetch late coming hours
+            $totalLateComings = (clone $baseQuery)->where('late_coming', '!=', '---')->pluck('late_coming')->toArray();
+            $lateComingHours = $this->sumTimeValues($totalLateComings);
+
+            // Fetch early going hours
+            $totalEarlyGoings = (clone $baseQuery)->where('early_going', '!=', '---')->pluck('early_going')->toArray();
+            $earlyGoingHours = $this->sumTimeValues($totalEarlyGoings);
+
+            // Fetch overtime hours
+
+            $totalOtHours = (clone $baseQuery)->where('ot', '!=', '---')->pluck('ot')->toArray();
+            $otHours = $this->sumTimeValues($totalOtHours);
+
+            return response()->json([
+                'total_performed' => [
+                    "hours" => $this->formatMinutesToTime($totalPerformedHours),
+                    "days" => count($totalHours)
+                ],
+                'late_coming' => [
+                    "hours" => $this->formatMinutesToTime($lateComingHours),
+                    "days" => count($totalLateComings)
+                ],
+                'early_going' => [
+                    "hours" => $this->formatMinutesToTime($earlyGoingHours),
+                    "days" => count($totalEarlyGoings)
+                ],
+                'overtime' => [
+                    "hours" => $this->formatMinutesToTime($otHours),
+                    "days" => count($totalOtHours)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            // Handle any exceptions
+            return response()->json([], 500);
+        }
+    }
+
+
+    public function currentMonthPerformanceReport(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $employeeId = $request->input('employee_id', 0);
+        $lastMonth = $request->input('date', date('m', strtotime('last month')));
+
+        $statusColors = [
+            'P' => 'green', // Green
+            'A' => 'red', // Red
+            'L' => 'orange', // Blue
+            'O' => 'primary', // Blue
+        ];
+
+        $result = Attendance::where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->whereMonth('date', $lastMonth)
+            ->select(
+                'date',
+                'status',
+                $this->getStatusCountWithSuffix('P'), // Present count
+                $this->getStatusCountWithSuffix('A'), // Absent count
+                $this->getStatusCountWithSuffix('L'), // Leave count
+                $this->getStatusCountWithSuffix('M'), // Missing count
+                $this->getStatusCountWithSuffix('LC'), // Late Coming count
+                $this->getStatusCountWithSuffix('EG'), // Early Going count
+
+                $this->getStatusCountValue('P'), // Present count
+                $this->getStatusCountValue('A'), // Absent count
+                $this->getStatusCountValue('L'), // Leave count
+                $this->getStatusCountValue('M'), // Missing count
+                $this->getStatusCountValue('LC'), // Late Coming count
+                $this->getStatusCountValue('EG') // Early Going count
+            )
+            ->orderBy('date')->groupBy('date', 'status')->get();
+
+
+        $arr = [];
+        $stats = [];
+
+        foreach ($result as $item) {
+
+            $arr[date("Y-m-d", strtotime($item->date))] = $statusColors[$item->status] ?? 'grey';
+
+            if (!isset($stats[$item->status])) {
+                $stats[$item->status] = 1; // Initialize the count for this status
+            } else {
+                $stats[$item->status]++; // Increment the count for this status
+            }
+        }
+
+        return ["events" => $arr, "stats" => $stats];
+    }
+
+    /**
+     * Helper function to sum time values in "HH:MM" format.
+     *
+     * @param array $timeValues Array of time strings in "HH:MM" format.
+     * @return int Total time in minutes.
+     */
+    private function sumTimeValues(array $timeValues): int
+    {
+        $totalMinutes = 0;
+
+        foreach ($timeValues as $time) {
+            list($hours, $minutes) = explode(':', $time);
+            $totalMinutes += ($hours * 60) + $minutes;
+        }
+
+        return $totalMinutes;
+    }
+
+    /**
+     * Helper function to convert total minutes back to "HH:MM" format.
+     *
+     * @param int $minutes Total minutes.
+     * @return string Time in "HH:MM" format.
+     */
+    private function formatMinutesToTime(int $minutes): string
+    {
+        $hours = floor($minutes / 60);
+        $minutes = $minutes % 60;
+        return sprintf('%02d:%02d', $hours, $minutes);
+    }
+
+    public function calculateHoursAndMinutes(array $timeStrings): array
+    {
+        $totalMinutes = array_reduce($timeStrings, function ($carry, $time) {
+            // Ensure the time is in the correct format
+            if (preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+                list($hours, $minutes) = explode(':', $time);
+                return $carry + ($hours * 60) + $minutes; // Convert to total minutes
+            }
+
+            throw new \InvalidArgumentException("Invalid time format: {$time}. Expected 'hh:mm'.");
+        }, 0);
+
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
+
+        return [
+            "hours" => $hours,
+            "minutes" => $minutes,
+            "hm" => sprintf("%02d:%02d", $hours, $minutes), // Format as 'hh:mm'
+        ];
+    }
+
+    function getRenderedSalary($company_id, $id, $month, $year)
+    {
+        // Fetch the last six months' payroll data
+        $Payroll = Payroll::where("employee_id", $id)
+            ->where("company_id", $company_id)
+            ->with(["company", "payroll_formula"])
+            ->with(["employee" => function ($q) {
+                $q->withOut(["user", "schedule"]);
+            }])
+            ->first(["basic_salary", "net_salary", "earnings", "employee_id", "company_id", "created_at"]);
+
+        if (!$Payroll) {
+            return response()->json(["message" => "No Data Found"], 404);
+        }
+
+        $days_countdate = DateTime::createFromFormat('Y-m-d', $Payroll->created_at->format('Y-m-d'));
+
+        $Payroll->total_month_days = $days_countdate->format('t');
+
+        $salary_type = $Payroll->payroll_formula->salary_type ?? "basic_salary";
+
+        $Payroll->salary_type = ucwords(str_replace("_", " ", $salary_type));
+
+        $Payroll->date = $Payroll->created_at->format('j F Y');
+
+        $Payroll->SELECTEDSALARY = $salary_type == "basic_salary" ? $Payroll->basic_salary : $Payroll->net_salary;
+        $Payroll->perDaySalary = number_format($Payroll->SELECTEDSALARY / $Payroll->total_month_days, 2);
+        $Payroll->perHourSalary = number_format($Payroll->perDaySalary / 8, 2);
+
+        $conditions = [
+            "company_id" => $company_id,
+            "employee_id" => $Payroll->employee->system_user_id
+        ];
+
+        $allStatuses = ['P', 'A', 'M', 'O', 'LC', 'EG'];
+
+        $attendances = Attendance::where($conditions)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->whereIn('status', $allStatuses)
+            ->orderBy("date", "asc")
+            ->get();
+
+        $otherCalculations = $attendances;
+
+        $lateHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->late_coming !== '---';
+        })->pluck('late_coming')->toArray();
+
+        $earlyHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->early_going !== '---';
+        })->pluck('early_going')->toArray();
+
+        $otHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->ot !== '---';
+        })->pluck('ot')->toArray();
+
+        $Payroll->lateHours = $this->calculateHoursAndMinutes($lateHours);
+        $Payroll->earlyHours = $this->calculateHoursAndMinutes($earlyHours);
+        $Payroll->otHours = $this->calculateHoursAndMinutes($otHours);
+        $shortHours = array_merge($lateHours, $earlyHours);
+        $Payroll->combimedShortHours = $this->calculateHoursAndMinutes($shortHours);
+        $totalHours = $Payroll->combimedShortHours["hours"] ?? 0;
+        $remainingMinutes = $Payroll->combimedShortHours["minutes"] ?? "00:00";
+        $decimalHours = $totalHours + ($remainingMinutes / 60);
+        $rate = $Payroll->perHourSalary;
+        $shortHours = $decimalHours * $rate * $Payroll->payroll_formula->deduction_value;
+
+        $grouByStatus = $attendances
+            ->groupBy('status')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        $attendanceCounts = array_merge(array_fill_keys($allStatuses, 0), $grouByStatus);
+
+        $Payroll->present = array_sum([
+            $attendanceCounts["P"],
+            $attendanceCounts["LC"],
+            $attendanceCounts["EG"],
+        ]);
+
+        $Payroll->absent = array_sum([
+            $attendanceCounts["A"],
+            $attendanceCounts["M"]
+        ]);
+
+        $Payroll->week_off = $attendanceCounts["O"];
+
+        $Payroll->deductedSalary = round($Payroll->absent * $Payroll->perDaySalary);
+
+        $OTHours = $Payroll->otHours["hours"];
+        $OTEarning = $Payroll->perHourSalary * $OTHours * $Payroll->payroll_formula->ot_value;
+
+        $Payroll->earnings = array_merge(
+            [
+                [
+                    "label" => "Basic",
+                    "value" => (int) $Payroll->SELECTEDSALARY,
+                ],
+                [
+                    "label" => "OT",
+                    "value" => $OTEarning,
+                ],
+            ],
+            $Payroll->earnings,
+        );
+
+        $Payroll->totalDeductions = ($Payroll->deductedSalary + $shortHours);
+
+        $Payroll->salary_and_earnings = array_sum(array_column($Payroll->earnings, "value"));
+
+        if ($Payroll->present == 0) {
+            $Payroll->salary_and_earnings = 0;
+            $Payroll->finalSalary = 0;
+        }
+
+        $Payroll->finalSalary = (($Payroll->salary_and_earnings) - $Payroll->totalDeductions);
+
+        $Payroll->payslip_month_year = $days_countdate->format('F Y');
+
+        return [
+            "finalSalary" => number_format($Payroll->finalSalary < 0 ? 0 : $Payroll->finalSalary, 2),
+            'year' => $year,
+            'month' => DateTime::createFromFormat('!m', $month)->format('M'), // Convert month number to month name (e.g., "Jan")
+            'salary_type' => $Payroll->salary_type,
+            'salary_and_earnings' => number_format($Payroll->salary_and_earnings, 2),
+            'ot' => number_format($OTEarning, 2),
+            'total_deductions' => number_format($Payroll->totalDeductions, 2),
+
+            'salary_and_earnings_value' => round($Payroll->salary_and_earnings),
+            'ot_value' => round($OTEarning),
+            'total_deductions_value' => round($Payroll->totalDeductions),
+        ];
     }
 }

@@ -35,27 +35,17 @@ class SDKController extends Controller
 
         $this->expirationTime =  60 * 4; //5 minutes 
     }
-    public function processTimeGroup(Request $request, $id)
+    public function WriteResetDefaultTimeGroup(Request $request, $id)
     {
-        // (new TimezoneController)->storeTimezoneDefaultJson();
-
-        $timezones = Timezone::where('company_id', $request->company_id)
-            ->select('timezone_id', 'json')
-            ->get();
-
-        $timezoneIDArray = $timezones->pluck('timezone_id');
 
 
-        $jsonArray = $timezones->pluck('json')->toArray();
 
+        //return false;
+        (new TimezoneController)->storeTimezoneDefaultJson();
         $TimezoneDefaultJson = TimezoneDefaultJson::query();
-        $TimezoneDefaultJson->whereNotIn("index", $timezoneIDArray);
-        $defaultArray = $TimezoneDefaultJson->get(["index", "dayTimeList"])->toArray();
-
-        $data = array_merge($defaultArray, $jsonArray);
-        //ksort($data);
-
+        $data = $TimezoneDefaultJson->get(["index", "dayTimeList"])->toArray();
         asort($data);
+
 
         $url = env('SDK_URL') . "/" . "{$id}/WriteTimeGroup";
 
@@ -64,6 +54,57 @@ class SDKController extends Controller
         }
 
         $sdkResponse = $this->processSDKRequestBulk($url, $data);
+
+        return $sdkResponse;
+    }
+    public function processTimeGroup(Request $request, $id)
+    {
+
+
+
+
+        (new TimezoneController)->storeTimezoneDefaultJson();
+
+
+        $timezones = Timezone::where('company_id', $request->company_id)->where('timezone_id', "!=", 1)
+            ->select('timezone_id', 'json')
+
+            ->get();
+
+
+
+
+
+        $timezoneIDArray = $timezones->pluck('timezone_id')->toArray();;
+
+        //delete timezone 1 - defailt 1 is for 24 access 
+        $key = array_search(1,  $timezoneIDArray); // Search for the value 1
+        if ($key !== false) {
+            unset($timezoneIDArray[$key]); // Remove the value
+        }
+
+
+        $jsonArray = $timezones->pluck('json')->toArray();
+
+        $defaultArray = TimezoneDefaultJson::whereNotIn("index", $timezoneIDArray)
+            ->get(["index", "dayTimeList"])->toArray();
+
+        $data = array_merge($defaultArray, $jsonArray);
+        ksort($data);
+
+
+        asort($data);
+
+
+        $url = env('SDK_URL') . "/" . "{$id}/WriteTimeGroup";
+
+        if (env('APP_ENV') == 'desktop') {
+            $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/$id/WriteTimeGroup";
+        }
+
+        $sdkResponse = $this->processSDKRequestBulk($url, $data);
+
+
 
         return $sdkResponse;
     }
@@ -120,11 +161,15 @@ class SDKController extends Controller
         if (env('APP_ENV') == 'desktop') {
             $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/Person/AddRange";
         }
-        $cameraResponse1 = "";
-        $cameraResponse2 = "";
+        $cameraResponse1 = [];
+        $cameraResponse2 = [];
         try {
             $cameraResponse1 = $this->filterCameraModel1Devices($request);
             $cameraResponse2 = $this->filterCameraModel2Devices($request);
+            if ($cameraResponse2 == '')
+                $cameraResponse2 = [];
+
+            $deviceResponse = $cameraResponse2;
         } catch (\Exception $e) {
         }
         $deviceResponse = $this->processSDKRequestJob($url, $request->all());
@@ -138,19 +183,32 @@ class SDKController extends Controller
     {
         $cameraResponse1 = "";
         $cameraResponse2 = "";
+
+        $deviceResponse = [];
         try {
             $cameraResponse1 = $this->filterCameraModel1Devices($request);
             $cameraResponse2 = $this->filterCameraModel2Devices($request);
+            if ($cameraResponse2 == '')
+                $cameraResponse2 = [];
+            $deviceResponse = $cameraResponse2;
         } catch (\Exception $e) {
         }
+
+
+
 
         $payload = $request->all();
         $personList = $payload['personList'];
         $snList = $payload['snList'];
 
-        $deviceResponse = [];
 
-        foreach ($snList as $device_id) {
+        $Devices = Device::where('company_id', $request->company_id)->where('model_number', "!=", "OX-900")
+            ->whereIn('serial_number',  $payload['snList'])
+            ->pluck("serial_number");
+
+
+
+        foreach ($Devices as $device_id) {
             $url = env('SDK_URL') . "/$device_id/AddPerson";
             if (env('APP_ENV') == 'desktop') {
                 $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/$device_id/AddPerson";
@@ -213,7 +271,8 @@ class SDKController extends Controller
 
         $snList = $request->snList;
         //$Devices = Device::where('device_category_name', "CAMERA")->get()->all();
-        $Devices = Device::where('model_number', "CAMERA1")->get()->all();
+        $Devices = Device::where('company_id', $request->company_id)->where('model_number', "CAMERA1")
+            ->whereIn('serial_number',  $request['snList'])->get()->all();
 
 
 
@@ -273,7 +332,24 @@ class SDKController extends Controller
     {
         return $this->getSessionData($id);
     }
+    protected function clearSessionData($id)
+    {
+        $data = $this->getAllData();
 
+        if (!isset($data[$id])) {
+            return null;
+        }
+
+        $session = $data[$id];
+
+        // Session has expired
+        unset($data[$id]);
+        File::put($this->storagePath, json_encode($data)); // Update the file without the expired  
+
+
+
+
+    }
     protected function getSessionData($id)
     {
         $data = $this->getAllData();
@@ -310,7 +386,13 @@ class SDKController extends Controller
 
         $snList = $request->snList;
         //$Devices = Device::where('device_category_name', "CAMERA")->get()->all();
-        $Devices = Device::where('model_number', "OX-900")->get()->all();
+        $Devices = Device::where('company_id', $request->company_id)
+            ->where('model_number', "OX-900")
+            ->whereIn('serial_number',  $request['snList'])
+
+
+
+            ->get()->all();
 
 
 
@@ -355,7 +437,26 @@ class SDKController extends Controller
                         $md5string = base64_encode($imageData);;
                         $response = (new DeviceCameraModel2Controller($value['camera_sdk_url']))->pushUserToCameraDevice($persons['name'],  $persons['userCode'], $md5string, $value['device_id'], $persons, $sessionId);
 
-                        $message[] = $response;
+
+
+                        //$responseArray = $response != '' ? json_decode($response) : '';
+                        if ($response != '') {
+                            $response = json_decode($response);
+                            // $response = $response->errors[0]?->error_code == 33 ? 'Duplicate Image' : 'Try Again.';
+                            $response = $response->errors[0]->detail;
+                        } else {
+                            $response = 200;
+                        }
+
+                        $message[] =  [
+                            "name" => $persons['name'],
+                            "userCode" => $persons['userCode'],
+                            "device_id" => $value['device_id'],
+                            'status' => $response == '' ? '200' : $response,
+                            'sdk_response' => ["message" => $response == '' ? '200' : $response],
+                        ];
+
+
 
                         continue;;
                         try {
@@ -404,6 +505,17 @@ class SDKController extends Controller
 
 
         return $this->processSDKRequestBulk($url, null);
+    }
+
+    public function processSDKTimeZoneONEJSONData($url, $json)
+    {
+        $url = env('SDK_URL') . "/Person/AddRange";
+
+        if (env('APP_ENV') == 'desktop') {
+            $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/Person/AddRange";
+        }
+
+        $return = TimezonePhotoUploadJob::dispatch($json, $url);
     }
     public function PersonAddRangeWithData($data)
     {
@@ -672,6 +784,27 @@ class SDKController extends Controller
     public function processSDKRequestBulk($url, $data)
     {
 
+        // $response = Http::timeout(3600)
+        //     ->withoutVerifying()
+        //     ->withHeaders([
+        //         'Content-Type' => 'application/json',
+        //     ])
+        //     ->post($url, $data);
+
+        // // Combine the original $data with the response content
+        // if ($response->successful()) {
+        //     return [
+        //         'request_data' => $data, // Include the data you sent
+        //         'response_data' => $response->json(), // Include the response content
+        //     ];
+        // } else {
+        //     return [
+        //         'request_data' => $data, // Include the data you sent
+        //         'status_code' => $response->status(), // HTTP status code
+        //         'error_message' => $response->body(), // Response body in case of error
+        //     ];
+        // }
+
         try {
             return Http::timeout(3600)->withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
@@ -680,6 +813,7 @@ class SDKController extends Controller
             return [
                 "status" => 102,
                 "message" => $e->getMessage(),
+                "data" => $data,
             ];
             // You can log the error or perform any other necessary actions here
         }
@@ -742,9 +876,25 @@ class SDKController extends Controller
     }
     public function getDevicesCountForTimezone(Request $request)
     {
+        if ($request->source) //master 
+        {
 
 
-        return Device::where('company_id', $request->company_id)->pluck('device_id');
+            return Device::where("model_number", "!=", "Manual")
+                ->where("model_number",  'not like', "%Mobile%")
+                ->where("name",  'not like', "%Manual%")
+                ->where("name",  'not like', "%manual%")
+                ->pluck('device_id');
+        }
+
+
+        return Device::where('company_id', $request->company_id)
+            ->where("model_number", "!=", "Manual")
+            ->where("model_number",  'not like', "%Mobile%")
+            ->where("name",  'not like', "%Manual%")
+            ->where("name",  'not like', "%manual%")
+            ->where("model_number",   "!=", "OX-900")
+            ->get();
     }
 
     public function handleCommand($id, $command)
@@ -846,3 +996,5 @@ class SDKController extends Controller
         }
     }
 }
+
+//test

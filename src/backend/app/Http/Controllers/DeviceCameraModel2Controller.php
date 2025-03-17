@@ -297,7 +297,7 @@ class DeviceCameraModel2Controller extends Controller
     {
         $card_number = "";
         if ($persons) {
-            if (isset($persons['cardData'])) {
+            if (isset($persons['cardData']) && $persons['cardData'] != 0) {
                 $card_number = $persons['cardData'];
             }
         }
@@ -593,7 +593,7 @@ class DeviceCameraModel2Controller extends Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 1,
-            CURLOPT_TIMEOUT => 59,
+            CURLOPT_TIMEOUT => 120,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
@@ -652,16 +652,12 @@ class DeviceCameraModel2Controller extends Controller
 
         $sessionId = (new SDKController())->getSessionusingDeviceIdData($device_id);
         if ($sessionId == '' || $sessionId == null) {
+
+
             $sessionId = $this->getActiveSessionId();
             //$_SESSION[$value['device_id']] = $sessionId;
             if ($sessionId != '') (new SDKController())->storeSessionid($device_id, $sessionId);
         }
-
-
-
-
-
-
 
 
 
@@ -676,16 +672,16 @@ class DeviceCameraModel2Controller extends Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 1,
-            CURLOPT_TIMEOUT => 59,
+            CURLOPT_TIMEOUT => 120,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS =>  $post_json,
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
-                'Cookie: sessionID=' . $sessionId,
-                'sxdmToken: ' . $this->sxdmToken, //get from Device manufacturer
-                'sxdmSn:  ' . $this->sxdmSn //get from Device serial number
+                'Cookie:sessionID=' . $sessionId,
+                'sxdmToken:' . $this->sxdmToken, //get from Device manufacturer
+                'sxdmSn:' . $this->sxdmSn //get from Device serial number
             ),
         ));
 
@@ -697,6 +693,7 @@ class DeviceCameraModel2Controller extends Controller
 
     public function getActiveSessionId()
     {
+
 
         set_time_limit(120);
         // return array(
@@ -714,7 +711,7 @@ class DeviceCameraModel2Controller extends Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 1,
-            CURLOPT_TIMEOUT => 59,
+            CURLOPT_TIMEOUT => 120,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',

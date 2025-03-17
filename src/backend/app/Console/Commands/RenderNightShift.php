@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\Controller;
 use App\Models\ScheduleEmployee;
 use App\Models\ShiftType;
 use Illuminate\Console\Command;
@@ -31,9 +32,18 @@ class RenderNightShift extends Command
      */
     public function handle()
     {
+        $logFilePath = 'logs/shifts/night_shift/command';
+
         $id = $this->argument("company_id");
 
         $date = $this->argument("date");
+
+        $employee_ids = ScheduleEmployee::whereIn("shift_type_id", [3, 4])->where("company_id", $id)->pluck("employee_id")->toArray();
+
+        if (count($employee_ids) == 0) {
+            (new Controller)->logOutPut($logFilePath, "*****Cron for task:night_shift: no employee found for $id*****");
+            return;
+        }
 
         $payload = [
             'date' => '',
@@ -42,9 +52,9 @@ class RenderNightShift extends Command
             'company_ids' => [$id],
             'manual_entry' => true,
             'reason' => '',
-            'employee_ids' => ScheduleEmployee::whereIn("shift_type_id", [3, 4])->where("company_id", $id)->pluck("employee_id")->toArray(),
+            'employee_ids' => $employee_ids,
             'dates' => [$date, date("Y-m-d", strtotime($date . "+1 day"))],
-            'shift_type_id' => 1
+            'shift_type_id' => 4
         ];
 
         $url = 'https://backend.mytime2cloud.com/api/render_logs';

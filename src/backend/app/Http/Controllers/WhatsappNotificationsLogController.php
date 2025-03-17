@@ -132,6 +132,7 @@ class WhatsappNotificationsLogController extends Controller
 
     public function addMessage($company_id, $whatsapp_number, $message)
     {
+
         $company = Company::with(["contact"])->where("id", $company_id)->first();
 
         if ($whatsapp_number == '') {
@@ -139,7 +140,7 @@ class WhatsappNotificationsLogController extends Controller
         }
 
         //$whatsapp_number = "971552205149";
-        if ($company->enable_desktop_whatsapp == true) {
+        if ($company && $company->enable_desktop_whatsapp == true) {
 
             if ($whatsapp_number != '' && $message != '') {
 
@@ -167,8 +168,9 @@ class WhatsappNotificationsLogController extends Controller
                             ]),
                         ]);
 
+                        $testMessage = "DB";
                         // Send the message
-                        $client->send(json_encode("DB"));
+                        $client->send(json_encode($testMessage));
                     } catch (\Exception $e) {
                         // Handle exceptions
                         //"Error: " . $e->getMessage();
@@ -184,6 +186,9 @@ class WhatsappNotificationsLogController extends Controller
     }
     public function addAttendanceMessageEmployeeIdLog($logIdsArray)
     {
+
+
+
 
         $companies = Company::pluck("id");
         foreach ($companies as $key => $company_id) {

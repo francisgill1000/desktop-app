@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\BenchmarkHelper;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Device;
 use Illuminate\Console\Command;
@@ -34,6 +36,32 @@ class UpdateCompanyIds extends Command
      */
     public function handle()
     {
-        echo (new CompanyController)->updateCompanyIds();
+        $logger = new Controller;
+
+        $logFilePath = 'logs/common_logs';
+
+        $logFilePath = "$logFilePath/";
+
+        $logger->logOutPut($logFilePath, "*****Cron started for task:update_company_ids  *****");
+
+        try {
+            $benchmark = BenchmarkHelper::measure(function () {
+                return json_encode((new CompanyController)->updateCompanyIds());
+            });
+
+            $logger->logOutPut($logFilePath, "✔ Execution Successful");
+            $logger->logOutPut($logFilePath, "▶ Result: {$benchmark['result']}");
+            $logger->logOutPut($logFilePath, "⏳ Execution Time: {$benchmark['execution_time']} sec");
+            $logger->logOutPut($logFilePath, "💾 Memory Used: {$benchmark['memory_used']}");
+
+            $this->info("✔ Execution Successful");
+            $this->info("▶ Result: {$benchmark['result']}");
+            $this->info("⏳ Execution Time: {$benchmark['execution_time']} sec");
+            $this->info("💾 Memory Used: {$benchmark['memory_used']}");
+        } catch (\Exception $e) {
+            $logger->logOutPut($logFilePath, "❌ Error: " . $e->getMessage());
+        }
+
+        $logger->logOutPut($logFilePath, "*****Cron Ended for task:update_company_ids  *****");
     }
 }

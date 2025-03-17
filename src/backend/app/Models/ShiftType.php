@@ -10,6 +10,13 @@ class ShiftType extends Model
 {
     use HasFactory;
 
+    // "1","FILO",
+    // "2","Multi In/Out Shift,
+    // "3","Auto Shift",
+    // "4","Night Shift",
+    // "5","Split Shift",
+    // "6","Single Shift",
+
     protected $guarded = [];
 
     public function setNameAttribute($value)

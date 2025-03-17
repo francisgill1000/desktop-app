@@ -2,7 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Shift\FiloShiftController;
 use App\Http\Controllers\Shift\MultiInOutShiftController;
+use App\Http\Controllers\Shift\NightShiftController;
+use App\Http\Controllers\Shift\RenderController;
+use App\Http\Controllers\Shift\SingleShiftController;
+use App\Http\Controllers\Shift\SplitShiftController;
 use App\Models\AttendanceLog;
 use App\Models\Attendance;
 use App\Models\Device;
@@ -12,9 +17,12 @@ use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log as Logger;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 class AttendanceController extends Controller
 {
@@ -697,5 +705,35 @@ class AttendanceController extends Controller
 
         $message = "Cron AttendanceSeeder: " . $insertedCount . " record has been inserted.";
         return $message;
+    }
+
+    public function regenerateAttendance(Request $request)
+    {
+        if ($request->shift_type_id == 1) {
+            return (new FiloShiftController)->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, [$request->UserID], true, $request->channel ?? "unknown");
+        }
+        if ($request->shift_type_id == 2) {
+            $outputBuffer = new BufferedOutput();
+
+            Artisan::call('task:sync_multi_shift_dual_day', [
+                'company_id' => $request->company_id,
+                'date' => $request->date,
+                'checked' => true,
+                'UserID' => $request->UserID,
+            ], $outputBuffer);
+
+            return response()->json(['message' => $outputBuffer->fetch()]);
+        }
+        if ($request->shift_type_id == 4) {
+            return (new NightShiftController)->renderData($request);
+        }
+        if ($request->shift_type_id == 5) {
+            return (new SplitShiftController)->renderData($request);
+        }
+        if ($request->shift_type_id == 6) {
+            return array_merge(
+                (new SingleShiftController)->renderData($request),
+            );
+        }
     }
 }

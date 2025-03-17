@@ -33,6 +33,7 @@ class UpdateRequest extends FormRequest
             'end_date' => 'required|date',
             'reason' => 'required',
             'reporting_manager_id' => 'required',
+            'alternate_employee_id' => 'nullable',
         ];
     }
 }

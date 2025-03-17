@@ -59,7 +59,7 @@ class CompanyBranchController extends Controller
         });
 
         $model->when($request->user_type == "department", function ($q) use ($request) {
-            $q->whereHas("department", fn ($qu) => $qu->where("id", $request->department_id));
+            $q->whereHas("department", fn($qu) => $qu->where("id", $request->department_id));
         });
 
 
@@ -105,6 +105,11 @@ class CompanyBranchController extends Controller
     public function update(CompanyBranch $model, StoreRequest $request, $id)
     {
         $data = $request->validated();
+
+
+
+
+        CompanyBranch::where("user_id", $data['user_id'])->update(["user_id" => 0]);
 
         if (isset($request->logo)) {
             $file = $request->file('logo');
@@ -159,8 +164,8 @@ class CompanyBranchController extends Controller
             // $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile));
             // $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile));
             $q->where(function ($q) use ($request) {
-                $q->whereHas('user.employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
-                $q->orwhereHas('user.employee', fn (Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
+                $q->whereHas('user.employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
+                $q->orwhereHas('user.employee', fn(Builder $query) => $query->where('phone_number', env('WILD_CARD') ?? 'ILIKE',   $request->manager_mobile . '%'));
             });
         });
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Shift;
 
-use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
@@ -35,7 +34,7 @@ class SplitShiftController extends Controller
         // while ($startDate <= $currentDate && $startDate <= $endDate) {
         while ($startDate <= $endDate) {
             //$response[] = $this->render($company_id, $startDate->format("Y-m-d"), 5, $employee_ids, true);
-            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 5, $employee_ids, $request->filled("auto_render") ? false : true);
+            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 5, $employee_ids, $request->filled("auto_render") ? false : true, $request->channel ?? "unknown");
 
             $startDate->modify('+1 day');
         }
@@ -48,10 +47,10 @@ class SplitShiftController extends Controller
         // return $departmentIds = Department::where("company_id",$request->company_id)->pluck("id");
         // $employee_ids = Employee::where("department_id", 31)->pluck("system_user_id");
 
-        return $this->render($request->company_id, $request->date, $request->shift_type_id, $request->UserIds, $request->custom_render ?? true);
+        return $this->render($request->company_id, $request->date, $request->shift_type_id, $request->UserIds, $request->custom_render ?? true, $request->channel ?? "unknown");
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $channel = "unknown")
     {
 
 
@@ -179,27 +178,20 @@ class SplitShiftController extends Controller
             $items[] = $item;
         }
 
-        $UserIds = array_column($items, "employee_id");
-
         try {
 
             $model = Attendance::query();
-            $model->whereIn("employee_id", $UserIds);
+            $model->whereIn("employee_id", array_column($items, "employee_id"));
             $model->where("date", $date);
             $model->where("company_id", $id);
             $model->delete();
-
-
-            try {
-                (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
-            } catch (\Throwable $e) {
-            }
 
             $chunks = array_chunk($items, 100);
 
             foreach ($chunks as $chunk) {
                 $model->insert($chunk);
             }
+            $message = "[" . $date . " " . date("H:i:s") .  "] Dual Shift.   Affected Ids: " . json_encode($UserIds) . " " . $message;
 
             //if (!$custom_render)
             {
@@ -207,10 +199,13 @@ class SplitShiftController extends Controller
                 AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)
                     ->where("LogTime", ">=", $date . ' 00:00:00')
                     ->where("LogTime", "<=", $date . ' 23:59:00')
-                    ->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
+                    ->update([
+                        "checked" => true,
+                        "checked_datetime" => date('Y-m-d H:i:s'),
+                        "channel" => $channel,
+                        "log_message" => substr($message, 0, 200)
+                    ]);
             }
-
-            $message = "[" . $date . " " . date("H:i:s") .  "] Dual Shift.   Affected Ids: " . json_encode($UserIds) . " " . $message;
         } catch (\Throwable $e) {
             $message = $this->getMeta("Dual Shift", $e->getMessage());
         }

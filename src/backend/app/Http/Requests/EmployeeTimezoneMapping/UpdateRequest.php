@@ -30,7 +30,7 @@ class UpdateRequest extends FormRequest
             'employee_id' => 'required|array',
             'device_id' => 'required|array',
             'company_id' => 'required',
-            'branch_id' => 'required',
+            //'branch_id' => 'required',
 
         ];
     }

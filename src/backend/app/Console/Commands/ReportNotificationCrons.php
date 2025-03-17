@@ -134,7 +134,7 @@ class ReportNotificationCrons extends Command
 
             echo $th;
             echo "[" . $date . "] Cron: $script_name. Error occured while inserting logs.\n";
-            Logger::channel("custom")->error("Cron: $script_name. Error Details: $th");
+            //Logger::channel("custom")->error("Cron: $script_name. Error Details: $th");
             return;
         }
     }

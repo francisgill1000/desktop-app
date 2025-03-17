@@ -40,7 +40,7 @@ class UpdateRequest extends FormRequest
             'interval' => ['required', 'array'],
             'scheduled_days' => 'nullable',
             'company_id' => 'required',
-            'branch_id' => 'required',
+            // 'branch_id' => 'nullable',
             "intervals_raw_data" => 'nullable',
             "description" => 'nullable'
         ];

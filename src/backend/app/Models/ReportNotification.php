@@ -18,6 +18,7 @@ class ReportNotification extends Model
         'tos' => 'array',
         'ccs' => 'array',
         'bccs' => 'array',
+        'days' => 'array',
     ];
 
     public function branch()

@@ -24,9 +24,14 @@ class SyncAutoShift extends Command
     protected $description = 'Sync Auto Shift';
     public function handle()
     {
-        $localIp = gethostbyname(gethostname());
-        $port = 8000;
-        $endpoint = "http://$localIp:$port/api/render_logs";
+        $url = 'https://backend.mytime2cloud.com/api/render_logs';
+
+        if (env("APP_ENV") == "desktop") {
+            $localIp = gethostbyname(gethostname());
+            $port = 8000;
+            $url = "http://$localIp:$port/api/render_logs";
+            // $url = 'https://mytime2cloud-backend.test/api/render_logs';
+        }
 
         $id = $this->argument("company_id");
         $date = $this->argument("date");
@@ -40,11 +45,11 @@ class SyncAutoShift extends Command
             Logger::channel('custom')->info('Starting SyncAutoShiftNew process', [
                 'company_id' => $id,
                 'date' => $date,
-                'endpoint' => $endpoint,
+                'endpoint' => $url,
             ]);
 
             // Chunk the employee IDs array into batches of 20
-            $employeeIds->chunk(5)->each(function ($chunk) use ($id, $date, $endpoint) {
+            $employeeIds->chunk(5)->each(function ($chunk) use ($id, $date, $url) {
                 $params = [
                     'date' => '',
                     'UserID' => '',
@@ -54,8 +59,9 @@ class SyncAutoShift extends Command
                     'reason' => '',
                     'employee_ids' => $chunk->toArray(),
                     'dates' => [$date, $date],
-                    'shift_type_id' => 2,
+                    'shift_type_id' => 3,
                     'company_id' => $id,
+                    'channel' => "kernel",
                 ];
 
                 try {
@@ -66,7 +72,7 @@ class SyncAutoShift extends Command
                     ]);
 
                     // Call the endpoint using Http facade
-                    $response = Http::withoutVerifying()->get($endpoint, $params);
+                    $response = Http::withoutVerifying()->get($url, $params);
 
                     // Log the response
                     if ($response->successful()) {

@@ -245,16 +245,25 @@ class PayslipController extends Controller
             //company details
 
             $payslips = [
-                'company_id' => $employee->payroll->company_id, 'employee_id' => $employee->employee_id, 'employee_table_id' => $employee->id,
-                'month' => $month, 'year' => $year, 'basic_salary' => $payroll->basic_salary, 'net_salary' => $payroll->net_salary, 'final_salary' => $payroll->finalSalary
+                'company_id' => $employee->payroll->company_id,
+                'employee_id' => $employee->employee_id,
+                'employee_table_id' => $employee->id,
+                'month' => $month,
+                'year' => $year,
+                'basic_salary' => $payroll->basic_salary,
+                'net_salary' => $payroll->net_salary,
+                'final_salary' => $payroll->finalSalary
             ];
 
 
 
 
             Payslips::updateOrCreate([
-                'company_id' => $employee->payroll->company_id, 'employee_id' => $employee->employee_id, 'employee_table_id' => $employee->id,
-                'month' => $month, 'year' => $year,
+                'company_id' => $employee->payroll->company_id,
+                'employee_id' => $employee->employee_id,
+                'employee_table_id' => $employee->id,
+                'month' => $month,
+                'year' => $year,
             ], $payslips);
 
 
@@ -298,18 +307,21 @@ class PayslipController extends Controller
 
         $attendances = Attendance::where($conditions)
             ->whereMonth('date', '=', $request->month <= 9 ? "0" . $request->month : date("m"))
-            ->whereIn('status', ['P', 'A', 'M', 'O'])
+            ->whereIn('status', ['P', 'A', 'M', 'O', "LC", "EG"])
             ->get();
 
-        $Payroll->present = $attendances->whereIn('status', 'P')->count();
+        $Payroll->present = $attendances->where('status', 'P')->count();
         $Payroll->absent = $attendances->where('status', 'A')->count();
         $Payroll->missing = $attendances->where('status', 'M')->count();
         $Payroll->off = $attendances->where('status', 'O')->count();
-        $Payroll->late = $attendances->where('status', 'L')->count();
 
+        $Payroll->late_coming = $attendances->where('status', 'LC')->count();
+        $Payroll->early_going = $attendances->where('status', 'EG')->count();
 
         $Payroll->earnedSalary = ($Payroll->present + $Payroll->off) * $Payroll->perDaySalary;
+
         $Payroll->deductedSalary = round($Payroll->absent * $Payroll->perDaySalary);
+
         $Payroll->earningsCount = $Payroll->net_salary - $Payroll->basic_salary;
 
         //OT calculations
@@ -342,6 +354,7 @@ class PayslipController extends Controller
         ];
 
         $Earnings = array_merge($Payroll->earnings, [$OTSalaryEarning]);
+
         $Payroll->earnings = array_merge([$extraEarnings], $Earnings);
 
         $Payroll->deductions = [
@@ -352,7 +365,14 @@ class PayslipController extends Controller
         ];
 
         $Payroll->earnedSubTotal = round(($Payroll->earningsCount) + ($Payroll->earnedSalary) + $OTSalary);
-        $Payroll->salary_and_earnings = round(($Payroll->earningsCount) + ($Payroll->SELECTEDSALARY) + $OTSalary);
+
+
+        if ($Payroll->earningsCount > 0) {
+            $Payroll->salary_and_earnings = round(($Payroll->earningsCount) + ($Payroll->SELECTEDSALARY) + $OTSalary);
+        } else {
+            $Payroll->salary_and_earnings = round(($Payroll->earningsCount) + $OTSalary);
+        }
+
 
         $Payroll->finalSalary = round(($Payroll->salary_and_earnings) - $Payroll->deductedSalary);
 
@@ -431,13 +451,188 @@ class PayslipController extends Controller
 
     public function renderPayslipByEmployee(Request $request)
     {
-        $data = $this->show($request, $request->employee_id);
-        $data->month = date('F', mktime(0, 0, 0, $request->month, 1));
-        $data->year = $request->year;
+        $id = $request->employee_id;
 
+
+        // $data = $this->show($request, $request->employee_id);
+
+        $Payroll = Payroll::where(["employee_id" => $id])
+            ->with(["company", "payroll_formula"])
+            ->with(["employee" => function ($q) {
+                $q->withOut(["user", "schedule"]);
+            }])
+            ->first(["basic_salary", "net_salary", "earnings", "employee_id", "company_id"]);
+
+        if (!$Payroll) {
+            return "No Data Found";
+        }
+
+
+        $Payroll->payslip_number = "#" . $id . (int) date("m") - 1 . (int) date("y");
+
+        $days_countdate = DateTime::createFromFormat('Y-m-d', $request->year . '-' . $request->month  . '-01');
+
+        $Payroll->total_month_days = $days_countdate->format('t');
+
+        $salary_type = $Payroll->payroll_formula->salary_type ?? "basic_salary";
+
+        $Payroll->salary_type = ucwords(str_replace("_", " ", $salary_type));
+
+        $Payroll->date = date('j F Y');
+
+        $Payroll->SELECTEDSALARY = $salary_type == "basic_salary" ? $Payroll->basic_salary : $Payroll->net_salary;
+        $Payroll->perDaySalary = number_format($Payroll->SELECTEDSALARY / $Payroll->total_month_days, 2);
+        info('Per Day Salary:', ['perDaySalary' => $Payroll->perDaySalary]);
+        $Payroll->perHourSalary = number_format($Payroll->perDaySalary / 8, 2);
+        info('Per Hour Salary:', ['perHourSalary' => $Payroll->perHourSalary]);
+
+        $conditions = [
+            "company_id" => $request->company_id,
+            "employee_id" => $Payroll->employee->system_user_id
+        ];
+
+        $month = str_pad($request->month, 2, "0", STR_PAD_LEFT);
+
+        $year = $request->year;
+
+        $allStatuses = ['P', 'A', 'M', 'O', 'LC', 'EG'];
+
+        $attendances = Attendance::where($conditions)
+            ->whereMonth('date', $month)  // Filter by month
+            ->whereYear('date', $year)          // Filter by year
+            ->whereIn('status', $allStatuses)
+            ->orderBy("date", "asc")
+            ->get();
+
+        // filter $attendances based on this (late_coming) column which are not equals to ---
+
+        $otherCalculations = $attendances;
+
+        $lateHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->late_coming !== '---';
+        })->pluck('late_coming')->toArray();
+
+        $earlyHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->early_going !== '---'; // Exclude records where 'late_coming' is '---'
+        })->pluck('early_going')->toArray();
+
+        $otHours = $otherCalculations->filter(function ($attendance) {
+            return $attendance->ot !== '---'; // Exclude records where 'late_coming' is '---'
+        })->pluck('ot')->toArray();
+
+        $Payroll->lateHours = $this->calculateHoursAndMinutes($lateHours);
+        $Payroll->earlyHours = $this->calculateHoursAndMinutes($earlyHours);
+        $Payroll->otHours = $this->calculateHoursAndMinutes($otHours);
+        $shortHours = array_merge($lateHours, $earlyHours);
+        $Payroll->combimedShortHours = $this->calculateHoursAndMinutes($shortHours);
+        $totalMinutes = $Payroll->combimedShortHours;
+        $totalHours = $Payroll->combimedShortHours["hours"] ?? 0; // Calculate total hours
+        $remainingMinutes = $Payroll->combimedShortHours["minutes"] ?? "00:00"; // Calculate remaining minutes
+        $decimalHours = $totalHours + ($remainingMinutes / 60);
+        $rate = $Payroll->perHourSalary;
+        $shortHours = $decimalHours * $rate * $Payroll->payroll_formula->deduction_value;
+
+        $grouByStatus = $attendances
+            ->groupBy('status')  // Group by 'status'
+            ->map(fn($group) => $group->count())  // Count each group by status
+            ->toArray();
+
+        $attendanceCounts = array_merge(array_fill_keys($allStatuses, 0), $grouByStatus);
+
+        $Payroll->present = array_sum([
+            $attendanceCounts["P"],
+            $attendanceCounts["LC"],
+            $attendanceCounts["EG"],
+        ]);
+
+        $Payroll->absent = array_sum([
+            $attendanceCounts["A"],
+            $attendanceCounts["M"]
+        ]);
+
+        $Payroll->week_off = $attendanceCounts["O"];
+
+        $Payroll->earnedSalary =    round(($Payroll->present + $Payroll->week_off) * $Payroll->perDaySalary);
+
+        $Payroll->deductedSalary =  round($Payroll->absent * $Payroll->perDaySalary);
+
+        $OTHours = $Payroll->otHours["hours"];
+
+        $totalOTMinutes = $Payroll->otHours["minutes"];
+
+        $OTEarning = $Payroll->perHourSalary * $OTHours * $Payroll->payroll_formula->ot_value;
+
+        $Payroll->earnings = array_merge(
+            [
+                [
+                    "label" => "Basic",
+                    "value" => (int) $Payroll->SELECTEDSALARY,
+                ],
+                [
+                    "label" => "OT",
+                    "value" => $OTEarning,
+                ],
+
+            ],
+            $Payroll->earnings,
+        );
+
+        $Payroll->deductions = [
+            [
+                "label" => "Abents",
+                "value" => $Payroll->deductedSalary,
+            ],
+            [
+                "label" => "Short Hours",
+                "value" => $shortHours,
+            ],
+        ];
+
+        $Payroll->totalDeductions = ($Payroll->deductedSalary + $shortHours);
+
+        $Payroll->salary_and_earnings = array_sum(array_column($Payroll->earnings, "value"));
+
+        if ($Payroll->present == 0) {
+            $Payroll->salary_and_earnings = 0;
+        }
+
+        $Payroll->finalSalary = (($Payroll->salary_and_earnings) - $Payroll->totalDeductions);
+
+        $formatter = new NumberFormatter('en_US', NumberFormatter::SPELLOUT);
+        $Payroll->final_salary_in_words  = ucfirst($formatter->format(($Payroll->finalSalary)));
+        $Payroll->payslip_month_year = $days_countdate->format('F Y');
+
+        $data = $Payroll;
+
+        $data->month = date('F', mktime(0, 0, 0, $request->month, 1));
+
+        $data->year = $request->year;
 
         return  Pdf::loadView('pdf.payslip', compact('data'))->setPaper('A4', 'portrait')->stream();
         $fileName = $data->payslip_number . '_' . $data->employee->first_name . '_' . $data->employee->last_name . '_' . $data->employee->employee_id . '_' . $data->payslip_month_year . '.pdf';
         return Pdf::loadView('pdf.payslip', compact('data'))->setPaper('A4', 'portrait')->download($fileName);
+    }
+
+
+    public function calculateHoursAndMinutes(array $timeStrings): array
+    {
+        $totalMinutes = array_reduce($timeStrings, function ($carry, $time) {
+            // Ensure the time is in the correct format
+            if (preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+                list($hours, $minutes) = explode(':', $time);
+                return $carry + ($hours * 60) + $minutes; // Convert to total minutes
+            }
+
+            throw new \InvalidArgumentException("Invalid time format: {$time}. Expected 'hh:mm'.");
+        }, 0);
+
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
+
+        return [
+            "hours" => $hours,
+            "minutes" => $minutes,
+            "hm" => sprintf("%02d:%02d", $hours, $minutes), // Format as 'hh:mm'
+        ];
     }
 }

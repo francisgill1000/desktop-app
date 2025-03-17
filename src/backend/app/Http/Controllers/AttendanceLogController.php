@@ -18,8 +18,9 @@ class AttendanceLogController extends Controller
 {
     public function index(AttendanceLog $model, Request $request)
     {
-        return $model->filter($request)->paginate($request->per_page);
+        return $model->filter($request)->orderBy("LogTime", "desc")->paginate($request->per_page);
     }
+
     public function getAttendanceLogs(AttendanceLog $model, Request $request)
     {
         return $model->where("company_id", $request->company_id)->paginate($request->per_page);
@@ -88,7 +89,11 @@ class AttendanceLogController extends Controller
                 "UserID" => $columns[0],
                 "DeviceID" => $columns[1],
                 "LogTime" => substr(str_replace("T", " ", $columns[2]), 0, -3),
-                "SerialNumber" => $columns[3]
+                "SerialNumber" => $columns[3],
+                "log_date_time" => substr(str_replace("T", " ", $columns[2]), 0, -3),
+                "index_serial_number" => $columns[3],
+
+                "log_date" => explode('T', $columns[2])[0] ?? date("Y-m-d"),
             ];
         }
 
@@ -127,14 +132,12 @@ class AttendanceLogController extends Controller
 
 
 
-                    if (date("i") >= "30" || date("i") <= "32") {
+                    if (date("i") >= "30" && date("i") <= "32") {
                         exec('pm2 reload 1');
-                        $company = Company::where("id", 2)->first();
-
-                        $message = "Mytime2cloud: Attendance Log CSV file is not available. Date: " . $date;
-
-                        (new WhatsappController)->sendWhatsappNotification($company, $message, "971552205149");
-                        (new WhatsappController)->sendWhatsappNotification($company, $message, "971554501483");
+                        // $company = Company::where("id", 2)->first();
+                        // $message = "Mytime2cloud: Attendance Log CSV file is not available. Date: " . $date;
+                        // (new WhatsappController)->sendWhatsappNotification($company, $message, "971552205149");
+                        // (new WhatsappController)->sendWhatsappNotification($company, $message, "971554501483");
                         // (new WhatsappController)->sendWhatsappNotification($company, $message, "971553303991");
                     }
                 }
@@ -228,6 +231,11 @@ class AttendanceLogController extends Controller
                     "status" => $columns[4] ?? "Allowed",
                     "mode" => $columns[5] ?? "Face",
                     "reason" => $columns[6] ?? "---",
+
+                    "log_date_time" => substr(str_replace("T", " ", $columns[2]), 0, 16),
+                    "index_serial_number" => $columns[3],
+
+                    "log_date" => explode('T', $columns[2])[0] ?? date("Y-m-d"),
                 ];
             }
         }
@@ -277,7 +285,7 @@ class AttendanceLogController extends Controller
 
     //             // $isDuplicateLogTime = $this->verifyDuplicateLog($columns);
 
-    //             //if (!$isDuplicateLogTime) 
+    //             //if (!$isDuplicateLogTime)
 
     //             $count = AttendanceLog::where("UserID", $columns[0])
     //                 ->where("UserID", $columns[0])
@@ -381,7 +389,15 @@ class AttendanceLogController extends Controller
         $message = "";
 
         try {
-            $message = AttendanceLog::create($request->all());
+            $message = AttendanceLog::create([
+                "UserID" => $request->UserID,
+                "LogTime" => $request->LogTime,
+                "DeviceID" => $request->DeviceID ?? "Unknown",
+                "company_id" => $request->company_id,
+                "log_type" => $request->log_type ?? "Unknown",
+                "log_date" => date("Y-m-d"),
+                "gps_location" => $request->gps_location ?? "Unknown",
+            ]);
 
             if ($message) {
                 // $Attendance = new AttendanceController;
@@ -606,7 +622,7 @@ class AttendanceLogController extends Controller
         });
         $model->when($request->filled('search_device_name'), function ($q) use ($request) {
             $key = strtolower($request->search_device_name);
-            $q->whereHas('device', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
+            $q->whereHas('device', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$key%"));
         });
         $model->when($request->filled('search_device_id'), function ($q) use ($request) {
             $q->where('DeviceID', 'LIKE', "$request->search_device_id%");
@@ -663,5 +679,32 @@ class AttendanceLogController extends Controller
         }
         AttendanceLog::insert($data);
         return "Attendance Log Seeder: " . count($data) . " records have been inserted.";
+    }
+
+    public function getLastTenLogs(AttendanceLog $model, Request $request)
+    {
+        $query = $model->where("company_id", $request->company_id)
+            ->where("UserID", $request->UserID)
+            ->with([
+                'employee' => function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id)
+                        ->withOut(["schedule", "department", "sub_department", "designation", "user"])
+                        ->select([
+                            "first_name",
+                            "last_name",
+                            "profile_picture",
+                            "employee_id",
+                            "branch_id",
+                            "system_user_id",
+                            "display_name",
+                            "timezone_id",
+                        ]);
+                },
+                'device' => function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                }
+            ]);
+
+        return $query->orderBy('LogTime', 'DESC')->limit(10)->get();
     }
 }

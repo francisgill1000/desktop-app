@@ -37,6 +37,7 @@ class UpdateRequest extends FormRequest
             'leave_group_id' => ['nullable'],
             'reporting_manager_id' => ['nullable'],
             'branch_id' => ['required'],
+            'joining_date' => ['required'],
             'profile_picture' => ['image', 'mimes:jpeg,png,jpg,svg', 'max:2048', 'sometimes', 'nullable'],
             // 'phone_number' =>  ['required', 'min:10', 'max:12'],
             // 'whatsapp_number' => ['required', 'min:10', 'max:12'],

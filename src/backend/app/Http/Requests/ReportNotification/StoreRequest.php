@@ -18,6 +18,7 @@ class StoreRequest extends FormRequest
     public function rules()
     {
         $arr = [
+            'automation' => 'nullable',
             'subject' => 'required',
             // 'body' => 'nullable',
             'day' => 'nullable',
@@ -36,7 +37,15 @@ class StoreRequest extends FormRequest
 
         // if weekly or monthly
         if ($this->frequency == "Weekly") {
-            $arr['day'] = "required";
+
+            if ($this->type !== "access_control") {
+                $arr['day'] = "required";
+            } else {
+                $arr['days'] = "required";
+                $arr['from_time'] = "required";
+                $arr['to_time'] = "required";
+                $arr['time'] = "nullable";
+            }
         }
 
         if ($this->frequency == "Monthly") {

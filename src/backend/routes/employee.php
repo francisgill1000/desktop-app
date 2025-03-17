@@ -42,3 +42,5 @@ Route::get('get-employee-device-details', [DeviceController::class, 'getDevicePe
 
 Route::post('employee-store-from-device', [EmployeeController::class, 'employeeStoreFromDevice']);
 Route::post('employee-update-from-device/{id}', [EmployeeController::class, 'employeeUpdateFromDevice']);
+
+Route::get('get-encoded-profile-picture/{url?}', [EmployeeController::class, 'getEncodedProfilePicture']);

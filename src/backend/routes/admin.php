@@ -11,6 +11,7 @@ use App\Http\Controllers\CommonController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\DeviceStatusController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ResetPasswordController;
@@ -33,6 +34,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/loginwith_otp', [AuthController::class, 'loginwithOTP']);
 Route::post('/check_otp/{key}', [AuthController::class, 'verifyOTP']);
+
+Route::post('/employee/login', [EmployeeController::class, 'login']);
+Route::get('/employee/me', [EmployeeController::class, 'me'])->middleware('auth:sanctum');
 
 
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');

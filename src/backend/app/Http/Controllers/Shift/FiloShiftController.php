@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\ScheduleEmployee;
+use App\Models\Shift;
 
 class FiloShiftController extends Controller
 {
@@ -34,7 +36,7 @@ class FiloShiftController extends Controller
         // while ($startDate <= $currentDate && $startDate <= $endDate) {
         while ($startDate <= $endDate) {
             //$response[] = $this->render($company_id, $startDate->format("Y-m-d"), 1, $employee_ids, true);
-            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 1, $employee_ids, $request->filled("auto_render") ? false : true);
+            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 1, $employee_ids, $request->filled("auto_render") ? false : true, $request->channel ?? "unknown");
 
             $startDate->modify('+1 day');
         }
@@ -44,10 +46,10 @@ class FiloShiftController extends Controller
 
     public function renderRequest(Request $request)
     {
-        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true);
+        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true, $request->channel ?? "unknown");
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $channel = "unknown")
     {
 
 
@@ -89,35 +91,16 @@ class FiloShiftController extends Controller
 
             $logs = $logs->toArray() ?? [];
 
-            // $firstLog = collect($logs)->filter(fn ($record) => $record['log_type'] !== "out")->first();
-            // $lastLog = collect($logs)->filter(fn ($record) => $record['log_type'] !== "in")->last();
+            $firstLog = collect($logs)->first(function ($record) use ($key) {
+                return in_array($record["log_type"], ["In", "in", "Auto", "auto", null], true);
+            });
 
+            $lastLog = collect($logs)->last(function ($record) {
+                return in_array($record["log_type"], ["Out", "out", "Auto", "auto", null], true);
+            });
 
-            // $firstLog = collect($logs)->filter(function ($record) {
-            //     return isset($record["device"]["function"]) && ($record["device"]["function"] !== "Out");
-            // })->first();
+            $schedules = ScheduleEmployee::where("company_id", $params["company_id"])->where("employee_id", $key)->get()->toArray();
 
-            // $lastLog = collect($logs)->filter(function ($record) {
-            //     return isset($record["device"]["function"]) && ($record["device"]["function"] !== "In");
-            // })->last();
-            $firstLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "In";
-            })->first();
-
-            $lastLog = collect($logs)->filter(function ($record) {
-                return $record["log_type"] == "Out";
-            })->last();
-            if ($firstLog == null) {
-
-                $firstLog = collect($logs)->filter(function ($record) {
-                    return (isset($record["device"]["function"]) && ($record["device"]["function"] != "Out"));
-                })->first();
-            }
-            if ($lastLog == null) {
-                $lastLog = collect($logs)->filter(function ($record) {
-                    return isset($record["device"]["function"]) && ($record["device"]["function"] != "In");
-                })->last();
-            }
             $schedule = $firstLog["schedule"] ?? false;
             $shift = $schedule["shift"] ?? false;
 
@@ -125,6 +108,20 @@ class FiloShiftController extends Controller
                 $message .= ".  No schedule is mapped with combination  System User Id: $key   and Date : " . $params["date"] . " ";
                 continue;
             }
+
+            $dayOfWeek = date('D', strtotime($firstLog["LogTime"])); // Convert to timestamp and get the day
+
+            foreach ($schedules as $singleSchedule) {
+                $day = $singleSchedule["shift"]["days"];
+
+                if (isset($shift["days"]) && is_array($shift["days"]) && in_array($dayOfWeek, $day, true)) {
+                    $schedule = $singleSchedule ?? false;
+                    $shift =  $schedule["shift"] ?? false;
+                    break;
+                }
+            }
+
+
             if (!$firstLog["schedule"]["shift_type_id"]) {
                 $message .= "$key : None f=of the  Master shift configured on  date:" . $params["date"];
                 continue;
@@ -188,35 +185,12 @@ class FiloShiftController extends Controller
         }
 
         try {
-            $UserIds = array_column($items, "employee_id");
             $model = Attendance::query();
             $model->where("company_id", $id);
-            $model->whereIn("employee_id", $UserIds);
+            $model->whereIn("employee_id", array_column($items, "employee_id"));
             $model->where("date", $date);
             $model->delete();
-            // $chunks = array_chunk($items, 100);
-
-            // foreach ($chunks as $chunk) {
-            //     $model->insert($chunk);
-            // }
             $model->insert($items);
-
-
-            try {
-                (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
-            } catch (\Throwable $e) {
-            }
-
-            //if (!$custom_render) 
-            {
-                // AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)->where("LogTime", ">=", $date . ' 00:00:00')
-                //     ->where("LogTime", "<=", $date . ' 23:59:00')->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
-
-                AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)
-                    ->where("LogTime", ">=", $date . ' 00:00:00')
-                    ->where("LogTime", "<=", $date . ' 23:59:00')
-                    ->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
-            }
             $message = "[" . $date . " " . date("H:i:s") .  "] Filo Shift.  Affected Ids: " . json_encode($UserIds) . " " . $message;
         } catch (\Throwable $e) {
             $message = "[" . $date . " " . date("H:i:s") .  "] Filo Shift. " . $e->getMessage();

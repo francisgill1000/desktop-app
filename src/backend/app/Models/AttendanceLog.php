@@ -46,6 +46,11 @@ class AttendanceLog extends Model
 
     public function device()
     {
+        return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Mobile", "device_id" => "Mobile"]);
+
+        if ($this->log_type == 'Mobile') {
+            return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Mobile", "device_id" => "Mobile"]);
+        }
         return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Manual", "device_id" => "Manual"]);
     }
     public function company()
@@ -54,7 +59,11 @@ class AttendanceLog extends Model
     }
     public function employee()
     {
-        return $this->belongsTo(Employee::class, "UserID", "system_user_id");
+        return $this->belongsTo(Employee::class, "UserID", "system_user_id")
+            ->withDefault([
+                "first_name" => "---",
+                "last_name" => "---"
+            ]);
     }
     public function branch()
     {
@@ -212,7 +221,7 @@ class AttendanceLog extends Model
                 }
             });
         if (!$request->sortBy) {
-            $model->orderBy('LogTime', 'DESC');
+            $model->orderBy('index_serial_number', 'DESC');
         }
 
         return $model;

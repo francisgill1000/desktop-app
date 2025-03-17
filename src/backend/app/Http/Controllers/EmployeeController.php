@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeController extends Controller
 {
@@ -48,6 +49,7 @@ class EmployeeController extends Controller
         $model = Employee::query();
         $model->where('company_id', request('company_id'));
         $model->when(request()->filled('branch_id'), fn($q) => $q->where('branch_id', request('branch_id')));
+        $model->when(request()->filled('department_id'), fn($q) => $q->where('department_id', request('department_id')));
         //$model->excludeRelations();
         $model->with(["department", "sub_department", "designation"]);
         $model->select("profile_picture", "id",  "first_name as name",   "first_name", "last_name", "system_user_id",  "employee_id", "branch_id", "department_id", "designation_id", "sub_department_id");
@@ -831,6 +833,34 @@ class EmployeeController extends Controller
         return Pdf::loadView('pdf.employee_profile', ["employee" => $employeeProfile])->setPaper('A4', 'potrait')->download();; //->donwload();
     }
     public function employeeLoginUpdate(Request $request, $id)
+    {
+        $arr = [];
+        $arr["name"] = "null";
+        $arr["email"] = $request->email;
+        $arr["company_id"] = $request->company_id;
+        $arr["employee_role_id"] = 0;
+
+        if ($request->password != '' || $request->password != "********") {
+            $arr['password'] = Hash::make($request->password ?? "secret");
+        }
+
+        try {
+            $user = User::updateOrCreate(['email' => $request->email, "company_id" => $request->company_id], $arr);
+
+            Employee::where("id", $request->employee_id)->update(["user_id" => $user->id]);
+
+            if (!$user) {
+                return $this->response('Employee cannot update.', null, false);
+            }
+
+            return $this->response('Employee successfully updated.', $user->id, true);
+        } catch (\Throwable $th) {
+            return $this->response('Employee cannot update.', $th, false);
+            throw $th;
+        }
+    }
+
+    public function employeeLoginUpdate_old(Request $request, $id)
     {
         $arr = [];
         $arr["user_type"] = "employee";
@@ -1746,5 +1776,51 @@ class EmployeeController extends Controller
         file_put_contents($publicDirectory . '/' . $imageName, $imageData);
 
         return $imageName;
+    }
+
+    public function login(Request $request)
+    {
+        try {
+            // Check database connection
+            DB::connection()->getPdo();
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages([
+                'email' => ['Database is down'],
+            ]);
+        }
+
+        $user = User::where('email', $request->email)
+            ->with("company:id,user_id,name,location,logo,company_code,expiry", "employee")
+            ->first();
+
+        $this->throwAuthException($request, $user);
+
+        $user->user_type = "employee";
+
+        // @params User Id, action,type,companyId.
+        $this->recordActivity($user->id, "Login", "Authentication", $user->company_id, $user->user_type);
+
+        return [
+            'token' => $user->createToken('myApp')->plainTextToken,
+            'user' => $user,
+        ];
+    }
+
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        $user->load(["company", "role:id,name,role_type", "employee"]);
+        unset($user["assigned_permissions"]);
+        $user->user_type = "employee";
+        return ['user' => $user];
+    }
+
+    public function getEncodedProfilePicture()
+    {
+        $imageData = file_get_contents(request("url", 'https://randomuser.me/api/portraits/women/45.jpg'));
+
+        $md5string = base64_encode($imageData);
+
+        return "data:image/png;base64,$md5string";
     }
 }

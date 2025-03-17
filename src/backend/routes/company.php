@@ -58,6 +58,7 @@ use App\Http\Controllers\WhatsappNotificationsLogController;
 use App\Models\DeviceNotifications;
 use App\Models\ReportNotificationLogs;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/get-company-id-by-device', [DeviceController::class, 'get_company_id_by_device']);
@@ -125,8 +126,9 @@ Route::post('role/delete/selected', [RoleController::class, 'deleteSelected']);
 
 // AttendanceLogs
 Route::apiResource('attendance_logs', AttendanceLogController::class);
+Route::get('get_last_ten_attendance_logs', [AttendanceLogController::class, 'getLastTenLogs']);
 
-Route::get('attendance_logs/{key}/daily', [AttendanceLogController::class, 'AttendanceLogsDaily']);
+Route::get('attendance_logs/{key}/daily', );
 Route::get('attendance_logs/{key}/monthly', [AttendanceLogController::class, 'AttendanceLogsMonthly']);
 Route::post('generate_manual_log', [AttendanceLogController::class, 'GenerateManualLog']);
 Route::get('attendance_logs/search/{company_id}', [AttendanceLogController::class, 'search']);
@@ -240,21 +242,21 @@ Route::get('shift_by_type', [ShiftController::class, 'shift_by_type']);
 Route::get('shift_by_types', [ShiftController::class, 'shift_by_types']);
 Route::get('list_with_out_multi_in_out', [ShiftController::class, 'list_with_out_multi_in_out']);
 
-Route::apiResource('time_table', TimeTableController::class);
+//Route::apiResource('time_table', TimeTableController::class);
 
 Route::apiResource('shift_type', ShiftTypeController::class);
 
-Route::get('custom_report', [ReportController::class, 'custom_report']);
+// Route::get('custom_report', [ReportController::class, 'custom_report']);
 
-Route::get('manual_report', [ManualReportController::class, 'custom_report']);
-Route::post('manual_report', [ManualReportController::class, 'store']);
-Route::get('auto_report', [AutoReportController::class, 'custom_report']);
-Route::post('auto_report', [AutoReportController::class, 'store']);
-Route::get('SyncDefaultAttendance', [AutoReportController::class, 'SyncDefaultAttendance']);
+// Route::get('manual_report', [ManualReportController::class, 'custom_report']);
+// Route::post('manual_report', [ManualReportController::class, 'store']);
+// Route::get('auto_report', [AutoReportController::class, 'custom_report']);
+// Route::post('auto_report', [AutoReportController::class, 'store']);
+// Route::get('SyncDefaultAttendance', [AutoReportController::class, 'SyncDefaultAttendance']);
 
-Route::get('no_report', [ReportController::class, 'no_report']);
-Route::get('overnight_report', [ReportController::class, 'overnight_report']);
-Route::get('odd_even_report', [ReportController::class, 'odd_even_report']);
+// Route::get('no_report', [ReportController::class, 'no_report']);
+// Route::get('overnight_report', [ReportController::class, 'overnight_report']);
+// Route::get('odd_even_report', [ReportController::class, 'odd_even_report']);
 
 Route::get('attendance_logs_details', [AttendanceLogController::class, 'AttendanceLogsDetails']);
 
@@ -279,8 +281,8 @@ Route::apiResource('report_notification_logs', ReportNotificationLogsController:
 Route::apiResource('device_notifications', DeviceNotificationsController::class);
 Route::apiResource('device_notifications_logs', DeviceNotificationsLogController::class);
 Route::get('testmail', [ReportNotificationController::class, 'testmail']);
-Route::get('/auto_shift', [AutoShiftController::class, 'index']);
-Route::post('/auto_shift', [AutoShiftController::class, 'store']);
+// Route::get('/auto_shift', [AutoShiftController::class, 'index']);
+// Route::post('/auto_shift', [AutoShiftController::class, 'store']);
 Route::apiResource('roster', RosterController::class);
 Route::get('/roster_list', [RosterController::class, 'getRosterList']);
 Route::post('/store_schedule_arrange', [RosterController::class, 'storeScheduleArrange']);
@@ -299,6 +301,10 @@ Route::get('employee_leaves/reject/{id}', [EmployeeLeavesController::class, 'rej
 Route::get('employee_leaves_new', [EmployeeLeavesController::class, 'newNotifications']);
 Route::get('employee_leaves_new_by_employee', [EmployeeLeavesController::class, 'newEmployeeNotifications']);
 
+Route::get('employee_leaves_events', [EmployeeLeavesController::class, 'getEvents']);
+Route::get('employee_leaves_for_next_thirty_days_month', [EmployeeLeavesController::class, 'getLeavesForNextThirtyDaysMonth']);
+
+
 Route::apiResource('employee_document', EmployeeLeaveDocumentController::class);
 
 //Leave Type
@@ -312,11 +318,13 @@ Route::apiResource('leave_groups', LeaveGroupsController::class);
 Route::get('leave_groups/{id}', [LeaveGroupsController::class, 'show']);
 Route::get('leave-group-list', [LeaveGroupsController::class, 'dropdownList']);
 
-
+Route::get('leave_total_quota/{id}', [LeaveGroupsController::class, 'totalLeaveQuota']);
+Route::get('yearly_leave_quota/{id}', [LeaveGroupsController::class, 'yearlyLeaveQuota']);
 
 Route::post('register', [RegisterController::class, 'store']);
-
 
 Route::post('send-whatsapp-wessage', function (Request $request) {
     return (new WhatsappNotificationsLogController())->addMessage($request->company_id, $request->mobile_number, $request->message);
 });
+
+Route::get('company-short-info/{id}', [CompanyController::class, 'shortInfo']);

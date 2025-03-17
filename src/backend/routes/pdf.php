@@ -23,6 +23,54 @@ Route::get('/process_reports', [DailyController::class, 'process_reports']);
 Route::get('report', [ReportController::class, 'index']);
 Route::post('attendance-report-old', [ReportController::class, 'fetchDataOLD']);
 Route::post('attendance-report-new', [ReportController::class, 'fetchDataNEW']);
+Route::get('attendance-statuses', function () {
+    return [
+        [
+            'name' => 'Present',
+            'id' => 'P',
+        ],
+        [
+            'name' => 'Absent',
+            'id' => 'A',
+        ],
+        [
+            'name' => 'Incomplete',
+            'id' => 'M',
+        ],
+        [
+            'name' => 'Late In',
+            'id' => 'LC',
+        ],
+        [
+            'name' => 'Early Out',
+            'id' => 'EG',
+        ],
+        [
+            'name' => 'Week Off',
+            'id' => 'O',
+        ],
+        [
+            'name' => 'Leave',
+            'id' => 'L',
+        ],
+        [
+            'name' => 'Holiday',
+            'id' => 'H',
+        ],
+        [
+            'name' => 'Vacation', // Fixed spelling from 'Vaccation'
+            'id' => 'V',
+        ],
+        [
+            'name' => 'Manual Entry',
+            'id' => 'ME',
+        ],
+    ];
+});
+
+
+
+
 
 Route::get('pdf-generation', [MonthlyController::class, 'PDFGeneration']);
 Route::get('pdf-report-merge', [MonthlyController::class, 'PDFMerge']);
@@ -124,8 +172,8 @@ Route::get('/test_week', [TestController::class, 'test_week']);
 
 
 Route::get('/daily_mimo', [Controller::class, 'mimo']);
-Route::get('/weekly_mimo', [WeeklyMimoController::class, 'weekly']);
-Route::get('/monthly_mimo', [MonthlyMimoController::class, 'monthly']);
+// Route::get('/weekly_mimo', [WeeklyMimoController::class, 'weekly']);
+// Route::get('/monthly_mimo', [MonthlyMimoController::class, 'monthly']);
 
 
 
@@ -141,7 +189,7 @@ Route::get('/access_control_by_device', [PDFController::class, 'monthlyAccessCon
 
 Route::get('/monthly_access_control_count', [PDFController::class, 'monthlyAccessControlCount']);
 
-Route::get('/generatePresentReportTest/{id}', [PDFTestController::class, 'generatePresentReport']);
+// Route::get('/generatePresentReportTest/{id}', [PDFTestController::class, 'generatePresentReport']);
 
 
 // access_control
@@ -154,3 +202,13 @@ Route::get('/document_expiry_print_pdf', [EmployeeController::class, 'document_e
 Route::get('/testPDF', [PDFController::class, 'testPDF']);
 Route::get('/accessControlReport_print_pdf', [PDFController::class, 'accessControlReportPrint']);
 Route::get('/accessControlReport_download_pdf', [PDFController::class, 'accessControlReportDownload']);
+
+Route::post('performance-report', [ReportController::class, 'performanceReport']);
+Route::post('summary-report', [ReportController::class, 'summaryReport']);
+Route::post('summary-report-download', [ReportController::class, 'summaryReportDownload']);
+
+Route::post('last-six-month-performance-report', [ReportController::class, 'lastSixMonthsPerformanceReport']);
+Route::post('last-six-month-salary-report', [ReportController::class, 'lastSixMonthsSalaryReport']);
+Route::post('current-month-salary-report', [ReportController::class, 'currentMonthSalaryReport']);
+Route::post('current-month-hours-report', [ReportController::class, 'currentMonthHoursReport']);
+Route::post('current-month-performance-report', [ReportController::class, 'currentMonthPerformanceReport']);

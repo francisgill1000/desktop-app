@@ -27,7 +27,7 @@ class UpdateRequest extends FormRequest
             'frequency' => 'required',
             'time' => 'required',
             'reports' => 'array|min:1|max:5',
-            'mediums' => 'array|min:1',
+            'mediums' => 'array',
             'managers' => 'array|min:1',
             // 'tos' => 'array|min:1',
             // 'ccs' => 'array|nullable',
@@ -36,7 +36,15 @@ class UpdateRequest extends FormRequest
 
         // if weekly or monthly
         if ($this->frequency == "Weekly") {
-            $arr['day'] = "required";
+
+            if ($this->type !== "access_control") {
+                $arr['day'] = "required";
+            } else {
+                $arr['days'] = "required";
+                $arr['from_time'] = "required";
+                $arr['to_time'] = "required";
+                $arr['time'] = "nullable";
+            }
         }
 
         if ($this->frequency == "Monthly") {

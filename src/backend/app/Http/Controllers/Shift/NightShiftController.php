@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Shift;
 
-use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
@@ -38,7 +37,7 @@ class NightShiftController extends Controller
         // while ($startDate <= $currentDate && $startDate <= $endDate) {
         while ($startDate <= $endDate) {
             //$response[] = $this->render($company_id, $startDate->format("Y-m-d"), 4, $employee_ids, true);
-            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 4, $employee_ids, $request->filled("auto_render") ? false : true);
+            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 4, $employee_ids, $request->filled("auto_render") ? false : true, $request->channel ?? "unknown");
 
             $startDate->modify('+1 day');
         }
@@ -48,10 +47,10 @@ class NightShiftController extends Controller
 
     public function renderRequest(Request $request)
     {
-        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true);
+        return $this->render($request->company_id ?? 0, $request->date ?? date("Y-m-d"), $request->shift_type_id, $request->UserIds, true, $request->channel ?? "unknown");
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $isRequestFromAutoshift = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $isRequestFromAutoshift = false, $channel = "unknown")
     {
         $params = [
             "company_id" => $id,
@@ -310,19 +309,15 @@ class NightShiftController extends Controller
         // }
 
         try {
-            $UserIds = array_column($items, "employee_id");
             $model = Attendance::query();
             $model->where("company_id", $id);
-            $model->whereIn("employee_id", $UserIds);
+            $model->whereIn("employee_id", array_column($items, "employee_id"));
             $model->where("date", $date);
             $model->delete();
             $model->insert($items);
 
+            $message = "[" . $date . " " . date("H:i:s") .  "] Night Shift. Affected Ids: " . json_encode($UserIds) . " " . $message;
 
-            try {
-                (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
-            } catch (\Throwable $e) {
-            }
 
             //if (!$custom_render)
             {
@@ -330,9 +325,13 @@ class NightShiftController extends Controller
                 AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)
                     ->where("LogTime", ">=", $date . ' 00:00:00')
                     ->where("LogTime", "<=", $date . ' 23:59:00')
-                    ->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
+                    ->update([
+                        "checked" => true,
+                        "checked_datetime" => date('Y-m-d H:i:s'),
+                        "channel" => $channel,
+                        "log_message" => substr($message, 0, 200)
+                    ]);
             }
-            $message = "[" . $date . " " . date("H:i:s") .  "] Night Shift. Affected Ids: " . json_encode($UserIds) . " " . $message;
         } catch (\Throwable $e) {
             $message = "[" . $date . " " . date("H:i:s") .  "] Night Shift. " . $e->getMessage();
         }

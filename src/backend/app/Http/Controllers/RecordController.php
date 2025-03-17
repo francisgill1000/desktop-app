@@ -10,7 +10,7 @@ class RecordController extends Controller
 {
     public function get_devices()
     {
-        return Device::pluck(["company_id","name","device_id"]) ?? [];
+        return Device::pluck(["company_id", "name", "device_id"]) ?? [];
     }
 
     public function get_logs_from_sdk()
@@ -57,6 +57,8 @@ class RecordController extends Controller
                 "DeviceID" => $device->device_id,
                 "SerialNumber" => $row->recordNumber,
                 "company_id" => $device->company_id,
+
+
             ];
         }, $rows);
     }

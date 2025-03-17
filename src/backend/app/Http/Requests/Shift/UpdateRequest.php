@@ -30,9 +30,10 @@ class UpdateRequest extends FormRequest
             return [];
         }
         return [
-            'name' => ['required', Rule::unique('shifts')->ignore($this->input('id'))->where(function ($query) {
-                return $query->where('branch_id', $this->input('branch_id'));
-            })],
+            // 'name' => ['required', Rule::unique('shifts')->ignore($this->input('id'))->where(function ($query) {
+            //     return $query->where('branch_id', $this->input('branch_id'));
+            // })],
+            'name' => ["required"],
             'overtime_interval' => ["required"],
             'shift_type_id' => ["required"],
             'company_id' => ["required"],

@@ -8,9 +8,12 @@ use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use Illuminate\Support\Facades\Log;
 
 class MultiShiftController extends Controller
 {
+    public $logFilePath = 'logs/shifts/multi_shift/controller';
+
     public function renderData(Request $request)
     {
         // Extract start and end dates from the JSON data
@@ -23,18 +26,18 @@ class MultiShiftController extends Controller
         }
         $company_id = $request->company_ids[0];
         $employee_ids = $request->employee_ids;
+        $channel = $request->channel ?? "browser";
 
         // Convert start and end dates to DateTime objects
         $startDate = new \DateTime($startDateString);
         $endDate = new \DateTime($endDateString);
-        $currentDate = new \DateTime();
 
         $response = [];
 
         // while ($startDate <= $currentDate && $startDate <= $endDate) {
         while ($startDate <= $endDate) {
             // $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 2, $employee_ids, true);
-            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 2, $employee_ids, $request->filled("auto_render") ? false : true);
+            $response[] = $this->render($company_id, $startDate->format("Y-m-d"), 2, $employee_ids, $request->filled("auto_render") ? false : true, $channel);
 
             $startDate->modify('+1 day');
         }
@@ -46,11 +49,11 @@ class MultiShiftController extends Controller
     {
         // return $departmentIds = Department::where("company_id",$request->company_id)->pluck("id");
         // $employee_ids = Employee::where("department_id", 31)->pluck("system_user_id");
-
-        return $this->render($request->company_id, $request->date, $request->shift_type_id, $request->UserIds, $request->custom_render ?? true);
+        $channel = $request->channel ?? "browser";
+        return $this->render($request->company_id, $request->date, $request->shift_type_id, $request->UserIds, $request->custom_render ?? true, $channel);
     }
 
-    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false)
+    public function render($id, $date, $shift_type_id, $UserIds = [], $custom_render = false, $channel)
     {
         $params = [
             "company_id" => $id,
@@ -68,6 +71,8 @@ class MultiShiftController extends Controller
         // return json_encode($params);
 
         $employees = (new Employee)->attendanceEmployeeForMultiRender($params);
+
+
 
 
         //update shift ID for No logs 
@@ -93,6 +98,7 @@ class MultiShiftController extends Controller
 
         $items = [];
         $message = "";
+        $logsUpdated = 0;
 
         foreach ($employees as $row) {
 
@@ -205,13 +211,10 @@ class MultiShiftController extends Controller
             $items[] = $item;
         }
 
-
-        $UserIds = array_column($items, "employee_id");
-
         try {
 
             $model = Attendance::query();
-            $model->whereIn("employee_id", $UserIds);
+            $model->whereIn("employee_id", array_column($items, "employee_id"));
             $model->where("date", $date);
             $model->where("company_id", $id);
             $model->delete();
@@ -222,19 +225,31 @@ class MultiShiftController extends Controller
                 $model->insert($chunk);
             }
 
-            //if (!$custom_render)
-            {
-                AttendanceLog::where("company_id", $id)->whereIn("UserID", $UserIds)
-                    ->where("LogTime", ">=", $date . ' 00:00:00')
-                    ->where("LogTime", "<=", $date . ' 23:59:00')
-                    ->update(["checked" => true, "checked_datetime" => date('Y-m-d H:i:s')]);
-            }
             $message = "[" . $date . " " . date("H:i:s") .  "] Multi Shift.   Affected Ids: " . json_encode($UserIds) . " " . $message;
+
+            $logsUpdated = AttendanceLog::where("company_id", $id)
+                ->whereIn("UserID", $UserIds ?? [])
+                ->where("LogTime", ">=", $date)
+                ->where("LogTime", "<=", date("Y-m-d", strtotime($date . "+1 day")))
+                // ->where("checked", false)
+                ->update([
+                    "checked" => true,
+                    "checked_datetime" => date('Y-m-d H:i:s'),
+                    "channel" => $channel,
+                    "log_message" => substr($message, 0, 200)
+                ]);
         } catch (\Throwable $e) {
-            $message = $this->getMeta("Multi Shift ", $e->getMessage());
+            $this->logOutPut($this->logFilePath, $e->getMessage());
         }
 
-        $this->devLog("render-manual-log", $message);
+        $this->logOutPut($this->logFilePath, [
+            "UserIds" => $UserIds,
+            "params" => $params,
+            "items" => $items,
+        ]);
+
+        $this->logOutPut($this->logFilePath, "[" . $date . " " . date("H:i:s") .  "] " . "$logsUpdated " . " updated logs");
+        $this->logOutPut($this->logFilePath, $message);
         return $message;
     }
 }
