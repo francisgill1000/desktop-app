@@ -162,7 +162,7 @@ class Attendance extends Model
         $shift_type_ids = [];
 
         if ($request->showTabs['single'] == true && $request->shift_type_id == 0) {
-            $shift_type_ids = [1, 3, 4, 6];
+            // $shift_type_ids = [1, 3, 4, 6];
         } else if ($request->showTabs['multi'] == true) {
             $shift_type_ids = [2];
         } else if ($request->showTabs['dual'] == true) {
@@ -173,7 +173,8 @@ class Attendance extends Model
 
         $model->where('company_id', $request->company_id);
         $model->with(['shift_type', 'last_reason', 'branch']);
-        $model->when($request->filled('shift_type_id'), fn($q) =>  $q->whereIn('shift_type_id', $shift_type_ids));
+
+        $model->when(count($shift_type_ids) > 0, fn($q) => $q->whereIn('shift_type_id', $shift_type_ids));
 
 
         if (!empty($request->employee_id)) {
