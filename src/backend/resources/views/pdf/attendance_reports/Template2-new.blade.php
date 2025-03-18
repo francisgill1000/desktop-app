@@ -406,6 +406,7 @@ die();
             <td> <b>Status</b> </td>
             @foreach ($data as $date)
                 @php
+                    $statusColor = null;
                     if ($date->status == 'P') {
                         $statusColor = 'green';
                     } elseif ($date->status == 'A') {
@@ -428,8 +429,6 @@ die();
                     <div class="secondary-value" style="font-size:6px">
                         @if ($date['shift'] && $date->status == 'P')
                             @php
-
-                             
 
                                 $shiftWorkingHours = $date['shift']['working_hours'];
                                 $employeeHours = $date['total_hrs'];

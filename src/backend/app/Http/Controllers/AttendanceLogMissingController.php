@@ -70,7 +70,7 @@ class AttendanceLogMissingController  extends Controller
             $finalResult = [];
             //$date = date('Y-m-d', strtotime($date . ' + 1 days'));
 
-
+            $device = null;
             $deviceId = $request->device_id;
             $model_number = '';
             //if ($company_id == 0)
@@ -82,6 +82,7 @@ class AttendanceLogMissingController  extends Controller
                     "message" =>  "Device Serial Number is not found",
                 ];;
                 $company_id = $device["company_id"];
+                $model_number = $device["model_number"];
             }
             $deviceSession = (new DeviceCameraModel2Controller($device->camera_sdk_url, $device->device_id));
 
@@ -103,28 +104,24 @@ class AttendanceLogMissingController  extends Controller
 
 
 
-            $indexSerialNumber = 1;
+                    $json = '{
+                    "request_id": "87110c822b67e054f72b5c4d90fc51c2",
+                    "limit": 10,
+                    "offset": 0,
+                    "sort": "asc",
+                    "begin_time": "' . $beginTime . '",
+                    "end_time": "' . $endTimeCurrent . '",
+                    "query_string": "",
+                    "query_person_idx": "",
+                    "query_nopass": false
+                  }';
 
-            //find serial number 
-            $indexSerialNumberModel = AttendanceLog::where("company_id", $company_id)
-                ->whereDate("LogTime", '<=', $date)
-                ->where("SerialNumber", '>', 0)
 
-                ->where("DeviceID",   $deviceId)->orderBy("LogTime", "DESC")->first();
-            if ($indexSerialNumberModel) {
-                $indexSerialNumber = $indexSerialNumberModel->SerialNumber;
-            }
+                    $finalResult[] = $responseArray = $deviceSession->getHistory($deviceId, $json);
 
-
-            // if ($indexSerialNumber > 0) {
-
-            $url = env("SDK_URL") . "/"  . $deviceId . "/GetRecordByIndex";
-            //$url =   "https://sdk.mytime2cloud.com/" . $deviceId . "/GetRecordByIndex";
-            $data =  [
-                "TransactionType" => 1,
-                "Quantity" => 60,
-                "ReadIndex" => $indexSerialNumber
-            ];
+                    if (isset($response['status'])) {
+                        $data = (new SDKController())->getAllData();
+                        unset($data[$deviceId]);
 
                         (new SDKController())->clearSessionData($deviceId);
 
@@ -308,26 +305,6 @@ class AttendanceLogMissingController  extends Controller
 
                 return array_merge($message1, $message2, $message3, $message4);;
             }
-            // } else {
-            //     return [
-            //         "status" => 120,
-            //         "message" => "Device has no  records found on this date " . $date,
-            //         "updated_records" => [],
-            //         "total_device_records" => [],
-            //         "indexSerialNumber" => $indexSerialNumber,
-
-            //     ];
-            // }
-
-            return [
-                "status" => 200,
-                "message" => "success",
-                "updated_records" => $finalResult,
-                "total_device_records" => count($records['data']),
-                "indexSerialNumber" => $indexSerialNumber,
-            ];
-
-            return $records;
         } catch (\Exception $e) {
             return [
                 "status" => 102,
@@ -446,6 +423,18 @@ class AttendanceLogMissingController  extends Controller
 
     public function culrmethod($url, $data)
     {
+
+
+
+
+
+
+        ini_set('max_execution_time', 300); // 300 seconds = 5 minutes
+
+
+
+
+
         $curl = curl_init();
 
         curl_setopt_array($curl, array(

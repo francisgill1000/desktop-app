@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Alarm\DeviceSensorLogsController;
 use App\Http\Controllers\AlarmLogsController;
+use App\Http\Controllers\API\SharjahUniversityAPI;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceLogController;
 use App\Http\Controllers\CameraController;
 use App\Http\Controllers\CardQRCodeController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DeviceCameraController;
+use App\Http\Controllers\DeviceCameraModel2Controller;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\KeyGeneratorController;
@@ -28,6 +30,7 @@ use App\Mail\TestMail;
 use App\Models\AlarmLogs;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
+use App\Models\Company;
 use App\Models\Device;
 use App\Models\DeviceActivesettings;
 use App\Models\DeviceNotification;
@@ -138,8 +141,65 @@ Route::get("test900device1", function (Request $request) {
 
 
 
-Route::get('/get-baseurl', [Controller::class, "getBaseUrl"]);
 
+
+Route::get("test900device", function (Request $request) {
+
+    $device = Device::where("device_id", "M014200892110002626")->first();
+    return  $responseData['data'] = (new DeviceCameraModel2Controller($device->camera_sdk_url))->getSettings($device);
+});
+Route::get("test900device2", function (Request $request) {
+
+    $device = Device::where("device_id", "M014200892110002761")->first();
+    return  $responseData['data'] = (new DeviceCameraModel2Controller($device->camera_sdk_url))->getSettings($device);
+});
+Route::get("whatsappqrcode", function (Request $request) {
+
+    $device = Device::where("device_id", "M014200892110002761")->first();
+    return  $responseData['data'] = (new DeviceCameraModel2Controller($device->camera_sdk_url))->getSettings($device);
+
+    // phpinfo();
+    // exit;
+
+    QrCode::size(500)
+        ->format('png')
+        ->generate('www.google.com', storage_path('app/public/111.png'));
+    exit;
+
+    // exit;
+    // QrCode::size(250)->generate('www.google.com');
+    $url = 'https://example.com';
+    // $qrCode = QrCodeServiceProvider::format('png')->size(300)->generate($url);
+
+
+    $fileName = 'qrcode.png';
+    $filePath = storage_path('app/public/' . $fileName);
+
+    // Save the QR code to a file
+    // Storage::put('public/' . $fileName, $qrCode);
+
+    echo  QrCode::size(250)->generate('www.google.com', $filePath);
+    exit;
+    //send email notification and whatsapp notification
+    $attachments = [];
+    $attachments["media_url"] =  env('BASE_URL') . 'app/public/' . $fileName;
+    //$attachments["media_url"] =  "https://backend.mytime2cloud.com/api/donwload_storage_file?file_name=app%2Fpdf%2F2%2Fdaily_missing.pdf";
+
+    $attachments["filename"] = $fileName;
+
+
+    $company = Company::where('company_id', 2);
+    (new WhatsappController())->sendWhatsappNotification($company, $fileName, "971552205149", $attachments);
+});
+Route::get("compare2images", function (Request $request) {
+    $image1 = storage_path('venu2.jpeg');;
+    $image2 = storage_path('arav1.jpg');;
+
+    $imageComparator = new ImageComparator();
+
+    $similarity = $imageComparator->compare($image1, $image2);
+    return  $similarity;
+});
 Route::get("test111password", function (Request $request) {
     ///////return (new AttendanceLogController)->storemissing();
 
@@ -252,6 +312,12 @@ Route::get('/testAttendanceRender111test', function (Request $request) {
 
     Logger::channel('custom')->info(json_encode($request->request->all()));
 });
+
+// Route::get('/testAttendanceRender111test', function (Request $request) {
+
+//     Excel::import(new excelEmployeesData(), $request->file('file'));
+// });
+
 Route::post('/testAttendanceRender111test', function (Request $request) {
 
     Logger::channel('custom')->info(json_encode($request->request->all()));
@@ -298,6 +364,10 @@ Route::get('/testAttendanceRender111', function (Request $request) {
     $renderRequest = Request::create('/render_logs', 'get', $requestArray);
 
     return ((new RenderController())->renderLogs($renderRequest));
+});
+
+Route::get("getqrcode", function (Request $request) {
+    return (new CardQRCodeController())->generateQRCode($request);
 });
 
 Route::get("/testemployee", function (Request $request) {

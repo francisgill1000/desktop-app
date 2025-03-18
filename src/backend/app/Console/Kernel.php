@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\ThemeController;
 use App\Models\Company;
 use App\Models\PayrollSetting;
 use App\Models\ReportNotification;
@@ -103,11 +104,10 @@ class Kernel extends ConsoleKernel
                 ->runInBackground();
 
             //whatsapp reports 
-            $array = ['All', "P", "A", "M", "ME"];
+            // $array = ['All', "P", "A", "M", "ME"];
+            $array = ['All'];
+
             foreach ($array as $status) {
-
-                $schedule->command("task:generate_daily_report {$companyId}  {$status}")->dailyAt('03:45'); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
-
 
                 $schedule
                     ->command("task:generate_daily_report {$companyId}  {$status}")
@@ -138,6 +138,7 @@ class Kernel extends ConsoleKernel
                 ->dailyAt('02:00')
                 //->withoutOverlapping()
                 ->runInBackground(); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
+
 
 
             $schedule
@@ -192,10 +193,6 @@ class Kernel extends ConsoleKernel
 
             if ($model->frequency == "Daily") {
                 $scheduleCommand->dailyAt($model->time);
-            } elseif ($model->frequency == "Weekly") {
-                $scheduleCommand->weeklyOn($model->day, $model->time);
-            } elseif ($model->frequency == "Monthly") {
-                $scheduleCommand->monthlyOn($model->day, $model->time);
             }
         }
 

@@ -418,6 +418,8 @@ class AttendanceLogController extends Controller
     public function SyncCompanyIdsWithDevices()
     {
 
+
+
         // return 282+499+245+257+335+209;
         // get device ids with company ids = 0
         $model = AttendanceLog::query();

@@ -21,11 +21,6 @@ class Controller extends BaseController
     use DispatchesJobs;
     use ValidatesRequests;
 
-    public function getBaseUrl()
-    {
-        return "http://" . gethostbyname(gethostname()) . ":8000/api";
-    }
-
     public function FilterCompanyList($model, $request, $model_name = null)
     {
         $model = $model::query();

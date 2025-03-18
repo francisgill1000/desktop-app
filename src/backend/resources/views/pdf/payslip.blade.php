@@ -74,10 +74,13 @@
                     <tr>
                         <td style="width: 50%;padding-left:10px ">
 
-                            <div> @if (env('APP_ENV') !== 'local')
-                                <img src="{{ $data->company->logo }}" style="border-radius: 10%; width: auto;height:50px; max-height: 100px">
+                            <div>
+                                @if (env('APP_ENV') !== 'local')
+                                    <img src="{{ $data->company->logo }}"
+                                        style="border-radius: 10%; width: auto;height:50px; max-height: 100px">
                                 @else
-                                <img src="https://th.bing.com/th/id/R.b4e3fb857db675de7df59ab6f4cf30ab?rik=gbQLvTh9DaC6tQ&pid=ImgRaw&r=0" style="border-radius: 10%;width: auto; max-height: 100px ;height:50px;">
+                                    <img src="https://th.bing.com/th/id/R.b4e3fb857db675de7df59ab6f4cf30ab?rik=gbQLvTh9DaC6tQ&pid=ImgRaw&r=0"
+                                        style="border-radius: 10%;width: auto; max-height: 100px ;height:50px;">
                                 @endif
                             </div>
                             <div>
@@ -126,7 +129,8 @@
             </td>
         </tr>
         <tr>
-            <td style="
+            <td
+                style="
                 border: 0px solid #ddd;
                 padding-left: 10px;
                 padding-top:30px;
@@ -136,20 +140,20 @@
                     <tr>
                         <td>
                             <div style="">Pay To :</div>
-                            <span v-if="employee && $data->employee->first_name" style="font-size: 12px; font-weight: bold">{{ ($data->employee->first_name) }}</span>
-                            <span v-if="employee && $data->employee->last_name" style="font-size: 12px; font-weight: bold">{{ ($data->employee->last_name) }}</span>
+                            <span v-if="employee && $data->employee->first_name"
+                                style="font-size: 12px; font-weight: bold">{{ $data->employee->first_name }}</span>
+                            <span v-if="employee && $data->employee->last_name"
+                                style="font-size: 12px; font-weight: bold">{{ $data->employee->last_name }}</span>
 
                             <div style="font-size: 12px">
                                 #{{ $data->employee_id }} ,
 
 
-                                {{$data->employee->department->name}}
+                                {{ $data->employee->department->name }}
                             </div>
                             <div></div>
                             <div style="font-size: 12px">
-                                {{
-                                    $data->employee->designation->name
-                      }}
+                                {{ $data->employee->designation->name }}
                             </div>
                         </td>
 
@@ -168,8 +172,18 @@
                                     <td>{{ $data->absent }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Late</td>
-                                    <td>{{ $data->late }}</td>
+                                    <td>Week Off</td>
+                                    <td>{{ $data->week_off }}</td>
+                                </tr>
+
+                                <tr>
+                                    <td>Late Hours</td>
+                                    <td>{{ $data->lateHours['hm'] }}</td>
+                                </tr>
+
+                                <tr>
+                                    <td>Early Hours</td>
+                                    <td>{{ $data->earlyHours['hm'] }}</td>
                                 </tr>
                             </table>
                         </td>
@@ -180,20 +194,23 @@
 
         <tr>
             <td>
-                <table style="
+                <table
+                    style="
                   width: 100%;
                   border: 0px solid #ddd;
                   padding-left: 0px;
                   margin-top: 15px;
                  
                 ">
-                    <tr style="
+                    <tr
+                        style="
                     background-color: #4d5973;
                     color: #fff;
 
                     
                   ">
-                        <td style="padding-left: 10px; text-align: left;vertical-align:middle;height: 35px;">Earnings</td>
+                        <td style="padding-left: 10px; text-align: left;vertical-align:middle;height: 35px;">Earnings
+                        </td>
                         <td style="text-align: right">
                             <!-- <span style="">AED</span> -->
                         </td>
@@ -204,20 +221,19 @@
                                 <tr>
                                     <td colspan="2" style="text-align: center; font-weight: bold"></td>
                                 </tr>
-                                @foreach ($data->earnings as $index=>$earning)
-                                <tr style="border-bottom: 1px solid #ddd;">
-                                    <td style="text-align: left; padding-left: 10px">
-                                        {{ $index + 1 }} &nbsp;&nbsp;&nbsp;&nbsp;{{
-                                            $earning['label']
-                          }}
-                                    </td>
-                                    <td style="text-align: right;  padding-right: 40px; ">
-                                        {{ $earning['value'] }}
-                                    </td>
-                                </tr>
+                                @foreach ($data->earnings as $index => $earning)
+                                    <tr style="border-bottom: 1px solid #ddd;">
+                                        <td style="text-align: left; padding-left: 10px">
+                                            {{ $index + 1 }} &nbsp;&nbsp;&nbsp;&nbsp;{{ $earning['label'] }}
+                                        </td>
+                                        <td style="text-align: right;  padding-right: 40px; ">
+                                            {{ number_format($earning['value'], 2) }}
+                                        </td>
+                                    </tr>
                                 @endforeach
                                 <tr style="font-weight: bold">
-                                    <td style="
+                                    <td
+                                        style="
                             width: 150px;
                             text-align: left;
                             padding-left: 10px;
@@ -226,25 +242,28 @@
                           ">
                                         Total Earnings
                                     </td>
-                                    <td style="
+                                    <td
+                                        style="
                             text-align: right;
                             padding-bottom: 20px;
                             padding-right: 40px;
                           ">
-                                        {{ $data->salary_and_earnings }}
+                                        {{ number_format($data->salary_and_earnings, 2) }}
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
-                    <tr style="
+                    <tr
+                        style="
                     background-color: #4d5973;
                     color: #fff;
                     margin-top: 20px;
                     height: 25px;
                     
                   ">
-                        <td style="
+                        <td
+                            style="
                       padding-left: 10px;
                       text-align: left;
                       height: 25px;
@@ -261,19 +280,20 @@
                                 <tr>
                                     <td colspan="2" style="text-align: center; font-weight: bold"></td>
                                 </tr>
-                                @foreach ($data->deductions as $index=>$deductions)
-                                <tr style="border-bottom: 1px solid #ddd">
-                                    <td style="text-align: left; padding-left: 10px">
-                                        {{ $index + 1 }} &nbsp;&nbsp;&nbsp;&nbsp;
-                                        {{ $deductions['label'] }}
-                                    </td>
-                                    <td style="text-align: right; padding-right: 40px">
-                                        {{ $deductions['value'] }}
-                                    </td>
-                                </tr>
+                                @foreach ($data->deductions as $index => $deductions)
+                                    <tr style="border-bottom: 1px solid #ddd">
+                                        <td style="text-align: left; padding-left: 10px">
+                                            {{ $index + 1 }} &nbsp;&nbsp;&nbsp;&nbsp;
+                                            {{ $deductions['label'] }}
+                                        </td>
+                                        <td style="text-align: right; padding-right: 40px">
+                                            {{ number_format($deductions['value'], 2) }}
+                                        </td>
+                                    </tr>
                                 @endforeach
                                 <tr style="font-weight: bold">
-                                    <td style="
+                                    <td
+                                        style="
                             width: 150px;
                             text-align: left;
                             padding-left: 10px;
@@ -282,19 +302,21 @@
                           ">
                                         Total Deductions
                                     </td>
-                                    <td style="
+                                    <td
+                                        style="
                             text-align: right;
                             padding-bottom: 20px;
                             padding-right: 40px;
                           ">
-                                        {{ ($data->deductedSalary) }}
+                                        {{ number_format($data->totalDeductions, 2) }}
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
                     <tr style="background-color: #4d5973; color: #fff; height: 20px">
-                        <td style="
+                        <td
+                            style="
                       padding-left: 10px;
                       text-align: left;
                       height: 25px;
@@ -316,7 +338,7 @@
                                         Total Earnings
                                     </td>
                                     <td style="text-align: right; padding-right: 40px">
-                                        {{ $data->salary_and_earnings }}
+                                        {{ number_format($data->salary_and_earnings, 2) }}
                                     </td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #ddd">
@@ -324,7 +346,7 @@
                                         Total Deductions
                                     </td>
                                     <td style="text-align: right; padding-right: 40px">
-                                        - {{ ($data->deductedSalary) }}
+                                        - {{ number_format($data->totalDeductions, 2) }}
                                     </td>
                                 </tr>
                                 <tr style="font-weight: bold; border-bottom: 1px solid #ddd">
@@ -332,7 +354,7 @@
                                         Net Salary
                                     </td>
                                     <td style="text-align: right; padding-right: 40px">
-                                        AED {{ $data->finalSalary  }}
+                                        AED {{ number_format($data->finalSalary, 2) }}
                                     </td>
                                 </tr>
                                 <tr>
@@ -349,7 +371,8 @@
                     </tr>
 
                     <tr>
-                        <td style="
+                        <td
+                            style="
                       padding-left: 10px;
                       font-size: 14px;
                       line-height: 14px;

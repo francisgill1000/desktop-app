@@ -9,489 +9,532 @@
             {{-- <p class="page"> </p> --}}
             <p></p>
             @php
-            $p = count($data);
-            if ($p <= 1) { echo '<span></span>' ; } else { for ($a=1; $a <=$p; $a++) { echo '<span></span>' ; } } @endphp </div>
-
-                <div id="pageNumbers">
-                    <div class="page-number" style="font-size: 9px"></div>
-                </div>
+                $p = count($data);
+                if ($p <= 1) {
+                    echo '<span></span>';
+                } else {
+                    for ($a = 1; $a <= $p; $a++) {
+                        echo '<span></span>';
+                    }
+            } @endphp
         </div>
-        <footer id="page-bottom-line" style="padding-top: 90px!important">
-            <hr style="width: 100%;">
-            <table class="footer-main-table">
-                <tr style="border :none">
-                    <td style="text-align: left;border :none"><b>Device</b>: Main Entrance = MED, Back Entrance = BED</td>
-                    <td style="text-align: left;border :none"><b>Shift Type</b>: Manual = MA, Auto = AU, NO = NO</td>
-                    <td style="text-align: left;border :none"><b>Shift</b>: Morning = Mor, Evening = Eve, Evening2 = Eve2
-                    </td>
-                    <td style="text-align: right;border :none;">
-                        <b>Powered by</b>: <span style="color:blue">
-                            <a href="{{ env('APP_URL') }}" target="_blank">{{ env('APP_NAME') }}</a>
-                        </span>
-                    </td>
-                    <td style="text-align: right;border :none">
-                        Printed on : {{ date('d-M-Y ') }}
-                    </td>
-                </tr>
-            </table>
-        </footer>
+
+        <div id="pageNumbers">
+            <div class="page-number" style="font-size: 9px"></div>
+        </div>
+    </div>
+    <footer id="page-bottom-line" style="padding-top: 90px!important">
+        <hr style="width: 100%;">
+        <table class="footer-main-table">
+            <tr style="border :none">
+                <td style="text-align: left;border :none"><b>Device</b>: Main Entrance = MED, Back Entrance = BED</td>
+                <td style="text-align: left;border :none"><b>Shift Type</b>: Manual = MA, Auto = AU, NO = NO</td>
+                <td style="text-align: left;border :none"><b>Shift</b>: Morning = Mor, Evening = Eve, Evening2 = Eve2
+                </td>
+                <td style="text-align: right;border :none;">
+                    <b>Powered by</b>: <span style="color:blue">
+                        <a href="{{ env('APP_URL') }}" target="_blank">{{ env('APP_NAME') }}</a>
+                    </span>
+                </td>
+                <td style="text-align: right;border :none">
+                    Printed on : {{ date('d-M-Y ') }}
+                </td>
+            </tr>
+        </table>
+    </footer>
 
 
-        @php
-        $statusColor = '';
+    @php
         $i = 0;
         $pageBreak = 'true';
 
         $pageBreakDaysDifference = 0;
 
         $totalAbsents = 0;
-        @endphp
+    @endphp
 
-        <table class="main-table">
+    <table class="main-table">
 
-            @foreach ($data as $empID => $employee)
+        @foreach ($data as $empID => $employee)
             @php
-            $empTotWrkHrs = getTotalHours($employee->toArray(), 'total_hrs');
-            $empTotOtHrs = getTotalHours($employee->toArray(), 'ot');
-            $singleEmployee = $employee[key(reset($employee))][0]->employee;
-            // $empName = $singleEmployee->display_name ?? '';
-            $empName = $employee[key(reset($employee))][0]->employee->first_name ? $employee[key(reset($employee))][0]->employee->first_name . ' ' . $employee[key(reset($employee))][0]->employee->last_name : '';
-            $empFullName = $employee[key(reset($employee))][0]->employee->full_name;
+                $empTotWrkHrs = getTotalHours($employee->toArray(), 'total_hrs');
+                $empTotOtHrs = getTotalHours($employee->toArray(), 'ot');
 
-            $date1 = new DateTime($company->start);
-            $date2 = new DateTime($company->end);
+                $empTotLCHrs = getTotalHours($employee->toArray(), 'late_coming');
+                $empTotEGHrs = getTotalHours($employee->toArray(), 'early_going');
 
-            $interval = $date1->diff($date2);
+                $singleEmployee = $employee[key(reset($employee))][0]->employee;
+                // $empName = $singleEmployee->display_name ?? '';
+                $empName = $employee[key(reset($employee))][0]->employee->first_name
+                    ? $employee[key(reset($employee))][0]->employee->first_name .
+                        ' ' .
+                        $employee[key(reset($employee))][0]->employee->last_name
+                    : '';
+                $empFullName = $employee[key(reset($employee))][0]->employee->full_name;
+
+                $date1 = new DateTime($company->start);
+                $date2 = new DateTime($company->end);
+
+                $interval = $date1->diff($date2);
 
             @endphp
             @if ($info->shift_type_id == 2)
             @else
-            @if ($pageBreak == 'true')
-            <tr style=" border: none;backgdround-color:red;padding-top:0px;margin-top:0px">
-                <td style="border: nonse" colspan="6">
-                    <div class="row">
+                @if ($pageBreak == 'true')
+                    <tr style=" border: none;backgdround-color:red;padding-top:0px;margin-top:0px">
+                        <td style="border: nonse" colspan="6">
+                            <div class="row">
 
-                        <!-- Template1 Report -->
+                                <!-- Template1 Report -->
 
-                        <div class="col-12" style="background-coldor: rgb(253, 246, 246);padding:0px;margin:0px 5px">
-                            <table style="padding:0px;margin:0px">
-                                <tr style="text-align: left; border :none; padding:100px 0px;">
-                                    <td style="text-align: left; border :none;font-size:12px;padding:0 0 5px 0px;">
-                                        <b style="padding:0px;margin:0px">
-                                            {{ $company->name }}
-                                        </b>
-                                        <br>
+                                <div class="col-12"
+                                    style="background-coldor: rgb(253, 246, 246);padding:0px;margin:0px 5px">
+                                    <table style="padding:0px;margin:0px">
+                                        <tr style="text-align: left; border :none; padding:100px 0px;">
+                                            <td
+                                                style="text-align: left; border :none;font-size:12px;padding:0 0 5px 0px;">
+                                                <b style="padding:0px;margin:0px">
+                                                    {{ $company->name }}
+                                                </b>
+                                                <br>
+                                            </td>
+                                        </tr>
+                                        <tr style="text-align: left; border :none;padding:10px 0px">
+                                            <td style="text-align: left; border :none;font-size:10px;padding:5px 0px;">
+                                                <span style="margin-left: 3px">P.O.Box
+                                                    {{ $company->p_o_box_no == 'null' ? '---' : $company->p_o_box_no }}</span>
+                                                <br>
+                                            </td>
+                                        </tr>
+                                        <tr style="text-align: left; border :none;padding:10px 0px">
+                                            <td style="text-align: left; border :none;font-size:10px;padding:5px 0px">
+                                                <span style="margin-left: 3px">{{ $company->location }}</span>
+                                                <br>
+                                            </td>
+                                        </tr>
+                                        <tr style="text-align: left; border :none;padding:10px 0px">
+                                            <td style="text-align: left; border :none;font-size:10px;padding:5px 0px">
+                                                <span
+                                                    style="margin-left: 3px">{{ $company->contact->number ?? '' }}</span>
+                                                <br>
+                                            </td>
+                                        </tr>
+                                        <tr style="text-align: left; border :none;padding:10px 0px">
+                                            <td style="text-align: left; border :none;font-size:10px;padding:7px 0px">
+                                                <span style="margin-left: 3px">{{ '' }}</span>
+                                                <br>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="border: nonse" colspan="6">
+                            <div class="col-12" style="text-align:center;height:85px;  ">
+                                @if (env('APP_ENV') !== 'local')
+                                    <img src="{{ $company->logo }}"
+                                        style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                                @else
+                                    <img src="{{ getcwd() . '/' . $company->logo_raw }}"
+                                        style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
+                                @endif
+                            </div>
+                            <div style="clear:both">
+
+                                <table style="text-align: left; border :none;  ">
+
+                                    <tr style="text-align: left; border :none;">
+                                        <td style="text-align: center; border :none">
+                                            <span class="title-font">
+                                                <!-- {{ $info->report_type }} {{ $company->report_type }} Report -->
+                                                {{ $company->report_type }} Report
+                                                <!-- ({{ $main_shift_name }}) -->
+                                            </span>
+                                            <hr style="width: 230px">
+                                        </td>
+                                    </tr>
+                                    <tr style="text-align: left; border :none;">
+                                        <td style="text-align: center; border :none">
+                                            <span style="font-size: 11px">
+                                                {{ date('d-M-Y', strtotime($company->start)) }} -
+                                                {{ date('d-M-Y', strtotime($company->end)) }}
+                                            </span>
+                                            <hr style="width: 230px">
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </td>
+
+                        <td style="border: nosne;text-align:center"
+                            colspan="{{ $interval->format('%a') >= $pageBreakDaysDifference ? 4 : 7 }}">
+                            @if ($request->shift_type_id == '')
+                                <div style="text-center">
+                                    Total Employees : {{ count($data) }}
+
+                                </div>
+                            @endif
+                            @if ($empFullName)
+                                <table class=" summary-table" style="backgroudnd-color:red; margin-top:20px">
+                                    <tr class="summary-header" style="border: none;background-color:#eeeeee">
+                                        <td style="border :none; padding:10px">
+                                            <b>Full Name:</b>
+                                            {{ $empFullName }}
+                                        </td>
+
+                                    </tr>
+                                </table>
+                            @endif
+
+
+                            <table class=" summary-table" style="backgroudnd-color:red; margin-top:10px">
+                                <tr class="summary-header" style="border: none;background-color:#eeeeee">
+                                    <th style="text-align: center; border :none; padding:5px">EID</th>
+                                    <th colspan="2" style="text-align: center; border :none">Name</th>
+                                    <th style="text-align: center; border :none">Department</th>
+                                </tr>
+                                <tr style="border: none">
+                                    <td style="text-align: center; border :none; padding:5px;font-size:11px">
+                                        @if ($interval->format('%a') >= $pageBreakDaysDifference)
+                                            {{ $empID ?? '---' }}
+                                        @endif
+                                    </td>
+                                    <td colspan="2" style="text-align: center; border:none;font-size:11px">
+                                        @if ($interval->format('%a') >= $pageBreakDaysDifference)
+                                            {{ $empName ?? '---' }}
+                                        @endif
+                                    </td>
+                                    <td style="text-align: center; border:none;font-size:11px">
+                                        @if ($interval->format('%a') >= $pageBreakDaysDifference)
+                                            {{ $singleEmployee->department->name ?? '---' }}
+                                        @endif
+                                    </td>
+
+                                </tr>
+                                <tr class="summary-header" style="border: none;background-color:#eeeeee">
+                                    <th style="text-align: center; border :none; padding:5px">Present</th>
+                                    <th style="text-align: center; border :none">Absent</th>
+                                    <th style="text-align: center; border :none">Week Off</th>
+                                    <th style="text-align: center; border :none">Leaves </th>
+                                </tr>
+                                <tr style="border: none">
+                                    <td style="text-align: center; border :none; padding:5px;color:green">
+                                        {{ getStatus($employee->toArray())['P'] ?? 0 }}
+                                    </td>
+                                    <td style="text-align: center; border :none;color:red">
+                                        {{ getStatus($employee->toArray())['A'] ?? 0 }}
+                                    </td>
+
+                                    <td style="text-align: center; border :none;color:gray">
+                                        {{ getStatus($employee->toArray())['O'] ?? 0 }}
+                                    </td>
+                                    <td style="text-align: center; border :none;color:blue">
+                                        {{ getStatus($employee->toArray())['L'] ?? 0 }}
                                     </td>
                                 </tr>
-                                <tr style="text-align: left; border :none;padding:10px 0px">
-                                    <td style="text-align: left; border :none;font-size:10px;padding:5px 0px;">
-                                        <span style="margin-left: 3px">P.O.Box
-                                            {{ $company->p_o_box_no == 'null' ? '---' : $company->p_o_box_no }}</span>
-                                        <br>
+                                <tr class="summary-header" style="border: none;background-color:#eeeeee ">
+                                    <th style="text-align: center; border :none">Work Hours</th>
+                                    <th style="text-align: center; border :none">OT</th>
+                                    <th style="text-align: center; border :none">Late</th>
+                                    <th style="text-align: center; border :none">Early</th>
+                                </tr>
+                                <tr style="border: none">
+                                    <td style="text-align: center; border :none;color:black">
+                                        {{ $empTotWrkHrs ?? 0 }}
+                                    </td>
+                                    <td style="text-align: center; border :none;color:black">
+                                        {{ $empTotOtHrs ?? 0 }}
+                                    </td>
+                                    <td style="text-align: center; border :none;color:black">
+                                        {{ $empTotLCHrs ?? 0 }}
+                                    </td>
+                                    <td style="text-align: center; border :none;color:black">
+                                        {{ $empTotEGHrs ?? 0 }}
                                     </td>
                                 </tr>
-                                <tr style="text-align: left; border :none;padding:10px 0px">
-                                    <td style="text-align: left; border :none;font-size:10px;padding:5px 0px">
-                                        <span style="margin-left: 3px">{{ $company->location }}</span>
-                                        <br>
-                                    </td>
+                                <tr style="border: none">
+                                    <th style="text-align: center; border :none" colspan="4">
+                                        <hr>
+                                    </th>
                                 </tr>
-                                <tr style="text-align: left; border :none;padding:10px 0px">
-                                    <td style="text-align: left; border :none;font-size:10px;padding:5px 0px">
-                                        <span style="margin-left: 3px">{{ $company->contact->number ?? '' }}</span>
-                                        <br>
-                                    </td>
-                                </tr>
-                                <tr style="text-align: left; border :none;padding:10px 0px">
-                                    <td style="text-align: left; border :none;font-size:10px;padding:7px 0px">
-                                        <span style="margin-left: 3px">{{ '' }}</span>
-                                        <br>
-                                    </td>
-                                </tr>
+
                             </table>
-                        </div>
-                    </div>
-                </td>
-                <td style="border: nonse" colspan="6">
-                    <div class="col-12" style="text-align:center;height:85px;  ">
-                        @if (env('APP_ENV') !== 'local')
-                        <img src="{{ $company->logo }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
-                        @else
-                        <img src="{{ getcwd() .   '/'.$company->logo_raw }}" style=" width:100px;max-width:150px;margin: 0px 0px 0px 0px; ">
-                        @endif
-                    </div>
-                    <div style="clear:both">
 
-                        <table style="text-align: left; border :none;  ">
-
-                            <tr style="text-align: left; border :none;">
-                                <td style="text-align: center; border :none">
-                                    <span class="title-font">
-                                        <!-- {{ $info->report_type }} {{ $company->report_type }} Report -->
-                                        {{ $company->report_type }} Report
-                                        <!-- ({{ $main_shift_name }}) -->
-                                    </span>
-                                    <hr style="width: 230px">
-                                </td>
-                            </tr>
-                            <tr style="text-align: left; border :none;">
-                                <td style="text-align: center; border :none">
-                                    <span style="font-size: 11px">
-                                        {{ date('d-M-Y', strtotime($company->start)) }} -
-                                        {{ date('d-M-Y', strtotime($company->end)) }}
-                                    </span>
-                                    <hr style="width: 230px">
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </td>
-
-                <td style="border: nosne;text-align:center" colspan="{{ $interval->format('%a') >= $pageBreakDaysDifference ? 4 : 7 }}">
-                    @if ($request->shift_type_id == '')
-                    <div style="text-center">
-                        Total Employees : {{ count($data) }}
-
-                    </div>
-                    @endif
-                    @if ($empFullName)
-                    <table class=" summary-table" style="backgroudnd-color:red; margin-top:20px">
-                        <tr class="summary-header" style="border: none;background-color:#eeeeee">
-                            <td style="border :none; padding:10px">
-                                <b>Full Name:</b>
-                                {{ $empFullName }}
-                            </td>
-
-                        </tr>
-                    </table>
-                    @endif
-
-
-                    <table class=" summary-table" style="backgroudnd-color:red; margin-top:10px">
-                        <tr class="summary-header" style="border: none;background-color:#eeeeee">
-                            <th style="text-align: center; border :none; padding:5px">EID</th>
-                            <th style="text-align: center; border :none">Name</th>
-                            <th style="text-align: center; border :none">Department</th>
-                            <th style="text-align: center; border :none">Report Type</th>
-                        </tr>
-                        <tr style="border: none">
-                            <td style="text-align: center; border :none; padding:5px;font-size:11px">
-                                @if ($interval->format('%a') >= $pageBreakDaysDifference)
-                                {{ $empID ?? '---' }}
-                                @endif
-                            </td>
-                            <td style="text-align: center; border:none;font-size:11px">
-                                @if ($interval->format('%a') >= $pageBreakDaysDifference)
-                                {{ $empName ?? '---' }}
-                                @endif
-                            </td>
-                            <td style="text-align: center; border:none;font-size:11px">
-                                @if ($interval->format('%a') >= $pageBreakDaysDifference)
-                                {{ $singleEmployee->department->name ?? '---' }}
-                                @endif
-                            </td>
-                            <td style="text-align: center; border:none;font-size:11px">
-                                General
-                            </td>
-                        </tr>
-                        <tr class="summary-header" style="border: none;background-color:#eeeeee">
-                            <th style="text-align: center; border :none; padding:5px">Present</th>
-                            <th style="text-align: center; border :none">Absent</th>
-                            <th style="text-align: center; border :none">Week Off</th>
-                            <th style="text-align: center; border :none">Leaves </th>
-                        </tr>
-                        <tr style="border: none">
-                            <td style="text-align: center; border :none; padding:5px;color:green">
-                                {{ getStatus($employee->toArray())['P'] ?? 0 }}
-                            </td>
-                            <td style="text-align: center; border :none;color:red">
-                                {{ getStatus($employee->toArray())['A'] ?? 0 }}
-                            </td>
-
-                            <td style="text-align: center; border :none;color:gray">
-                                {{ getStatus($employee->toArray())['O'] ?? 0 }}
-                            </td>
-                            <td style="text-align: center; border :none;color:blue">
-                                {{ getStatus($employee->toArray())['L'] ?? 0 }}
-                            </td>
-                        </tr>
-                        <tr class="summary-header" style="border: none;background-color:#eeeeee ">
-                            <th style="text-align: center; border :none">Holidays</th>
-                            <th style="text-align: center; border :none">Missing</th>
-
-                            <th style="text-align: center; border :none; padding:5px">Work Hours</th>
-                            <th style="text-align: center; border :none">OT Hours</th>
-
-                            {{-- <th style="text-align: center; border :none">Department</th> --}}
-                        </tr>
-                        <tr style="border: none">
-                            <td style="text-align: center; border :none;color:pink">
-                                {{ getStatus($employee->toArray())['H'] ?? 0 }}
-                            </td>
-                            <td style="text-align: center; border :none;color:orange">
-                                {{ getStatus($employee->toArray())['M'] ?? 0 }}
-                            </td>
-                            <td style="text-align: center; border :none; padding:5px;color:black">
-                                {{ $empTotWrkHrs ?? 0 }}
-                            </td>
-                            <td style="text-align: center; border :none;color:black">
-                                {{ $empTotOtHrs ?? 0 }}
-                            </td>
-                        </tr>
-                        <tr style="border: none">
-                            <th style="text-align: center; border :none" colspan="4">
-                                <hr>
-                            </th>
-                        </tr>
-
-                    </table>
-
-                    <br>
-                </td>
-            </tr>
-            @endif
+                            <br>
+                        </td>
+                    </tr>
+                @endif
             @endif
 
 
 
             @if ($info->shift_type_id == 2)
-            <tr class="my-break">
-                <td colspan="17" style="border: none;"></td>
-            </tr>
+                <tr class="my-break">
+                    <td colspan="17" style="border: none;"></td>
+                </tr>
             @else
-            @if ($pageBreak == 'true')
-            <tr style="text-align: left;font-weight:bold;margin-top:20px;  width:100%;">
-                <td colspan="1" style="text-align: left;"> # </td>
-                <td colspan="1" style="text-align: center;"> Date </td>
-                @if ($interval->format('%a') <= $pageBreakDaysDifference) <td colspan="3" style="text-align: center;"> Employee </td>
-                    @endif
-                    <td colspan="2" style="text-align: center;"> Shift </td>
-                    <td colspan="2" style="text-align: center;"> In Time </td>
-                    <td colspan="2" style="text-align: center;"> Out Time </td>
-                    <td colspan="2" style="text-align: center;"> Late In </td>
-                    <td colspan="2" style="text-align: center;"> Early Out </td>
-                    <td colspan="2" style="text-align: center;"> Total Hours </td>
-                    <td colspan="1" style="text-align: center;"> OT </td>
-                    <td colspan="1" style="text-align: center;"> Status </td>
-            </tr>
-            @endif
-            @foreach ($employee as $date)
-            @php
+                @if ($pageBreak == 'true')
+                    <tr style="text-align: left;font-weight:bold;margin-top:20px;  width:100%;">
+                        <td colspan="1" style="text-align: left;"> # </td>
+                        <td colspan="1" style="text-align: center;"> Date </td>
+                        @if ($interval->format('%a') <= $pageBreakDaysDifference)
+                            <td colspan="3" style="text-align: center;"> Employee </td>
+                        @endif
+                        <td colspan="2" style="text-align: center;"> Shift </td>
+                        <td colspan="2" style="text-align: center;"> In Time </td>
+                        <td colspan="2" style="text-align: center;"> Out Time </td>
+                        <td colspan="2" style="text-align: center;"> Late In </td>
+                        <td colspan="2" style="text-align: center;"> Early Out </td>
+                        <td colspan="2" style="text-align: center;"> Total Hours </td>
+                        <td colspan="1" style="text-align: center;"> OT </td>
+                        <td colspan="1" style="text-align: center;"> Status </td>
+                    </tr>
+                @endif
+                @foreach ($employee as $date)
+                    @php
+                        $statusColor = '';
+                        $employee = $date[0];
+                        $statusName = $employee->status;
 
-            $employee = $date[0];
-            if ($employee->status == 'P') {
-            $statusColor = 'green';
-            } elseif ($employee->status == 'A') {
-            $statusColor = 'red';
-            } elseif ($employee->status == 'M') {
-            $statusColor = 'orange';
-            } elseif ($employee->status == 'O') {
-            $statusColor = 'gray';
-            } elseif ($employee->status == 'L') {
-            $statusColor = 'blue';
-            } elseif ($employee->status == 'H') {
-            $statusColor = 'pink';
-            } elseif ($employee->status == '---') {
-            $statusColor = '#f34100ed';
-            }
+                        if ($employee->status == 'P' || $employee->status == 'LC' || $employee->status == 'EG') {
+                            $statusColor = 'green';
+                            $statusName = 'P';
+                        } elseif ($employee->status == 'A' || $employee->status == 'M') {
+                            $statusColor = 'red';
+                            $statusName = 'A';
+                        } elseif ($employee->status == 'O') {
+                            $statusColor = 'gray';
+                        } elseif ($employee->status == 'L') {
+                            $statusColor = 'blue';
+                        } elseif ($employee->status == 'H') {
+                            $statusColor = 'pink';
+                        } elseif ($employee->status == '---') {
+                            $statusColor = '#f34100ed';
+                        }
 
-            $pic = getcwd() . '/no-profile-image.jpg';
+                        $pic = getcwd() . '/no-profile-image.jpg';
 
-            if ($employee->employee->profile_picture) {
-            $pic = getcwd() . '/media/employee/profile_picture/' . $employee->employee->profile_picture_raw;
-            }
+                        if ($employee->employee->profile_picture) {
+                            $pic =
+                                getcwd() .
+                                '/media/employee/profile_picture/' .
+                                $employee->employee->profile_picture_raw;
+                        }
 
-            @endphp
+                    @endphp
 
-            <tbody>
-                <tr style="text-align:  center">
-                    <td colspan="1">{{ ++$i }}</td>
-                    <td colspan="1" style="text-align:  center;">{{ $employee->date ?? '---' }}
-                        <div class="secondary-value" style="font-size:6px">{{ $employee->day ?? '---' }}
-                        </div>
-                    </td>
-                    @if ($interval->format('%a') <= $pageBreakDaysDifference) <td colspan="3" style="text-align:center">
+                    <tbody>
+                        <tr style="text-align:  center">
+                            <td colspan="1">{{ ++$i }}</td>
+                            <td colspan="1" style="text-align:  center;">{{ $employee->date ?? '---' }}
+                                <div class="secondary-value" style="font-size:6px">{{ $employee->day ?? '---' }}
+                                </div>
+                            </td>
+                            @if ($interval->format('%a') <= $pageBreakDaysDifference)
+                                <td colspan="3" style="text-align:center">
 
 
-                        <img style="
+                                    <img style="
                   border-radius: 50%;
                   height: auto;
                   width: 20px;
                   float:left
                  
                   
-                " src="{{ $pic }}" />
+                "
+                                        src="{{ $pic }}" />
 
 
-                        {{ $employee->employee->first_name }} {{ $employee->employee->last_name }}
-                        <div class="secondary-value" style="font-size:6px" style="height:20px">
-                            {{ $employee->employee->employee_id }}
-                        </div>
-
-
-
-                        </td>
-                        @endif
-                        <td colspan="2" style="text-align:  center;">
-                            <div>
-
-                                @if($employee->status == 'O')
-                                Week-Off
-                                @else
-                                @if ($employee->schedule)
-                                {{ $employee->schedule->shift->on_duty_time }} -
-                                {{ $employee->schedule->shift->off_duty_time }}
-                                <div class="secondary-value" style="font-size:6px">
+                                    {{ $employee->employee->first_name }} {{ $employee->employee->last_name }}
+                                    <div class="secondary-value" style="font-size:6px" style="height:20px">
+                                        {{ $employee->employee->employee_id }}
+                                    </div>
 
 
 
-                                    {{ $employee->schedule->shift->name }}
+                                </td>
+                            @endif
+                            <td colspan="2" style="text-align:  center;">
+                                <div>
+
+                                    @if ($employee->status == 'O')
+                                        Week-Off
+                                    @else
+                                        @if ($employee->schedule)
+                                            {{ $employee->schedule->shift->on_duty_time }} -
+                                            {{ $employee->schedule->shift->off_duty_time }}
+                                            <div class="secondary-value" style="font-size:6px">
+
+
+
+                                                {{ $employee->schedule->shift->name }}
+
+                                            </div>
+                                        @endif
+                                    @endif
+
+
+
 
                                 </div>
-                                @endif
-                                @endif
-
-
-
-
-                            </div>
-                        </td>
-                        <td colspan="2" style="text-align:  center;">
-                            <div>
-                                {{ $employee->in ?? '---' }}
-                                <div class="secondary-value" style="font-size:6px">
-                                    {{ $employee->device_in->name ?? '---' }}
+                            </td>
+                            <td colspan="2" style="text-align:  center;">
+                                <div>
+                                    {{ $employee->in ?? '---' }}
+                                    <div class="secondary-value" style="font-size:6px">
+                                        {{ $employee->device_in->name ?? '---' }}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td colspan="2" style="text-align:  center;">
-                            <div>
-                                {{ $employee->out ?? '---' }}
-                                <div class="secondary-value" style="font-size:6px">
-                                    {{ $employee->device_out->name ?? '---' }}
+                            </td>
+                            <td colspan="2" style="text-align:  center;">
+                                <div>
+                                    {{ $employee->out ?? '---' }}
+                                    <div class="secondary-value" style="font-size:6px">
+                                        {{ $employee->device_out->name ?? '---' }}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td colspan="2" style="text-align:  center;">
-                            <div>
-                                {{ $employee->late_coming ?? '---' }}
-                            </div>
-                        </td>
-                        <td colspan="2" style="text-align:  center;">
-                            <div>
-                                {{ $employee->early_going ?? '---' }}
-                            </div>
-                        </td>
+                            </td>
+                            <td colspan="2" style="text-align:  center;">
+                                <div>
+                                    {{ $employee->late_coming ?? '---' }}
+                                </div>
+                            </td>
+                            <td colspan="2" style="text-align:  center;">
+                                <div>
+                                    {{ $employee->early_going ?? '---' }}
+                                </div>
+                            </td>
 
-                        <td colspan="2" style="text-align:  center;"> {{ $employee->total_hrs ?? '---' }}
-                        </td>
-                        <td colspan="1" style="text-align:  center;"> {{ $employee->ot ?? '---' }} </td>
-                        <td colspan="1" style="text-align:  center; color:{{ $statusColor }}">
-                            {{ str_replace("O","W",$employee->status) ?? '---' }}
+                            <td colspan="2" style="text-align:  center;"> {{ $employee->total_hrs ?? '---' }}
+                            </td>
+                            <td colspan="1" style="text-align:  center;"> {{ $employee->ot ?? '---' }} </td>
+                            <td colspan="1" style="text-align:  center; color:{{ $statusColor }}">
 
-                            <div class="secondary-value" style="font-size:6px">
-                                @if ($employee['shift'] && $employee->status == 'P')
-                                @php
-                                $shiftWorkingHours = $employee['shift']['working_hours'];
-                                $employeeHours = $employee['total_hrs'];
+                                <div class="secondary-value" style="font-size:6px">
+                                    {{ $statusName }}
+                                    @if ($employee['shift'] && $statusName == 'P')
+                                        @php
+                                            $shiftWorkingHours = $employee['shift']['working_hours'];
+                                            $employeeHours = $employee['total_hrs'];
 
-                                if ($shiftWorkingHours !== '' && $employeeHours !== '' && $shiftWorkingHours !== '---' && $employeeHours !== '---') {
-                                [$hours, $minutes] = explode(':', $shiftWorkingHours);
-                                $shiftWorkingHours = $hours * 60 + $minutes;
+                                            if (
+                                                $shiftWorkingHours !== '' &&
+                                                $employeeHours !== '' &&
+                                                $shiftWorkingHours !== '---' &&
+                                                $employeeHours !== '---'
+                                            ) {
+                                                [$hours, $minutes] = explode(':', $shiftWorkingHours);
+                                                $shiftWorkingHours = $hours * 60 + $minutes;
 
-                                [$hours, $minutes] = explode(':', $employeeHours);
-                                $employeeHours = $hours * 60 + $minutes;
+                                                [$hours, $minutes] = explode(':', $employeeHours);
+                                                $employeeHours = $hours * 60 + $minutes;
 
-                                if ($employeeHours < $shiftWorkingHours) { echo 'Short Shift' ; } } @endphp @endif </div>
+                                                if ($employeeHours < $shiftWorkingHours) {
+                                                    echo '<br>';
+                                                    echo 'Short Shift';
+                                                }
+                                        } @endphp
+                                    @endif
+                                </div>
 
-                        </td>
+                            </td>
 
-                </tr>
-            </tbody>
+                        </tr>
+                    </tbody>
 
-            @php
-            if ((int) $interval->format('%a') <= $pageBreakDaysDifference) { $pageBreak='false' ; } @endphp @endforeach @if ($pageBreak=='true' ) <tr class="my-break">
-                <td colspan="11" style="border: none;"></td>
-                </tr>
-                @else
-                @endif
+                    @php
+                        if ((int) $interval->format('%a') <= $pageBreakDaysDifference) {
+                            $pageBreak = 'false';
+                    } @endphp
+                    @endforeach @if ($pageBreak == 'true')
+                        <tr class="my-break">
+                            <td colspan="11" style="border: none;"></td>
+                        </tr>
+                    @else
+                    @endif
                 @endif
                 @php
 
-                if ($pageBreak == 'true') {
-                $i = 0;
+                    if ($pageBreak == 'true') {
+                        $i = 0;
                 } @endphp
 
 
                 @endphp
-                @endforeach
-        </table>
-        @php
+            @endforeach
+    </table>
+    @php
 
         function getStatus($employeeData)
         {
-        $countA = 0;
-        $countP = 0;
-        $countM = 0;
-        $countO = 0;
-        $countL = 0;
-        $countH = 0;
+            // Validate input: check if employeeData is an array and non-empty
+            if (!is_array($employeeData) || empty($employeeData)) {
+                throw new InvalidArgumentException('Invalid employee data: must be a non-empty array.');
+            }
 
-        foreach ($employeeData as $employee) {
-        if (!is_array($employee) || empty($employee[0]) || !isset($employee[0]['total_hrs'])) {
-        throw new InvalidArgumentException("Invalid employee data: each employee must be an array with a 'total_hrs' key");
-        }
-        $status = $employee[0]['status'];
-        if ($status == 'A') {
-        $countA++;
-        } elseif ($status == 'P') {
-        $countP++;
-        } elseif ($status == 'M') {
-        $countM++;
-        } elseif ($status == 'O') {
-        $countO++;
-        } elseif ($status == 'L') {
-        $countL++;
-        } elseif ($status == 'H') {
-        $countH++;
-        }
-        }
-        return [
-        'A' => $countA,
-        'P' => $countP,
-        'M' => $countM,
-        'O' => $countO,
-        'L' => $countL,
-        'H' => $countH,
-        ];
+            // Define status mappings and initialize counts
+            $statusMapping = [
+                'A' => ['A', 'M'], // Absent: Includes Missing
+                'P' => ['P', 'LC', 'EG'], // Present: Includes Late Coming and Early Going
+                'O' => ['O'], // Other
+                'L' => ['L'], // Leave
+                'H' => ['H'], // Holiday
+            ];
+
+            // Initialize status counts
+            $statusCounts = array_fill_keys(array_keys($statusMapping), 0);
+
+            foreach ($employeeData as $employee) {
+                // Ensure each employee has valid data
+                if (!is_array($employee) || empty($employee[0]) || !isset($employee[0]['status'])) {
+                    throw new InvalidArgumentException(
+                        "Invalid employee data: each employee must be an array with a 'status' key",
+                    );
+                }
+
+                // Normalize status to uppercase
+                $status = strtoupper($employee[0]['status']);
+
+                // Find and increment the corresponding category
+                foreach ($statusMapping as $category => $statuses) {
+                    if (in_array($status, $statuses)) {
+                        $statusCounts[$category]++;
+                        break;
+                    }
+                }
+            }
+
+            return $statusCounts;
         }
 
         function getTotalHours($employeeData, $type)
         {
-        if (!is_array($employeeData)) {
-        throw new InvalidArgumentException('Invalid employee data: must be an array');
-        }
-        $totalMinutes = 0;
-        foreach ($employeeData as $employee) {
-        if (!is_array($employee) || empty($employee[0]) || !isset($employee[0]['total_hrs'])) {
-        throw new InvalidArgumentException("Invalid employee data: each employee must be an array with a 'total_hrs' key");
-        }
-        $time = $employee[0][$type];
-        if ($time != '---') {
-        $parts = explode(':', $time);
-        $hours = intval($parts[0]);
-        $minutes = intval($parts[1]);
-        $totalMinutes += $hours * 60 + $minutes;
-        }
+            if (!is_array($employeeData)) {
+                throw new InvalidArgumentException('Invalid employee data: must be an array');
+            }
+            $totalMinutes = 0;
+            foreach ($employeeData as $employee) {
+                if (!is_array($employee) || empty($employee[0]) || !isset($employee[0]['total_hrs'])) {
+                    throw new InvalidArgumentException(
+                        "Invalid employee data: each employee must be an array with a 'total_hrs' key",
+                    );
+                }
+                $time = $employee[0][$type];
+                if ($time != '---') {
+                    $parts = explode(':', $time);
+                    $hours = intval($parts[0]);
+                    $minutes = intval($parts[1]);
+                    $totalMinutes += $hours * 60 + $minutes;
+                }
+            }
+
+            $hours = floor($totalMinutes / 60);
+            $minutes = $totalMinutes % 60;
+
+            return sprintf('%02d:%02d', $hours, $minutes);
         }
 
-        $hours = floor($totalMinutes / 60);
-        $minutes = $totalMinutes % 60;
-
-        return sprintf('%02d:%02d', $hours, $minutes);
-        }
-
-        @endphp
+    @endphp
 
 </body>
 <style>
