@@ -1042,15 +1042,22 @@ class EmployeeController extends Controller
         $success = false;
 
         DB::beginTransaction();
+
         try {
             foreach ($dataCSV as $data1) {
+
+                if (Employee::where(["system_user_id" => $data1['employee_device_id']])->exists()) {
+                    continue;
+                }
                 $data = [];
                 foreach ($data1 as $key => $value) {
                     $data[$key] = trim($value);
                 }
 
 
+
                 $validator = $this->validateImportData($data);
+
                 if (!$this->checkIfDepartmentExist($data['department_code'])) {
                     return [
                         "status" => false,
@@ -1328,8 +1335,10 @@ class EmployeeController extends Controller
 
         $rules = [
             'title' => ['required', 'in:Mr,Mrs,Miss,Ms,Dr'],
-            'employee_id' => ['required', $this->uniqueRecord("employees", $employee)],
-            'system_user_id' => ['required', $this->uniqueRecord("employees", $employeeDevice)],
+            // 'employee_id' => ['required', $this->uniqueRecord("employees", $employee)],
+            // 'system_user_id' => ['required', $this->uniqueRecord("employees", $employeeDevice)],
+            'employee_id' => ['required'],
+            'system_user_id' => ['required'],
             'display_name' => ['required', 'min:3', 'max:10'],
             'email' => 'nullable|min:3|max:191|unique:users',
             'department_code' => ['required'],

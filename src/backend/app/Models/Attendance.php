@@ -159,26 +159,22 @@ class Attendance extends Model
     public function processAttendanceModel($request)
     {
 
+        $shift_type_ids = [];
+
+        if ($request->showTabs['single'] == true && $request->shift_type_id == 0) {
+            $shift_type_ids = [1, 3, 4, 6];
+        } else if ($request->showTabs['multi'] == true) {
+            $shift_type_ids = [2];
+        } else if ($request->showTabs['dual'] == true) {
+            $shift_type_ids = [5];
+        }
+
         $model = self::query();
 
         $model->where('company_id', $request->company_id);
         $model->with(['shift_type', 'last_reason', 'branch']);
+        $model->when($request->filled('shift_type_id'), fn($q) =>  $q->whereIn('shift_type_id', $shift_type_ids));
 
-        $model->when($request->filled('shift_type_id') && $request->shift_type_id == 2, function ($q) {
-            $q->where('shift_type_id', 2);
-        });
-
-        $model->when($request->filled('shift_type_id') && $request->shift_type_id == 5, function ($q) {
-            $q->where('shift_type_id', 5);
-        });
-
-        $model->when($request->filled('shift_type_id') && in_array($request->shift_type_id, [0, 1, 3, 4, 6]), function ($q) {
-            $q->whereIn('shift_type_id', [1, 3, 4, 6]);
-            // $q->where(function ($query) {
-            //     $query->whereIn('shift_type_id', [1, 3, 4, 6])
-            //         ->orWhere('shift_type_id', '---');
-            // });
-        });
 
         if (!empty($request->employee_id)) {
             $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
