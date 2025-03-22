@@ -159,24 +159,18 @@ class Attendance extends Model
     public function processAttendanceModel($request)
     {
         $showTabs = json_decode($request->showTabs, true);
-
-        $shift_type_ids = [];
-
-        if ($showTabs['single'] == true && $request->shift_type_id == 0) {
-            // $shift_type_ids = [1, 3, 4, 6];
-        } else if ($showTabs['multi'] == true) {
-            $shift_type_ids = [2];
+        if ($showTabs['multi'] == true) {
+            $shift_type_id = 2;
         } else if ($showTabs['dual'] == true) {
-            $shift_type_ids = [5];
+            $shift_type_id = 5;
         }
+
+        $company_id = $request->company_id;
 
         $model = self::query();
 
         $model->where('company_id', $request->company_id);
         $model->with(['shift_type', 'last_reason', 'branch']);
-
-        $model->when(count($shift_type_ids) > 0, fn($q) => $q->whereIn('shift_type_id', $shift_type_ids));
-
 
         if (!empty($request->employee_id)) {
             $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
@@ -231,13 +225,16 @@ class Attendance extends Model
             $q->whereBetween("date", [$request->from_date, $request->to_date]);
         });
 
-        // $model->whereBetween("date", [$request->from_date, $request->to_date]);
-
-        $model->whereHas('employee', function ($q) use ($request) {
-            $q->where('company_id', $request->company_id);
+        $model->whereHas('employee', function ($q) use ($company_id, $shift_type_id) {
+            $q->where('company_id', $company_id);
             $q->where('status', 1);
-            $q->select('system_user_id', 'display_name', "department_id", "first_name", "last_name", "profile_picture", "employee_id", "branch_id");
-            $q->with(['department', 'branch']);
+            $q->whereHas(
+                "schedule",
+                function ($q) use ($company_id, $shift_type_id) {
+                    $q->where('company_id', $company_id);
+                    $q->where('shift_type_id',  $shift_type_id);
+                }
+            );
         });
 
         $model->with([
@@ -246,6 +243,15 @@ class Attendance extends Model
                 $q->where('status', 1);
                 $q->select('system_user_id', 'full_name', 'display_name', "department_id", "first_name", "last_name", "profile_picture", "employee_id", "branch_id", "joining_date");
                 $q->with(['department', 'branch']);
+                $q->with([
+                    "schedule" => function ($q) {
+                        $q->select("id", "shift_id", "employee_id");
+                        $q->withOut("shift_type");
+                    },
+                    "schedule.shift" => function ($q) {
+                        $q->select("id", "name", "on_duty_time", "off_duty_time");
+                    }
+                ]);
             }
         ]);
 

@@ -56,7 +56,7 @@ class ReportController extends Controller
         $showTabs = json_decode($request->showTabs, true);
 
         // only for multi in/out
-        if ($showTabs['multi'] == true) {
+        if ($showTabs['multi'] == true || $showTabs['dual'] == true) {
             foreach ($data as $value) {
 
                 $logs = $value->logs ?? [];

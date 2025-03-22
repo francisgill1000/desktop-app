@@ -64,8 +64,11 @@ class SyncMultiShiftForDualDay extends Command
             ->join('attendance_logs as al', 'se.employee_id', '=', 'al.UserID')
             ->join('shifts as sh', 'sh.id', '=', 'se.shift_id')
             ->select('al.UserID')
-            ->where('sh.shift_type_id', "=", 2) // this condition not workin
-            ->where('al.checked', $this->argument("checked", false) ? true : false);
+            ->where('sh.shift_type_id', "=", 2); // this condition not workin
+
+        if ($this->argument("checked")) {
+            $model->where('al.checked', $this->argument("checked"));
+        }
 
         if ($this->argument("UserID")) {
             $model->where('al.UserID', $this->argument("UserID"));

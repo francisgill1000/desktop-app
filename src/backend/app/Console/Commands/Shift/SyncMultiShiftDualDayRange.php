@@ -30,7 +30,7 @@ class SyncMultiShiftDualDayRange extends Command
     public function handle()
     {
         // Ask for ID
-        $id = $this->ask('Enter ID');
+        $id = $this->ask('Enter ID',1);
 
         // Get first and last date of the current month
         $defaultStartDate = Carbon::now()->startOfMonth()->toDateString();
@@ -62,6 +62,18 @@ class SyncMultiShiftDualDayRange extends Command
             return;
         }
 
+        $outputBuffer = new BufferedOutput();
+
+        $this->info("Running: php artisan update_log_date_column $id");
+
+        $exitCode = $this->call('update_log_date_column', [
+            'company_id' => $id,
+        ], $outputBuffer);
+
+        $this->line($outputBuffer->fetch());
+
+        sleep(5);
+
         // Loop through the date range and execute the child command
         while ($start->lte($end)) {
             $dateString = $start->toDateString();
@@ -72,13 +84,11 @@ class SyncMultiShiftDualDayRange extends Command
             $exitCode = $this->call('task:sync_multi_shift_dual_day', [
                 'company_id' => $id,
                 'date' => $dateString,
-                'checked' => $flag,
             ], $outputBuffer);
 
             // Show response from child command
             $this->info("Running: php artisan task:sync_multi_shift_dual_day $id $dateString $flag");
             $this->line($outputBuffer->fetch());
-
             sleep(5);
 
             // Move to the next day
