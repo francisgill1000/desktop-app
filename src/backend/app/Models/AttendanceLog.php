@@ -46,12 +46,18 @@ class AttendanceLog extends Model
 
     public function device()
     {
+        $driver = DB::connection()->getDriverName(); // Get the database driver
+
+        if ($driver === 'sqlite') {
+            return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "---", "device_id" => "---"]);
+        }
+
         return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Mobile", "device_id" => "Mobile"]);
 
-        if ($this->log_type == 'Mobile') {
-            return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Mobile", "device_id" => "Mobile"]);
-        }
-        return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Manual", "device_id" => "Manual"]);
+        // if ($this->log_type == 'Mobile') {
+        //     return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Mobile", "device_id" => "Mobile"]);
+        // }
+        // return $this->belongsTo(Device::class, "DeviceID", "device_id")->withDefault(["name" => "Manual", "device_id" => "Manual"]);
     }
     public function company()
     {

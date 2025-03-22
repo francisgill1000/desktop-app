@@ -209,6 +209,6 @@ Route::post('summary-report-download', [ReportController::class, 'summaryReportD
 
 Route::post('last-six-month-performance-report', [ReportController::class, 'lastSixMonthsPerformanceReport']);
 Route::post('last-six-month-salary-report', [ReportController::class, 'lastSixMonthsSalaryReport']);
-Route::post('current-month-salary-report', [ReportController::class, 'currentMonthSalaryReport']);
+Route::post('current-month-salary-report', [ReportController::class, 'previousMonthSalaryReport']);
 Route::post('current-month-hours-report', [ReportController::class, 'currentMonthHoursReport']);
 Route::post('current-month-performance-report', [ReportController::class, 'currentMonthPerformanceReport']);

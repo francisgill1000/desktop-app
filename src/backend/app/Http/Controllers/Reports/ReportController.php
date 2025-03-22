@@ -299,27 +299,16 @@ class ReportController extends Controller
             ->whereBetween('date', [$fromDate, $toDate]);
 
         $model->select(
-            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
-            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
-            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
             'employee_id',
-            $this->getStatusCountWithSuffix('P'), // Present count
-            $this->getStatusCountWithSuffix('A'), // Absent count
-            $this->getStatusCountWithSuffix('L'), // Leave count
-            $this->getStatusCountWithSuffix('M'), // Missing count
-            $this->getStatusCountWithSuffix('LC'), // Late Coming count
-            $this->getStatusCountWithSuffix('EG'), // Early Going count
-
-            $this->getStatusCountValue('P'), // Present count
-            $this->getStatusCountValue('A'), // Absent count
-            $this->getStatusCountValue('L'), // Leave count
-            $this->getStatusCountValue('M'), // Missing count
-            $this->getStatusCountValue('LC'), // Late Coming count
-            $this->getStatusCountValue('EG'), // Early Going count
-
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
-            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+            $this->getStatusCountWithSuffix('P'),
+            $this->getStatusCountWithSuffix('LC'),
+            $this->getStatusCountWithSuffix('EG'),
+            $this->getStatusCountWithSuffix('A'),
+            $this->getStatusCountWithSuffix('M'),
+            $this->getStatusCountWithSuffix('O'),
+            $this->getStatusCountWithSuffix('L'),
+            $this->getStatusCountWithSuffix('V'),
+            $this->getStatusCountWithSuffix('H'),
         );
 
         $model->whereHas("employee", fn($q) => $q->where("company_id", request("company_id")));
@@ -415,27 +404,19 @@ class ReportController extends Controller
             ->whereBetween('date', [$fromDate, $toDate]);
 
         $model->select(
-            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
-            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
-            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
             'employee_id',
-            $this->getStatusCountWithSuffix('P'), // Present count
-            $this->getStatusCountWithSuffix('A'), // Absent count
-            $this->getStatusCountWithSuffix('L'), // Leave count
-            $this->getStatusCountWithSuffix('M'), // Missing count
-            $this->getStatusCountWithSuffix('LC'), // Late Coming count
-            $this->getStatusCountWithSuffix('EG'), // Early Going count
-
-            $this->getStatusCountValue('P'), // Present count
-            $this->getStatusCountValue('A'), // Absent count
-            $this->getStatusCountValue('L'), // Leave count
-            $this->getStatusCountValue('M'), // Missing count
-            $this->getStatusCountValue('LC'), // Late Coming count
-            $this->getStatusCountValue('EG'), // Early Going count
-
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
-            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+            $this->getTotalHours(),
+            $this->getInHours(),
+            $this->getOutHours(),
+            $this->getStatusCountWithSuffix('P'),
+            $this->getStatusCountWithSuffix('LC'),
+            $this->getStatusCountWithSuffix('EG'),
+            $this->getStatusCountWithSuffix('A'),
+            $this->getStatusCountWithSuffix('M'),
+            $this->getStatusCountWithSuffix('O'),
+            $this->getStatusCountWithSuffix('L'),
+            $this->getStatusCountWithSuffix('V'),
+            $this->getStatusCountWithSuffix('H'),
         );
 
         $model->whereHas("employee", fn($q) => $q->where("company_id", request("company_id")));
@@ -531,27 +512,19 @@ class ReportController extends Controller
             ->whereBetween('date', [$fromDate, $toDate]);
 
         $model->select(
-            DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array"),
-            DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array"),
-            DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array"),
             'employee_id',
-            $this->getStatusCountWithSuffix('P'), // Present count
-            $this->getStatusCountWithSuffix('A'), // Absent count
-            $this->getStatusCountWithSuffix('L'), // Leave count
-            $this->getStatusCountWithSuffix('M'), // Missing count
-            $this->getStatusCountWithSuffix('LC'), // Late Coming count
-            $this->getStatusCountWithSuffix('EG'), // Early Going count
-
-            $this->getStatusCountValue('P'), // Present count
-            $this->getStatusCountValue('A'), // Absent count
-            $this->getStatusCountValue('L'), // Leave count
-            $this->getStatusCountValue('M'), // Missing count
-            $this->getStatusCountValue('LC'), // Late Coming count
-            $this->getStatusCountValue('EG'), // Early Going count
-
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"in\" != '---' THEN \"in\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_in_time"),
-            // DB::raw("TO_CHAR((DATE '1970-01-01' + AVG(CASE WHEN \"out\" != '---' THEN \"out\"::TIME ELSE NULL END))::TIME, 'HH24:MI') as average_out_time"),
-            // DB::raw("TO_CHAR(SUM(CASE WHEN \"total_hrs\" != '---' THEN \"total_hrs\"::TIME ELSE NULL END), 'HH24:MI') as total_hrs")
+            $this->getTotalHours(),
+            $this->getInHours(),
+            $this->getOutHours(),
+            $this->getStatusCountWithSuffix('P'),
+            $this->getStatusCountWithSuffix('LC'),
+            $this->getStatusCountWithSuffix('EG'),
+            $this->getStatusCountWithSuffix('A'),
+            $this->getStatusCountWithSuffix('M'),
+            $this->getStatusCountWithSuffix('O'),
+            $this->getStatusCountWithSuffix('L'),
+            $this->getStatusCountWithSuffix('V'),
+            $this->getStatusCountWithSuffix('H'),
         );
 
         $model->whereHas("employee_report_only", fn($q) => $q->where("company_id", request("company_id")));
@@ -612,8 +585,47 @@ class ReportController extends Controller
 
     function getStatusCountWithSuffix($status)
     {
-        return DB::raw("LPAD(COUNT(CASE WHEN status = '{$status}' THEN 1 END)::text, 2, '0') AS {$status}_count");
+
+        $driver = DB::connection()->getDriverName(); // Get the database driver name
+
+        if ($driver === 'sqlite') {
+            return DB::raw("SUM(CASE WHEN status = '{$status}' THEN 1 END) AS {$status}_count");
+        } else {
+            return DB::raw("COUNT(CASE WHEN status = '{$status}' THEN 1 END) AS {$status}_count");
+        }
     }
+
+    function getTotalHours()
+    {
+
+        $driver = DB::connection()->getDriverName(); // Get the database driver name
+
+        if ($driver === 'sqlite') {
+            return DB::raw("json_group_array(total_hrs) FILTER (WHERE total_hrs != '---') AS total_hrs_array");
+        } else {
+            return DB::raw("json_agg(\"total_hrs\"::TEXT) FILTER (WHERE \"total_hrs\" != '---') AS total_hrs_array");
+        }
+    }
+    function getInHours()
+    {
+        $driver = DB::connection()->getDriverName(); // Get the database driver name
+        if ($driver === 'sqlite') {
+            return DB::raw("json_group_array(\"in\") FILTER (WHERE \"in\" != '---') AS average_in_time_array");
+        } else {
+            return  DB::raw("json_agg(\"in\"::TEXT) FILTER (WHERE \"in\" != '---') AS average_in_time_array");
+        }
+    }
+    function getOutHours()
+    {
+        $driver = DB::connection()->getDriverName(); // Get the database driver name
+        if ($driver === 'sqlite') {
+            return DB::raw("json_group_array(\"out\") FILTER (WHERE \"out\" != '---') AS average_out_time_array");
+        } else {
+            return DB::raw("json_agg(\"out\"::TEXT) FILTER (WHERE \"out\" != '---') AS average_out_time_array");
+        }
+    }
+
+
 
     function getStatusCountValue($status)
     {
@@ -642,20 +654,46 @@ class ReportController extends Controller
         }
 
         // Now, use these dates in your query
-        $query = DB::table('attendances')
-            ->select(
-                DB::raw('EXTRACT(YEAR FROM date) AS year'),
-                DB::raw('EXTRACT(MONTH FROM date) AS month'),
-                DB::raw('COUNT(CASE WHEN status = \'P\' THEN 1 ELSE NULL END) AS present_count'),
-                DB::raw('COUNT(CASE WHEN status = \'A\' THEN 1 ELSE NULL END) AS absent_count'),
-            )
-            ->where('company_id', $companyId)
-            ->where('employee_id', $employeeId)
-            ->whereBetween('date', [$startMonth, $endMonth])  // Date-only comparison
-            ->groupBy(DB::raw('EXTRACT(YEAR FROM date)'), DB::raw('EXTRACT(MONTH FROM date)'))
-            ->orderBy(DB::raw('EXTRACT(YEAR FROM date)'), 'desc')
-            ->orderBy(DB::raw('EXTRACT(MONTH FROM date)'), 'desc')
-            ->get();
+        $driver = DB::connection()->getDriverName(); // Get the database driver
+
+        if ($driver === 'sqlite') {
+            // SQLite uses strftime() for extracting Year and Month
+            $query = DB::table('attendances')
+                ->select(
+                    DB::raw("strftime('%Y', date) AS year"),
+                    DB::raw("strftime('%m', date) AS month"),
+                    DB::raw("SUM(CASE WHEN status in ('P','LC','EG') THEN 1 ELSE 0 END) AS present_count"),
+                    DB::raw("SUM(CASE WHEN status in ('A','M') THEN 1 ELSE 0 END) AS absent_count"),
+                    DB::raw("SUM(CASE WHEN status in ('O') THEN 1 ELSE 0 END) AS week_off_count"),
+                    DB::raw("SUM(CASE WHEN status in ('L','V','H',) THEN 1 ELSE 0 END) AS other_count")
+                )
+                ->where('company_id', $companyId)
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$startMonth, $endMonth]) // Date-only comparison
+                ->groupBy(DB::raw("strftime('%Y', date)"), DB::raw("strftime('%m', date)"))
+                ->orderBy(DB::raw("strftime('%Y', date)"), 'desc')
+                ->orderBy(DB::raw("strftime('%m', date)"), 'desc')
+                ->get();
+        } else {
+            // Now, use these dates in your query
+            $query = DB::table('attendances')
+                ->select(
+                    DB::raw('EXTRACT(YEAR FROM date) AS year'),
+                    DB::raw('EXTRACT(MONTH FROM date) AS month'),
+                    DB::raw('SUM(CASE WHEN status IN (\'P\',\'LC\',\'EG\') THEN 1 ELSE 0 END) AS present_count'),
+                    DB::raw('SUM(CASE WHEN status IN (\'A\',\'M\') THEN 1 ELSE 0 END) AS absent_count'),
+                    DB::raw('SUM(CASE WHEN status IN (\'O\') THEN 1 ELSE 0 END) AS week_off_count'),
+                    DB::raw('SUM(CASE WHEN status IN (\'L\',\'V\',\'H\') THEN 1 ELSE 0 END) AS other_count')
+                )
+                ->where('company_id', $companyId)
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$startMonth, $endMonth])
+                ->groupBy(DB::raw('EXTRACT(YEAR FROM date)'), DB::raw('EXTRACT(MONTH FROM date)'))
+                ->orderBy(DB::raw('EXTRACT(YEAR FROM date)'), 'desc')
+                ->orderBy(DB::raw('EXTRACT(MONTH FROM date)'), 'desc')
+                ->get();
+        }
+
 
         $queryResults = [];
 
@@ -675,6 +713,8 @@ class ReportController extends Controller
                         'month' => $month['month'],
                         'present_count' => $result->present_count,
                         'absent_count' => $result->absent_count,
+                        'week_off_count' => $result->week_off_count,
+                        'other_count' => $result->other_count,
                         'month_year' => date("M y", strtotime($month_year))
                     ];
                     break;
@@ -688,6 +728,8 @@ class ReportController extends Controller
                     'month' => $month['month'],
                     'present_count' => 0,
                     'absent_count' => 31,
+                    'week_off_count' => 0,
+                    'other_count' => 0,
                     'month_year' => date("M y", strtotime($month_year))
                 ];
             }
@@ -787,59 +829,49 @@ class ReportController extends Controller
         }
     }
 
-
     public function currentMonthPerformanceReport(Request $request)
     {
         $companyId = $request->input('company_id', 0);
         $employeeId = $request->input('employee_id', 0);
         $lastMonth = $request->input('date', date('m', strtotime('last month')));
 
-        $statusColors = [
-            'P' => 'green', // Green
-            'A' => 'red', // Red
-            'L' => 'orange', // Blue
-            'O' => 'primary', // Blue
-        ];
-
         $result = Attendance::where('company_id', $companyId)
             ->where('employee_id', $employeeId)
             ->whereMonth('date', $lastMonth)
-            ->select(
-                'date',
-                'status',
-                $this->getStatusCountWithSuffix('P'), // Present count
-                $this->getStatusCountWithSuffix('A'), // Absent count
-                $this->getStatusCountWithSuffix('L'), // Leave count
-                $this->getStatusCountWithSuffix('M'), // Missing count
-                $this->getStatusCountWithSuffix('LC'), // Late Coming count
-                $this->getStatusCountWithSuffix('EG'), // Early Going count
-
-                $this->getStatusCountValue('P'), // Present count
-                $this->getStatusCountValue('A'), // Absent count
-                $this->getStatusCountValue('L'), // Leave count
-                $this->getStatusCountValue('M'), // Missing count
-                $this->getStatusCountValue('LC'), // Late Coming count
-                $this->getStatusCountValue('EG') // Early Going count
-            )
-            ->orderBy('date')->groupBy('date', 'status')->get();
-
+            ->select('date', 'status')
+            ->orderBy('date')
+            ->groupBy('date', 'status')
+            ->get();
 
         $arr = [];
-        $stats = [];
+        $stats = [
+            "P" => 0,
+            "A" => 0,
+            "O" => 0,
+            "OTHERS_COUNT" => 0,
+        ];
 
         foreach ($result as $item) {
+            $dateKey = date("Y-m-d", strtotime($item->date));
 
-            $arr[date("Y-m-d", strtotime($item->date))] = $statusColors[$item->status] ?? 'grey';
-
-            if (!isset($stats[$item->status])) {
-                $stats[$item->status] = 1; // Initialize the count for this status
+            if (in_array($item->status, ['P', "LC", "EG"])) {
+                $arr[$dateKey] = "green";
+                $stats["P"] += 1;
+            } else if (in_array($item->status, ['A', "M"])) {
+                $arr[$dateKey] = "red";
+                $stats["A"] += 1;
+            } else if (in_array($item->status, ['O'])) {
+                $arr[$dateKey] = "primary";
+                $stats["O"] += 1;
             } else {
-                $stats[$item->status]++; // Increment the count for this status
+                $arr[$dateKey] = "orange";
+                $stats["OTHERS_COUNT"] += 1;
             }
         }
 
         return ["events" => $arr, "stats" => $stats];
     }
+
 
     /**
      * Helper function to sum time values in "HH:MM" format.
@@ -960,7 +992,13 @@ class ReportController extends Controller
         $remainingMinutes = $Payroll->combimedShortHours["minutes"] ?? "00:00";
         $decimalHours = $totalHours + ($remainingMinutes / 60);
         $rate = $Payroll->perHourSalary;
-        $shortHours = $decimalHours * $rate * $Payroll->payroll_formula->deduction_value;
+
+        $shortHours = 0; // Set a default value or handle it accordingly
+
+        if ($Payroll->payroll_formula && isset($Payroll->payroll_formula->deduction_value)) {
+            $shortHours = $decimalHours * $rate * $Payroll->payroll_formula->deduction_value;
+        }
+
 
         $grouByStatus = $attendances
             ->groupBy('status')
@@ -985,7 +1023,13 @@ class ReportController extends Controller
         $Payroll->deductedSalary = round($Payroll->absent * $Payroll->perDaySalary);
 
         $OTHours = $Payroll->otHours["hours"];
-        $OTEarning = $Payroll->perHourSalary * $OTHours * $Payroll->payroll_formula->ot_value;
+
+        $OTEarning = 0;
+
+        if ($Payroll->payroll_formula && isset($Payroll->payroll_formula->ot_value)) {
+            $OTEarning = $Payroll->perHourSalary * $OTHours * $Payroll->payroll_formula->ot_value;
+        }
+
 
         $Payroll->earnings = array_merge(
             [

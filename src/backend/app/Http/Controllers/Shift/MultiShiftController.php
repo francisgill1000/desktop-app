@@ -189,15 +189,23 @@ class MultiShiftController extends Controller
 
                     $totalMinutes += $minutes;
                 }
-
                 $logsJson[] = [
-                    "in" => (isset($currentLog["device"]["function"]) && ($currentLog["device"]["function"] == "In" || $currentLog["device"]["function"] == "auto")) || (isset($currentLog["DeviceID"]) && $currentLog["DeviceID"] == "Manual") ? $currentLog['time'] : "---",
-                    "out" => ($nextLog && isset($nextLog["device"]["function"]) && ($nextLog["device"]["function"] == "Out" || $nextLog["device"]["function"] == "auto")) || ($nextLog && isset($nextLog["DeviceID"]) && $nextLog["DeviceID"] == "Manual") ? $nextLog['time'] : "---",
-                    "device_in" => isset($currentLog['device']) ? ($currentLog['device']['short_name'] ?? $currentLog['device']['name'] ?? "---") : "---",
-                    "device_out" => isset($nextLog['device']) ? ($nextLog['device']['short_name'] ?? $nextLog['device']['name'] ?? "---") : "---",
+                    "in"  => $this->getLogTime(
+                        $currentLog,
+                        ["In", "Auto", "Option", "in", "auto", "option"],
+                        ["Manual", "manual", "MANUAL"]
+                    ),
+                    "out" => $nextLog
+                        ? $this->getLogTime(
+                            $nextLog,
+                            ["Out", "Auto", "Option", "out", "auto", "option"],
+                            ["Manual", "manual", "MANUAL"]
+                        )
+                        : "---",
+                    "device_in"  => $this->getDeviceName($currentLog ?? []),
+                    "device_out" => $this->getDeviceName($nextLog ?? []),
                     "total_minutes" => $this->minutesToHours($minutes),
                 ];
-
 
 
                 $item["total_hrs"] = $this->minutesToHours($totalMinutes);
@@ -289,5 +297,19 @@ class MultiShiftController extends Controller
         return response()->json([
             'message' => 'Report has been regerated!',
         ]);
+    }
+
+
+    private function getLogTime($log, $validFunctions, $manualDeviceID)
+    {
+        return isset($log["device"]["function"]) && in_array($log["device"]["function"], $validFunctions)
+            || (isset($log["DeviceID"]) && $log["DeviceID"] == $manualDeviceID)
+            ? $log['time']
+            : "---";
+    }
+
+    private function getDeviceName($log)
+    {
+        return $log['device']['short_name'] ?? $log['device']['name'] ?? "---";
     }
 }
