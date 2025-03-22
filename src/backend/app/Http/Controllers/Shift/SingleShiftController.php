@@ -168,7 +168,7 @@ class SingleShiftController extends Controller
                 "company_id" => $params["company_id"],
                 "employee_id" => $key,
                 "shift_id" => $shift["id"] ?? 0,
-                "shift_type_id" => 4 ?? 0,
+                "shift_type_id" => $schedule["shift_type_id"] ?? 0,
                 "status" => "M",
                 "late_coming" => "---",
                 "early_going" => "---",

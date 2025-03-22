@@ -583,16 +583,11 @@ class ReportController extends Controller
         return $model->paginate($request->per_page ?? 100);
     }
 
-    function getStatusCountWithSuffix($status)
+    function getStatusCountWithSuffix($dbDtatus)
     {
-
-        $driver = DB::connection()->getDriverName(); // Get the database driver name
-
-        if ($driver === 'sqlite') {
-            return DB::raw("SUM(CASE WHEN status = '{$status}' THEN 1 END) AS {$status}_count");
-        } else {
-            return DB::raw("COUNT(CASE WHEN status = '{$status}' THEN 1 END) AS {$status}_count");
-        }
+        $status = strtolower($dbDtatus);
+        
+        return DB::raw("COUNT(CASE WHEN status = '{$dbDtatus}' THEN 1 END) AS {$status}_count");
     }
 
     function getTotalHours()

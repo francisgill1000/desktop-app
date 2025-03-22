@@ -4,7 +4,7 @@
   "description": "mytime2cloud-desktop-app",
   "main": "index.js",
   "scripts": {
-    "da": "electron .",
+    "dev": "electron .",
     "build": "electron-builder"
   },
   "build": {

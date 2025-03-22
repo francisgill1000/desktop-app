@@ -194,19 +194,11 @@ class SDKController extends Controller
         } catch (\Exception $e) {
         }
 
-
-
-
         $payload = $request->all();
         $personList = $payload['personList'];
         $snList = $payload['snList'];
 
-
-        $Devices = Device::where('company_id', $request->company_id)->where('model_number', "!=", "OX-900")
-            ->whereIn('serial_number',  $payload['snList'])
-            ->pluck("serial_number");
-
-
+        $Devices = Device::whereIn('device_id',  $snList)->pluck("device_id");
 
         foreach ($Devices as $device_id) {
             $url = env('SDK_URL') . "/$device_id/AddPerson";
