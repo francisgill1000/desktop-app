@@ -158,14 +158,15 @@ class Attendance extends Model
 
     public function processAttendanceModel($request)
     {
+        $showTabs = json_decode($request->showTabs, true);
 
         $shift_type_ids = [];
 
-        if ($request->showTabs['single'] == true && $request->shift_type_id == 0) {
+        if ($showTabs['single'] == true && $request->shift_type_id == 0) {
             // $shift_type_ids = [1, 3, 4, 6];
-        } else if ($request->showTabs['multi'] == true) {
+        } else if ($showTabs['multi'] == true) {
             $shift_type_ids = [2];
-        } else if ($request->showTabs['dual'] == true) {
+        } else if ($showTabs['dual'] == true) {
             $shift_type_ids = [5];
         }
 

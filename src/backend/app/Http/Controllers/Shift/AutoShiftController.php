@@ -243,6 +243,9 @@ class AutoShiftController extends Controller
 
     public function findClosest($shifts, $count, $logs, $date): ?array
     {
+        if (count($shifts) == 1) {
+            return $shifts[0];
+        }
         foreach ($logs as $log) {
             $logType = strtolower($log['log_type'] ?? '');
             $deviceFunction = strtolower($log['device']['function'] ?? '');
@@ -435,7 +438,7 @@ class AutoShiftController extends Controller
 
         if (!count($data)) {
 
-            return "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto No data found.\n";
+            return "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto No data found.";
         }
 
         $items = [];

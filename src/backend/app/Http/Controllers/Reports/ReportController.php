@@ -53,8 +53,10 @@ class ReportController extends Controller
 
         $data = $model->paginate($perPage);
 
+        $showTabs = json_decode($request->showTabs, true);
+
         // only for multi in/out
-        if ($request->shift_type_id == 2) {
+        if ($showTabs['multi'] == true) {
             foreach ($data as $value) {
 
                 $logs = $value->logs ?? [];

@@ -244,7 +244,7 @@ class RenderController extends Controller
         $data = $model->get()->groupBy(["UserID"]);
 
         if (!count($data)) {
-            return "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto No data found.\n";
+            return "[" . date("Y-m-d H:i:s") . "] Cron:SyncAuto No data found.";
         }
 
 

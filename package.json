@@ -1,6 +1,6 @@
 {
   "name": "mytime2cloud-desktop-app",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "mytime2cloud-desktop-app",
   "main": "index.js",
   "scripts": {

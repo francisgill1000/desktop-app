@@ -366,6 +366,7 @@ class AttendanceLog extends Model
             ->where("company_id", $params["company_id"])
             ->whereHas("schedule", fn($q) => $q->where("isAutoShift", true))
             ->distinct("LogTime", "UserID", "company_id")
+            ->orderBy("LogTime", "asc")
             ->get()
             ->load("device")
             ->load(["schedule" => function ($q) use ($params) {
@@ -395,6 +396,7 @@ class AttendanceLog extends Model
             ->where("company_id", $params["company_id"])
             ->whereHas("schedule", fn($q) => $q->where("isAutoShift", false))
             ->distinct("LogTime", "UserID", "company_id")
+            ->orderBy("LogTime", "asc")
             ->get()
             ->load("device")
             ->load(["schedule" => function ($q) use ($params) {
