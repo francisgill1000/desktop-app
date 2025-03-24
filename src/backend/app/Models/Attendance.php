@@ -158,14 +158,6 @@ class Attendance extends Model
 
     public function processAttendanceModel($request)
     {
-        $shift_type_id = 0;
-
-        $showTabs = json_decode($request->showTabs, true);
-        if ($showTabs['multi'] == true) {
-            $shift_type_id = 2;
-        } else if ($showTabs['dual'] == true) {
-            $shift_type_id = 5;
-        }
 
         $company_id = $request->company_id;
 
@@ -227,15 +219,23 @@ class Attendance extends Model
             $q->whereBetween("date", [$request->from_date, $request->to_date]);
         });
 
-        $model->whereHas('employee', function ($q) use ($company_id, $shift_type_id) {
+        $model->whereHas('employee', function ($q) use ($company_id) {
+
+
+
             $q->where('company_id', $company_id);
             $q->where('status', 1);
             $q->whereHas(
                 "schedule",
-                function ($q) use ($company_id, $shift_type_id) {
+                function ($q) use ($company_id) {
                     $q->where('company_id', $company_id);
-                    if ($shift_type_id > 0) {
-                        $q->where('shift_type_id',  $shift_type_id);
+
+                    $showTabs = json_decode(request("showTabs"), true);
+
+                    if (($showTabs['multi'] == true || $showTabs['dual'] == true) && request("shift_type_id", 0) > 0) {
+                        $q->where('shift_type_id',  request("shift_type_id"));
+                    } else {
+                        $q->whereIn('shift_type_id',  [1, 3, 4, 6]);
                     }
                 }
             );

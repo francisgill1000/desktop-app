@@ -56,6 +56,10 @@ class RenderController extends Controller
             }
         }
 
+        if (!$request['employee_ids']) {
+            return ["Employee must be selected"];
+        }
+
         if (isset($request['employee_ids']) && count($request->employee_ids) > 20) {
             return ["Limit  20 Employees  only "];
         }
