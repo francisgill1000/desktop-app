@@ -586,7 +586,7 @@ class ReportController extends Controller
     function getStatusCountWithSuffix($dbDtatus)
     {
         $status = strtolower($dbDtatus);
-        
+
         return DB::raw("COUNT(CASE WHEN status = '{$dbDtatus}' THEN 1 END) AS {$status}_count");
     }
 
@@ -828,7 +828,7 @@ class ReportController extends Controller
     {
         $companyId = $request->input('company_id', 0);
         $employeeId = $request->input('employee_id', 0);
-        $lastMonth = $request->input('date', date('m', strtotime('last month')));
+        $lastMonth = $request->input('date', date('m', strtotime('first day of last month')));
 
         $result = Attendance::where('company_id', $companyId)
             ->where('employee_id', $employeeId)

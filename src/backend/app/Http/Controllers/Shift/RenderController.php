@@ -82,7 +82,6 @@ class RenderController extends Controller
 
 
                     (new SingleShiftController)->renderData($request),
-                    (new SplitShiftController)->renderData($request),
                     (new NightShiftController)->renderData($request),
                 );
             } else if ($request->shift_type_id == 4) {
@@ -96,8 +95,8 @@ class RenderController extends Controller
         return array_merge(
             (new AutoShiftController)->renderData($request),
             (new SingleShiftController)->renderData($request),
-            (new SplitShiftController)->renderData($request),
-            (new MultiShiftController)->renderData($request),
+            // (new SplitShiftController)->renderData($request),
+            // (new MultiShiftController)->renderData($request),
             (new NightShiftController)->renderData($request),
         );
     }

@@ -168,6 +168,13 @@ class MonthlyController extends Controller
     public function monthly_download_csv(Request $request)
     {
 
+        $showTabs = json_decode($request->showTabs, true);
+
+        // only for multi in/out
+        if ($showTabs['multi'] == true || $showTabs['dual'] == true) {
+            return $this->multi_in_out_monthly_download_csv($request);
+        }
+
         $data = (new Attendance)->processAttendanceModel($request)->get();
 
         $file_name = "Attendance Report";

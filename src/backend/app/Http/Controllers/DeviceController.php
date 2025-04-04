@@ -410,63 +410,68 @@ class DeviceController extends Controller
 
     public function getLastRecordsHistory($id = 0, $count = 0, Request $request)
     {
-        $model = AttendanceLog::query();
+        // Generate a unique cache key using company_id and request parameters
+        $cacheKey = "attendance_logs_{$id}_" . md5(json_encode($request->all()));
 
-        $model->where("company_id", $id);
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($id, $request) {
+            $model = AttendanceLog::query();
 
-        if ($request->filled("branch_id")) {
-            $model->whereIn("UserID", function ($query) use ($request) {
-                $query->select("system_user_id")
-                    ->from("employees")
-                    ->where("branch_id", $request->branch_id);
+            $model->where("company_id", $id);
+
+            if ($request->filled("branch_id")) {
+                $model->whereIn("UserID", function ($query) use ($request) {
+                    $query->select("system_user_id")
+                        ->from("employees")
+                        ->where("branch_id", $request->branch_id);
+                });
+            }
+
+            if ($request->filled("department_id") && $request->department_id > 0) {
+                $model->whereIn("UserID", function ($query) use ($request) {
+                    $query->select("system_user_id")
+                        ->from("employees")
+                        ->where("department_id", $request->department_id);
+                });
+            }
+
+            $model->with('employee', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+                $q->withOut(["schedule",  "sub_department", "user"]);
+
+                $q->select(
+                    "first_name",
+                    "last_name",
+                    "profile_picture",
+                    "employee_id",
+                    "branch_id",
+                    "system_user_id",
+                    "display_name",
+                    "timezone_id",
+                );
             });
-        }
 
-        if ($request->filled("department_id") && $request->department_id > 0) {
-            $model->whereIn("UserID", function ($query) use ($request) {
-                $query->select("system_user_id")
-                    ->from("employees")
-                    ->where("department_id", $request->department_id);
+            $model->with('device', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+                $q->select(
+                    "id",
+                    "company_id",
+                    "branch_id",
+                    "status_id",
+                    "name",
+                    "short_name",
+                    "device_id",
+                    "location",
+                    "model_number",
+                );
             });
-        }
 
-        $model->with('employee', function ($q) use ($request) {
-            $q->where('company_id', $request->company_id);
-            $q->withOut(["schedule",  "sub_department", "user"]);
+            $model->where('LogTime', '>', date('Y-m-01'));
+            $model->where('LogTime', '<=', date('Y-m-d 23:59:59'));
+            $model->orderBy('LogTime', 'DESC');
 
-            $q->select(
-                "first_name",
-                "last_name",
-                "profile_picture",
-                "employee_id",
-                "branch_id",
-                "system_user_id",
-                "display_name",
-                "timezone_id",
-            );
+            return $model->paginate(request("per_page", 10));
         });
-
-        $model->with('device', function ($q) use ($request) {
-            $q->where('company_id', $request->company_id);
-            $q->select(
-                "id",
-                "company_id",
-                "branch_id",
-                "status_id",
-                "name",
-                "short_name",
-                "device_id",
-                "location",
-                "model_number",
-            );
-        });
-
-        $model->where('LogTime', '>', date('Y-m-01'));
-        $model->where('LogTime', '<=', date('Y-m-d 23:59:59'));
-        $model->orderBy('LogTime', 'DESC');
-        return $model->paginate(request("per_page",10));
     }
-
 
     public function updateDeviceCamVIISettingsToSDK(Request $request)
     {

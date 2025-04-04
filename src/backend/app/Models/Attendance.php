@@ -232,10 +232,14 @@ class Attendance extends Model
 
                     $showTabs = json_decode(request("showTabs"), true);
 
-                    if (($showTabs['multi'] == true || $showTabs['dual'] == true) && request("shift_type_id", 0) > 0) {
-                        $q->where('shift_type_id',  request("shift_type_id"));
-                    } else {
-                        $q->whereIn('shift_type_id',  [1, 3, 4, 6]);
+                    $filteredTabs = array_filter($showTabs, fn($value) => $value === true);
+
+                    if (count($filteredTabs) > 1) {
+                        if (($showTabs['multi'] == true || $showTabs['dual'] == true) && request("shift_type_id", 0) > 0) {
+                            $q->where('shift_type_id',  request("shift_type_id"));
+                        } else {
+                            $q->whereIn('shift_type_id',  [1, 3, 4, 6]);
+                        }
                     }
                 }
             );
