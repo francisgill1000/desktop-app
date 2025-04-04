@@ -94,9 +94,9 @@ class RenderController extends Controller
 
         return array_merge(
             (new AutoShiftController)->renderData($request),
+            (new FiloShiftController)->renderData($request),
             (new SingleShiftController)->renderData($request),
-            // (new SplitShiftController)->renderData($request),
-            // (new MultiShiftController)->renderData($request),
+            (new MultiShiftController)->renderData($request),
             (new NightShiftController)->renderData($request),
         );
     }
