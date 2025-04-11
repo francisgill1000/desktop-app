@@ -186,8 +186,6 @@ class EmployeeReportOnly extends Model
 
     public function getProfilePictureBase64Attribute()
     {
-        return;
-
         if (env("APP_ENV") == 'local') {
             return;
         }
