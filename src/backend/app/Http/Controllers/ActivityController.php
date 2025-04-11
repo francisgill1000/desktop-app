@@ -25,26 +25,27 @@ class ActivityController extends Controller
     public function filters($request)
     {
         $model = Activity::query();
-        $model->when($request->filled("company_id") && $request->company_id > 0, fn ($q) => $q->where("company_id", $request->company_id));
-        $model->when($request->filled("user_id"), fn ($q) => $q->where("user_id", $request->user_id));
+        $model->when($request->filled("company_id") && $request->company_id > 0, fn($q) => $q->where("company_id", $request->company_id));
+        $model->when($request->filled("user_id"), fn($q) => $q->where("user_id", $request->user_id));
 
 
         $model->when($request->filled("branch_id"), function ($q) use ($request) {
-            $q->whereHas("user.employee", fn ($q) => $q->where("branch_id", $request->branch_id));
+            $q->whereHas("user.employee", fn($q) => $q->where("branch_id", $request->branch_id));
         });
 
         $model->when($request->filled("department_id") && $request->department_id > 0, function ($q) use ($request) {
-            $q->whereHas("user.employee", fn ($q) => $q->where("department_id", $request->department_id));
+            $q->whereHas("user.employee", fn($q) => $q->where("department_id", $request->department_id));
         });
 
-        $model->when($request->filled("action"), fn ($q) => $q->where("action", $request->action));
-        $model->when($request->filled("type"), fn ($q) => $q->where("type", $request->type));
+        $model->when($request->filled("action"), fn($q) => $q->where("action", $request->action));
+        $model->when($request->filled("type"), fn($q) => $q->where("type", $request->type));
 
+        $model->when($request->from && $request->to, function ($q) use ($request) {
+            $q->whereBetween("created_at", [$request->from . " 00:00:00", $request->to . " 23:59:59"]);
+        });
 
-        $model->when($request->filled("from_date"), fn ($q) => $q->where("created_at", ">=", $request->from_date . ' 00:00:00'));
-        $model->when($request->filled("to_date"), fn ($q) => $q->where("created_at", "<=", $request->to_date . ' 23:59:59'));
-        $model->when($request->filled("user_type"), fn ($q) => $q->where("model_type",  $request->user_type));
-        $model->with(["company", 'user' => fn ($q) => $q->with('employee')]);
+        $model->when($request->filled("user_type"), fn($q) => $q->where("model_type",  $request->user_type));
+        $model->with(["company", 'user' => fn($q) => $q->with('employee')]);
         return $model;
     }
 

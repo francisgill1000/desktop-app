@@ -6,16 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\EmployeeLeaves;
 use App\Models\Visitor;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class EmployeeDashboard extends Controller
 {
 
-    public function statistics(Request $request): array
+    public function statistics(Request $request)
     {
 
         $records = $this->getEmployeeAttendanceRecords($request);
+
+
+        // Get today's date
+        $today = new DateTime();
+        // Get the last day of the current month
+        $endOfMonth = new DateTime('last day of this month');
+
+        // Calculate remaining days (excluding today)
+        $remainingDays = (int)$today->diff($endOfMonth)->format('%a');
 
         return [
             [
@@ -29,14 +39,14 @@ class EmployeeDashboard extends Controller
             [
                 'Key' => 'A',
                 'title' => 'Absence',
-                'value' => $this->getStatusCount($records, 'A'),
+                'value' => $this->getStatusCount($records, 'A') - $remainingDays,
                 'icon' => 'fas fa-calendar-times',
                 'color' => 'warning',
                 'link' => $this->getLink($request, 'A'),
             ],
             [
                 'Key' => 'M',
-                'title' => 'Missing',
+                'title' => 'Incomplete',
                 'value' => $this->getStatusCount($records, 'M'),
                 'icon' => 'fas fa-calendar-times',
                 'color' => 'warning',

@@ -191,9 +191,9 @@ class ScheduleEmployeeController extends Controller
 
 
                     $value = [
-                        "isAutoShift" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] ? 1 : 0,
-                        "shift_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] ? 0 :  $shift["shift_id"],
-                        "shift_type_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] ? 0 : $shift["shift_type_id"],
+                        "isAutoShift" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 1 : 0,
+                        "shift_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 0 :  $shift["shift_id"],
+                        "shift_type_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 0 : 2,
                         "isOverTime" => $shift["is_over_time"],
                         "employee_id" => $item,
                         "from_date" => $shift["from_date"],

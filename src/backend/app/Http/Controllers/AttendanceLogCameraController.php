@@ -197,9 +197,9 @@ class AttendanceLogCameraController extends Controller
         foreach ($result["data"] as $row) {
             $columns = explode(',', $row);
 
-            $isDuplicateLogTime = $this->verifyDuplicateLog($columns);
+            // $isDuplicateLogTime = $this->verifyDuplicateLog($columns);
            // $isDuplicateLogTime = false;
-            if (!$isDuplicateLogTime) {
+            // if (!$isDuplicateLogTime) {
                 $datetime = substr(str_replace("T", " ", $columns[2]), 0, 16);
 
 
@@ -224,7 +224,7 @@ class AttendanceLogCameraController extends Controller
                     // Add the record to the $records array
                     $records[] = $baseRecord;
                 }
-            }
+            // }
         }
 
         try {

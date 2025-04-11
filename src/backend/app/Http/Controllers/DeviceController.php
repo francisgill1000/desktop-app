@@ -1042,67 +1042,74 @@ class DeviceController extends Controller
         }
     }
 
+    public function sync_device_date_time($device_id, $company_id)
+    {
+        $device = Device::where("company_id", $company_id)->where("device_id", $device_id)->first();
 
-    public function sync_device_date_time(Request $request, $device_id, $company_id)
+        if (!$device) {
+            return $this->response('Device not found.',  null, true);
+        }
+
+        try {
+
+            $sdkResponse = [];
+
+            $currentDateTime = (new DateTime("now", new DateTimeZone($device->utc_time_zone)))->format('Y-m-d H:i:s');
+
+            if ($device->model_number == 'OX-900') {
+                return (new DeviceCameraModel2Controller($device->camera_sdk_url))->updateTimeZone($device);
+            } else {
+                $sdkResponse = (new SDKController)->processSDKRequestSettingsUpdateTime($device_id, $currentDateTime);
+            }
+
+            $payload = [
+                "sync_date_time" => $currentDateTime,
+            ];
+
+            Device::where("device_id", $device_id)->update($payload);
+
+            return $this->response($sdkResponse, null, true);
+        } catch (\Throwable $th) {
+            return $this->response('Time cannot synced to the Device.', null, false);
+        }
+
+
+        return $this->response("Unkown Error. Please retry again after 1 min or contact to technical team", null, false);
+    }
+
+
+    public function sync_device_date_time_old($device_id, $company_id)
     {
 
         $device = Device::where("company_id", $company_id)->where("device_id", $device_id)->first();
-        if ($device) {
-            if ($device->device_category_name == 'CAMERA') {
 
-                try {
-                    if ($device->model_number == 'CAMERA1') {
-                        //(new DeviceCameraController())->updateTimeZone();
-                    }
-                } catch (\Exception $e) {
-                    return $this->response("Unkown Error. Please retry again after 1 min or contact to technical team", null, false);
-                }
-            } else  if ($device->model_number == 'OX-900') {
-                (new DeviceCameraModel2Controller($device->camera_sdk_url))->updateTimeZone($device);
-
-
-                return $this->response('Time has been synced to the Device.',  null, true);
-            } else {
-                // $url = "http://139.59.69.241:7000/$device_id/SyncDateTime";
-                $url = env('SDK_URL') . "/$device_id/SetWorkParam";
-
-                if (env('APP_ENV') == 'desktop') {
-                    $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/$device_id/SetWorkParam";
-                }
-
-                $utc_time_zone  = Device::where('device_id', $device_id)->pluck("utc_time_zone")->first();;
-                if ($utc_time_zone != '') {
-
-                    $dateObj  = new DateTime("now", new DateTimeZone($utc_time_zone));
-                    $currentDateTime = $dateObj->format('Y-m-d H:i:00');
-
-                    (new SDKController)->processSDKRequestSettingsUpdateTime($device_id, $currentDateTime);
-                    $result = (object)["status" => 200];
-
-                    if ($result && $result->status == 200) {
-                        try {
-                            $record = Device::where("device_id", $device_id)->update([
-                                "sync_date_time" => $currentDateTime,
-                            ]);
-
-                            if ($record) {
-                                return $this->response("Time <b>$currentDateTime</b> has been synced to the Device.", null, true);
-                            } else {
-                                return $this->response('Time cannot synced to the Device.', null, false);
-                            }
-                        } catch (\Throwable $th) {
-                            return $this->response('Time cannot synced to the Device.', null, false);
-                        }
-                    } else if ($result && $result->status == 102) {
-                        return $this->response("The device is not connected to the server or is not registered", $result, false);
-                    }
-
-                    return $this->response("Unkown Error. Please retry again after 1 min or contact to technical team", null, false);
-                } else {
-                    return $this->response("The device details are not exist", null, false);
-                }
-            }
+        if (!$device) {
+            return $this->response('Device not found.',  null, true);
         }
+
+        if ($device->model_number == 'OX-900') {
+            return (new DeviceCameraModel2Controller($device->camera_sdk_url))->updateTimeZone($device);
+        }
+
+        try {
+
+            $currentDateTime = (new DateTime("now", new DateTimeZone($device->utc_time_zone)))->format('Y-m-d H:i:s');
+
+            (new SDKController)->processSDKRequestSettingsUpdateTime($device_id, $currentDateTime);
+
+            $payload = [
+                "sync_date_time" => $currentDateTime,
+            ];
+
+            Device::where("device_id", $device_id)->update($payload);
+
+            return $this->response("Time <b>$currentDateTime</b> has been synced to the Device.", null, true);
+        } catch (\Throwable $th) {
+            return $this->response('Time cannot synced to the Device.', null, false);
+        }
+
+
+        return $this->response("Unkown Error. Please retry again after 1 min or contact to technical team", null, false);
     }
 
     public function devcieCountByStatus($company_id)

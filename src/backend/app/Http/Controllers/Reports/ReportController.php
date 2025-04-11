@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use NumberFormatter;
 
@@ -477,6 +478,9 @@ class ReportController extends Controller
 
     public function summaryReportDownload(Request $request)
     {
+
+
+
         $companyId = $request->input('company_id', 0);
         $branch_id = $request->input('branch_id', 0);
 
@@ -496,6 +500,17 @@ class ReportController extends Controller
         if (!empty($request->employee_id)) {
             $employeeIds = is_array($request->employee_id) ? $request->employee_id : explode(",", $request->employee_id);
         }
+
+        $cacheKey = 'attendance_summary_' . md5(json_encode([
+            'company_id' => $companyId,
+            'branch_id' => $branch_id,
+            'from_date' => $fromDate,
+            'to_date' => $toDate,
+            'department_ids' => $department_ids,
+            'employee_ids' => $employeeIds,
+        ]));
+
+        Cache::forget($cacheKey);
 
         $model = Attendance::where('company_id', $companyId)
             ->when($branch_id, function ($q) use ($branch_id) {
@@ -580,7 +595,7 @@ class ReportController extends Controller
             ->groupBy('employee_id');
 
 
-        return $model->paginate($request->per_page ?? 100);
+        return $model->paginate(10);
     }
 
     function getStatusCountWithSuffix($dbDtatus)

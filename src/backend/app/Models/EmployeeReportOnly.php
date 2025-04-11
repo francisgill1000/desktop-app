@@ -13,7 +13,7 @@ class EmployeeReportOnly extends Model
 {
     use HasFactory;
 
-    protected $table = 'employees'; 
+    protected $table = 'employees';
 
     // protected $with = [];
 
@@ -186,6 +186,12 @@ class EmployeeReportOnly extends Model
 
     public function getProfilePictureBase64Attribute()
     {
+        return;
+
+        if (env("APP_ENV") == 'local') {
+            return;
+        }
+
         if ($this->profile_picture) {
             $imageData = file_get_contents($this->profile_picture);
 

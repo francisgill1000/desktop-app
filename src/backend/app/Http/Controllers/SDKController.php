@@ -539,20 +539,38 @@ class SDKController extends Controller
 
         $return = TimezonePhotoUploadJob::dispatch($json, $url);
     }
-    public function processSDKRequestSettingsUpdateTime($device_id, $time)
+    public function processSDKRequestSettingsUpdateTime(string $deviceId, string $time)
     {
-        $url = env('SDK_URL') . "/" . $device_id . "/SetWorkParam";
+        $baseUrl = env('SDK_URL');
 
-        if (env('APP_ENV') == 'desktop') {
-            $url = "http://" . gethostbyname(gethostname()) . ":8080" . "/" . $device_id . "/SetWorkParam";
+        if (env('APP_ENV') === 'desktop') {
+            $hostIp = gethostbyname(gethostname());
+            $baseUrl = "http://{$hostIp}:8080";
         }
 
+        $url = rtrim($baseUrl, '/') . "/{$deviceId}/SetWorkParam";
 
-        $data = [
-            'time' => $time
+        $payload = [
+            'time' => $time,
         ];
-        $return = TimezonePhotoUploadJob::dispatch($data, $url);
+
+        try {
+            $response = Http::timeout(30)
+                ->withoutVerifying()
+                ->post($url, $payload)
+                ->json();
+
+            if ($response['status'] !== 200) {
+                return "Failed to sync time.";
+            }
+
+            return "Time <b>{$time}</b> has been synced to the device.";
+
+        } catch (\Exception $e) {
+            return 'Failed to communicate with SDK device.';
+        }
     }
+
     public function processSDKRequestSettingsUpdate($device_id, $data)
     {
         $url = env('SDK_URL') . "/" . $device_id . "/SetWorkParam";

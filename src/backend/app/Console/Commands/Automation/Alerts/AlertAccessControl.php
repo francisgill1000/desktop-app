@@ -30,13 +30,13 @@ class AlertAccessControl extends Command
 
         $logger = new Controller;
 
-        $logFilePath = 'logs/common_logs';
+        $logFilePath = 'logs/automation/access_control';
 
         $company_id = $this->argument("company_id", 0);
 
-        $logFilePath = "$logFilePath";
+        $logFilePath = "$logFilePath/$company_id";
 
-        $logger->logOutPut($logFilePath, "*****Cron started for alert:access_control $company_id *****");
+        $logger->logOutPut($logFilePath, "*****Cron started for alert:access_control at " . date("H:i") . " $company_id *****");
 
         $clientId = null;
 
@@ -180,6 +180,7 @@ class AlertAccessControl extends Command
                 }
             }
         }
+
 
         $records = AttendanceLog::whereIn("id", $logIds)
             ->update(["is_notified_by_whatsapp_proxy" => true]);

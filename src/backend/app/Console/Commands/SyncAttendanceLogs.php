@@ -40,7 +40,7 @@ class SyncAttendanceLogs extends Command
 
         try {
             $benchmark = BenchmarkHelper::measure(function () {
-                return json_encode((new AttendanceLogController)->store());
+                return json_encode((new AttendanceLogController)->store(), JSON_PRETTY_PRINT);
             });
 
             $logger->logOutPut($logFilePath, "✔ Execution Successful");
@@ -52,7 +52,6 @@ class SyncAttendanceLogs extends Command
             $this->info("▶ Result: {$benchmark['result']}");
             $this->info("⏳ Execution Time: {$benchmark['execution_time']} sec");
             $this->info("💾 Memory Used: {$benchmark['memory_used']}");
-            
         } catch (\Exception $e) {
             $logger->logOutPut($logFilePath, "❌ Error: " . $e->getMessage());
         }

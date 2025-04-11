@@ -11,6 +11,10 @@ class Device extends Model
     use HasFactory;
     protected $guarded = [];
 
+    const Active = 1;
+    const InActive = 2;
+
+
     public function zone()
     {
         return $this->belongsTo(Zone::class);

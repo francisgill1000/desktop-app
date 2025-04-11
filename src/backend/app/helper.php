@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Activity;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -361,5 +362,25 @@ if (!function_exists('defaultDeviceManual')) {
             "port" => "0000"
 
         ];
+    }
+}
+
+
+if (!function_exists('recordAction')) {
+    function recordAction($arr)
+    {
+        $user_id = auth()->id() ?? $arr["user_id"];
+
+        $company_id = request("company_id", 1) ?? $arr["company_id"];
+
+        Activity::create([
+            "user_id" => $user_id,
+            "action" => $arr["action"],
+            "type" => $arr["type"],
+            "model_id" => $user_id,
+            "model_type" =>  "user",
+            "company_id" => $company_id,
+            "description" => "User with id ($user_id) {$arr['description']}",
+        ]);
     }
 }

@@ -128,7 +128,7 @@ Route::post('role/delete/selected', [RoleController::class, 'deleteSelected']);
 Route::apiResource('attendance_logs', AttendanceLogController::class);
 Route::get('get_last_ten_attendance_logs', [AttendanceLogController::class, 'getLastTenLogs']);
 
-Route::get('attendance_logs/{key}/daily', );
+Route::get('attendance_logs/{key}/daily',);
 Route::get('attendance_logs/{key}/monthly', [AttendanceLogController::class, 'AttendanceLogsMonthly']);
 Route::post('generate_manual_log', [AttendanceLogController::class, 'GenerateManualLog']);
 Route::get('attendance_logs/search/{company_id}', [AttendanceLogController::class, 'search']);
@@ -136,7 +136,7 @@ Route::get('attendance_logs/{id}/search/{key}', [AttendanceLogController::class,
 Route::get('attendance_log_paginate/{page?}', [AttendanceLogController::class, 'AttendanceLogPaginate']);
 
 //Route::post('generate_logs111111', [AttendanceLogController::class, 'generate_logs']);
-Route::post('generate_log', [AttendanceLogController::class, 'GenerateLog']);
+Route::post('generate_log', [AttendanceLogController::class, 'GenerateLog'])->middleware("auth:sanctum");
 Route::get('logs', [AttendanceLogController::class, 'getAttendanceLogs']);
 
 Route::get('attendance_single_list', [AttendanceLogController::class, 'singleView']);
