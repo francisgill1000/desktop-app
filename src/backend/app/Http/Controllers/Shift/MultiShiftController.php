@@ -112,6 +112,9 @@ class MultiShiftController extends Controller
             $logs = (new AttendanceLog)->getLogsWithInRangeNew($params);
 
             $data = $logs[$row->system_user_id] ?? [];
+
+            $data = collect($data)->unique('LogTime')->values();
+
             if (!count($data)) {
                 if ($row->schedule->shift && $row->schedule->shift["id"] > 0) {
                     $data1 = [
@@ -152,11 +155,6 @@ class MultiShiftController extends Controller
             $logsJson = [];
             $i = 0;
 
-            $totalMinutes = 0;
-            $logsJson = [];
-
-            $totalMinutes = 0;
-            $logsJson = [];
             $previousOut = null;
 
             for ($i = 0; $i < count($data); $i += 2) {
@@ -171,7 +169,43 @@ class MultiShiftController extends Controller
 
                 $minutes = 0;
 
-                if ($validIn && $validOut) {
+
+
+                $validInTime = $validIn
+                    ? $this->getLogTime(
+                        $currentLog,
+                        ["In", "Auto", "Option", "in", "auto", "option", "Mobile", "mobile"],
+                        ["Manual", "manual", "MANUAL"]
+                    )
+                    : "---";
+
+                $validOutTime = $validOut
+                    ? $this->getLogTime(
+                        $nextLog,
+                        ["Out", "Auto", "Option", "out", "auto", "option", "Mobile", "mobile"],
+                        ["Manual", "manual", "MANUAL"]
+                    )
+                    : "---";
+
+
+               
+
+
+                $logEntry = [
+                    "in" => $validInTime,
+                    "out" => $validOutTime,
+                    "device_in" => $validIn
+                        ? $this->getDeviceName($currentLog ?? [], ["In", "Auto", "Option", "in", "auto", "option", "Mobile", "mobile"])
+                        : "---",
+                    "device_out" => $validOut
+                        ? $this->getDeviceName($nextLog ?? [], ["Out", "Auto", "Option", "out", "auto", "option", "Mobile", "mobile"])
+                        : "---",
+
+                    "total_minutes" => 0,
+                ];
+
+
+                 if ($validIn && $validOut && $validInTime !== "---" && $validOutTime !== "---") {
                     $parsedIn = strtotime($currentTime);
                     $parsedOut = strtotime($nextTime);
 
@@ -184,25 +218,8 @@ class MultiShiftController extends Controller
                     $totalMinutes += $minutes;
                 }
 
-                $logsJson[] = [
-                    "in" => $validIn
-                        ? $this->getLogTime(
-                            $currentLog,
-                            ["In", "Auto", "Option", "in", "auto", "option", "Mobile", "mobile"],
-                            ["Manual", "manual", "MANUAL"]
-                        )
-                        : "---",
-                    "out" => $validOut
-                        ? $this->getLogTime(
-                            $nextLog,
-                            ["Out", "Auto", "Option", "out", "auto", "option", "Mobile", "mobile"],
-                            ["Manual", "manual", "MANUAL"]
-                        )
-                        : "---",
-                    "device_in" => $this->getDeviceName($currentLog),
-                    "device_out" => $this->getDeviceName($nextLog ?? []),
-                    "total_minutes" => $this->minutesToHours($minutes),
-                ];
+                $logsJson[] = $logEntry;
+
 
                 $item["employee_id"] = $row->system_user_id;
                 $item["total_hrs"] = $this->minutesToHours($totalMinutes);
@@ -221,10 +238,16 @@ class MultiShiftController extends Controller
                 }
             }
 
+            $lastLog = end($logsJson);
+
             $item["logs"] = json_encode($logsJson, JSON_PRETTY_PRINT);
+
+            // return $item["logs"];
 
             $items[] = $item;
         }
+
+        // return json_encode($items, JSON_PRETTY_PRINT);
 
         try {
 
@@ -308,15 +331,23 @@ class MultiShiftController extends Controller
 
     private function getLogTime($log, $validFunctions, $manualDeviceID)
     {
-        return $log && $log['time'] ? $log['time'] : "---";
+        // return $log && $log['time'] ? $log['time'] : "---";
+
+
+        return isset($log["device"]["function"]) && in_array($log["device"]["function"], $validFunctions) ? $log['time'] : "---";
+
         // return isset($log["device"]["function"]) && in_array($log["device"]["function"], $validFunctions)
         //     || (isset($log["DeviceID"]) && $log["DeviceID"] == $manualDeviceID)
         //     ? $log['time']
         //     : "---";
     }
 
-    private function getDeviceName($log)
+    private function getDeviceName($log, $validFunctions)
     {
-        return $log['device']['short_name'] ?? $log['device']['name'] ?? "---";
+        if ($log['device']['name'] == "---") {
+            return "Manual";
+        }
+
+        return isset($log["device"]["function"]) && in_array($log["device"]["function"], $validFunctions) ? $log["device"]["function"] : "---";
     }
 }

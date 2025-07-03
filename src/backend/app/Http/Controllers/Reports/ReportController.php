@@ -707,22 +707,29 @@ class ReportController extends Controller
 
         $queryResults = [];
 
+        // Get today's date
+        $today = new DateTime();
+        // Get the last day of the current month
+        $endOfMonth = new DateTime('last day of this month');
+
+        // Calculate remaining days (excluding today)
+        $remainingDays = (int)$today->diff($endOfMonth)->format('%a');
 
         foreach ($months as $month) {
             $found = false;
+
+            $monthFormatted = str_pad($month['month'], 2, '0', STR_PAD_LEFT);
+            $month_year = date("M Y", strtotime("{$month['year']}-{$monthFormatted}-01"));
+
             foreach ($query as $result) {
-
-                $monthFormatted = str_pad($month['month'], 2, '0', STR_PAD_LEFT);
-
-                $month_year = date("M Y", strtotime("{$month['year']}-{$monthFormatted}-01"));
-
                 if ($result->year == $month['year'] && $result->month == $month['month']) {
                     $found = true;
+                    $isCurrentMonth = ($month['year'] == date('Y') && $month['month'] == date('n'));
                     $queryResults[] = (object) [
                         'year' => $month['year'],
                         'month' => $month['month'],
                         'present_count' => $result->present_count,
-                        'absent_count' => $result->absent_count,
+                        'absent_count' => $isCurrentMonth ? ($result->absent_count - $remainingDays) : $result->absent_count,
                         'week_off_count' => $result->week_off_count,
                         'other_count' => $result->other_count,
                         'month_year' => date("M y", strtotime($month_year))
@@ -839,7 +846,73 @@ class ReportController extends Controller
         }
     }
 
-    public function currentMonthPerformanceReport(Request $request)
+    public function lastSixMonthsHoursReport(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'company_id' => 'required|integer|min:1',
+            'employee_id' => 'required|integer|min:1',
+        ]);
+
+        $companyId = $request->input('company_id');
+        $employeeId = $request->input('employee_id');
+
+        try {
+            $report = [];
+
+            for ($i = 0; $i < 6; $i++) {
+                $month = date('m', strtotime("-$i month"));
+                $year = date('Y', strtotime("-$i month"));
+
+                // Base query for the given month
+                $baseQuery = DB::table('attendances')
+                    ->where('company_id', $companyId)
+                    ->where('employee_id', $employeeId)
+                    ->whereMonth('date', $month)
+                    ->whereYear('date', $year);
+
+                // Fetch and sum hours
+                $totalHours = (clone $baseQuery)->where('status', 'P')->pluck('total_hrs')->toArray();
+                $totalPerformedHours = $this->sumTimeValues($totalHours);
+
+                $totalLateComings = (clone $baseQuery)->where('late_coming', '!=', '---')->pluck('late_coming')->toArray();
+                $lateComingHours = $this->sumTimeValues($totalLateComings);
+
+                $totalEarlyGoings = (clone $baseQuery)->where('early_going', '!=', '---')->pluck('early_going')->toArray();
+                $earlyGoingHours = $this->sumTimeValues($totalEarlyGoings);
+
+                $totalOtHours = (clone $baseQuery)->where('ot', '!=', '---')->pluck('ot')->toArray();
+                $otHours = $this->sumTimeValues($totalOtHours);
+
+                $monthLabel = date('M Y', strtotime("-$i month"));
+
+                $report[$monthLabel] = [
+                    'total_performed' => [
+                        "hours" => $this->formatMinutesToTime($totalPerformedHours),
+                        "days" => count($totalHours)
+                    ],
+                    'late_coming' => [
+                        "hours" => $this->formatMinutesToTime($lateComingHours),
+                        "days" => count($totalLateComings)
+                    ],
+                    'early_going' => [
+                        "hours" => $this->formatMinutesToTime($earlyGoingHours),
+                        "days" => count($totalEarlyGoings)
+                    ],
+                    'overtime' => [
+                        "hours" => $this->formatMinutesToTime($otHours),
+                        "days" => count($totalOtHours)
+                    ]
+                ];
+            }
+
+            return response()->json($report);
+        } catch (\Exception $e) {
+            return response()->json([], 500);
+        }
+    }
+
+    public function previousMonthPerformanceReport(Request $request)
     {
         $companyId = $request->input('company_id', 0);
         $employeeId = $request->input('employee_id', 0);
@@ -875,6 +948,59 @@ class ReportController extends Controller
                 $stats["O"] += 1;
             } else {
                 $arr[$dateKey] = "orange";
+                $stats["OTHERS_COUNT"] += 1;
+            }
+        }
+
+        return ["events" => $arr, "stats" => $stats];
+    }
+
+    public function currentMonthPerformanceReport(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+        $employeeId = $request->input('employee_id', 0);
+        $currentMonth = $request->input('date', date('m'));
+
+        $result = Attendance::where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->whereMonth('date', $currentMonth)
+            ->select('date', 'status')
+            ->orderBy('date')
+            ->groupBy('date', 'status')
+            ->get();
+
+        $arr = [];
+        $stats = [
+            "P" => 0,
+            "A" => 0,
+            "O" => 0,
+            "L" => 0,
+            "OTHERS_COUNT" => 0,
+        ];
+
+        foreach ($result as $item) {
+            $itemDate = date("Y-m-d", strtotime($item->date));
+
+            if (in_array($item->status, ['P', "LC", "EG"])) {
+                $arr[$itemDate] = "green";
+                $stats["P"] += 1;
+            } else if (in_array($item->status, ['A', "M"])) {
+                $arr[$itemDate] = "";
+                if ($itemDate <= date("Y-m-d")) {
+                    $stats["A"] += 1;
+                    $arr[$itemDate] = "red";
+                }
+            } else if (in_array($item->status, ['L'])) {
+                $arr[$itemDate] = "";
+                if ($itemDate <= date("Y-m-d")) {
+                    $stats["L"] += 1;
+                    $arr[$itemDate] = "orange";
+                }
+            } else if (in_array($item->status, ['O'])) {
+                $arr[$itemDate] = "primary";
+                $stats["O"] += 1;
+            } else {
+                $arr[$itemDate] = "orange";
                 $stats["OTHERS_COUNT"] += 1;
             }
         }
@@ -1081,5 +1207,41 @@ class ReportController extends Controller
             'ot_value' => round($OTEarning),
             'total_deductions_value' => round($Payroll->totalDeductions),
         ];
+    }
+
+    public function performanceReportShow(Request $request)
+    {
+        $companyId = $request->input('company_id', 0);
+
+        $model = Attendance::where('company_id', $companyId)
+            ->where('employee_id', request("system_user_id"))
+            ->whereMonth('date', date("m"));
+
+        // Get today's date
+        $today = new DateTime();
+        // Get the last day of the current month
+        $endOfMonth = new DateTime('last day of this month');
+
+        // Calculate remaining days (excluding today)
+        $remainingDays = (int)$today->diff($endOfMonth)->format('%a');
+
+        $model->select(
+            DB::raw("COUNT(CASE WHEN status = 'P' THEN 1 END) AS p_count"),
+            DB::raw("COUNT(CASE WHEN status = 'LC' THEN 1 END) AS lc_count"),
+            DB::raw("COUNT(CASE WHEN status = 'EG' THEN 1 END) AS eg_count"),
+            DB::raw("COUNT(CASE WHEN status = 'A' THEN 1 END) AS a_count"),
+            DB::raw("COUNT(CASE WHEN status = 'M' THEN 1 END) AS m_count"),
+            DB::raw("COUNT(CASE WHEN status = 'O' THEN 1 END) AS o_count"),
+            DB::raw("COUNT(CASE WHEN status = 'L' THEN 1 END) AS l_count"),
+            DB::raw("COUNT(CASE WHEN status = 'V' THEN 1 END) AS v_count"),
+            DB::raw("COUNT(CASE WHEN status = 'H' THEN 1 END) AS h_count"),
+        );
+
+        $first = $model->first();
+
+        $first->a_count = ($first->a_count + $first->m_count) -  $remainingDays;
+        $first->other_count = $first->l_count + $first->v_count + $first->h_count + $first->lc_count + $first->eg_count;
+
+        return $first;
     }
 }

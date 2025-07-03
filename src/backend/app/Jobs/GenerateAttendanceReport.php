@@ -2,18 +2,13 @@
 
 namespace App\Jobs;
 
-use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 
 class GenerateAttendanceReport implements ShouldQueue
 {
@@ -24,6 +19,7 @@ class GenerateAttendanceReport implements ShouldQueue
         public $employee,
         public $requestPayload,
         public $template,
+        public $shift_type_id,
     ) {}
 
     public function handle()
@@ -41,6 +37,7 @@ class GenerateAttendanceReport implements ShouldQueue
             'total_missing' => $model->clone()->where('status', 'M')->count(),
             'total_leave' => $model->clone()->where('status', 'L')->count(),
             'total_holiday' => $model->clone()->where('status', 'H')->count(),
+            'total_late' => $model->clone()->where('late_coming', '!=', '---')->count(),
             'total_early' => $model->clone()->where('early_going', '!=', '---')->count(),
             'total_hours' => $this->getTotalHours(array_column($collection->toArray(), 'total_hrs')),
             'total_ot_hours' => $this->getTotalHours(array_column($collection->toArray(), 'ot')),
@@ -52,25 +49,33 @@ class GenerateAttendanceReport implements ShouldQueue
             'company' => $this->company,
             'info' => $info,
             "employee" => $this->employee,
-            "shift_type_id" => $this->employee->schedule->shift_type_id ?? 0
+            "shift_type_id" => $this->shift_type_id ?? 0,
+
+            "from_date" => $this->requestPayload["from_date"],
+            "to_date" => $this->requestPayload["to_date"],
         ];
 
         $company_id = $this->requestPayload["company_id"];
-        $status_slug = $this->requestPayload["status_slug"];
         $employeeId = $this->employeeId;
         $template = $this->template;
 
-        $filesPath = public_path("reports/companies/$company_id/$template/$status_slug");
+        $month = date("M", strtotime($this->requestPayload["from_date"]));
 
-        if (!file_exists($filesPath)) {
-            mkdir($filesPath, 0777, true);
+        $reportsDirectory = public_path("reports/$company_id/$template");
+
+        if (!file_exists($reportsDirectory)) {
+            mkdir($reportsDirectory, 0777, true);
         }
 
         $output = Pdf::loadView("pdf.attendance_reports.$template-new", $arr)->output();
 
-        $file_name = "$employeeId.pdf";
+        $fileName = "{$month}_{$employeeId}.pdf";
 
-        file_put_contents($filesPath . '/' . $file_name, $output);
+        $filePath = $reportsDirectory . DIRECTORY_SEPARATOR . $fileName;
+
+        echo "\nfile created at $filePath\n";
+
+        file_put_contents($filePath, $output);
     }
 
 
@@ -142,7 +147,7 @@ class GenerateAttendanceReport implements ShouldQueue
 
         $model->where('employee_id', $this->employeeId);
 
-        $model->whereBetween('date', [date("Y-m-01"), date("Y-m-31")]);
+        $model->whereBetween('date', [$this->requestPayload["from_date"], $this->requestPayload["to_date"]]);
 
         $model->orderBy('date', 'asc');
 

@@ -16,23 +16,43 @@ class Kernel extends ConsoleKernel
 
     protected function schedule(Schedule $schedule)
     {
+
+        $schedule->command('whatsapp:proxy-health-check')
+            ->everyTwoHours()
+            ->withoutOverlapping();
+
+        $schedule->command('monitor:disk')->dailyAt('08:00');
+
+        $schedule->command('birthday:wish')->dailyAt('00:00');
+
+        $schedule->command('delete_old_records')->monthlyOn(1, '00:00');
+
+        $schedule
+            ->command('sync_datetime_to_device')
+            ->dailyAt('02:45')
+            ->runInBackground();
+
         $schedule
             ->command('task:sync_attendance_logs')
             ->everyMinute();
 
         $schedule
-            ->command('task:sync_attendance_camera_logs')
+            ->command('task:sync_attendance_ox900_logs') //OX900
             ->everyMinute();
 
         $schedule
             ->command('task:sync_alarm_logs')
             ->everyMinute();
 
-        (new DeviceController())->deviceAccessControllAllwaysOpen($schedule);
+        // (new DeviceController())->deviceAccessControllAllwaysOpen($schedule);
 
         $schedule
             ->command('task:update_company_ids')
             ->everyMinute();
+
+        // $schedule
+        //     ->command('pm2:stopped-ae-processes')
+        //     ->everyFourHours();
 
         $companyIds = Company::pluck("id");
 
@@ -44,7 +64,12 @@ class Kernel extends ConsoleKernel
                 ->hourly()
                 ->runInBackground();
 
-            $schedule->command("pdf:generate $companyId")->dailyAt('03:35')->runInBackground();
+            $schedule->command("pdf:generate $companyId")->monthlyOn(1, '03:35')->runInBackground();
+
+            $schedule->command("pdf:generate $companyId")
+                ->dailyAt('03:35')
+                ->when(fn() => now()->day == now()->endOfMonth()->day)
+                ->runInBackground();
 
             $schedule->command("pdf:access-control-report-generate {$companyId} " . date("Y-m-d", strtotime("yesterday")))
                 ->dailyAt('04:35')->runInBackground();
@@ -60,13 +85,16 @@ class Kernel extends ConsoleKernel
                 ->runInBackground();
 
             $schedule
+                ->command("task:sync_auto_shift $companyId " . date("Y-m-d", strtotime("yesterday")))
+                ->hourly()
+                ->between('03:00', '10:00')
+                ->runInBackground();
+
+            $schedule
                 ->command("task:sync_except_auto_shift $companyId " . date("Y-m-d"))
                 ->everyThirtyMinutes()
                 ->runInBackground();
 
-            $schedule
-                ->command("render:night_shift {$companyId} " . date("Y-m-d", strtotime("yesterday")))
-                ->everyTenMinutes();
 
             $schedule->command("task:sync_multi_shift {$companyId} " . date("Y-m-d"))
                 ->everyThirtyMinutes()
@@ -74,9 +102,13 @@ class Kernel extends ConsoleKernel
                 ->runInBackground();
 
             $schedule->command("task:sync_multi_shift_dual_day {$companyId} " . date("Y-m-d", strtotime("yesterday")) . " true")
-                ->everyThirtyMinutes()
+                // ->everyThirtyMinutes()
                 ->dailyAt('5:20')
                 ->runInBackground();
+
+            // $schedule->command("task:sync_multishift_includes_two_datesonly")
+            //     ->everySixHours()
+            //     ->runInBackground();
 
             // $schedule
             //     ->command("task:sync_multi_shift {$companyId} " . date("Y-m-d", strtotime("yesterday")))
@@ -103,21 +135,11 @@ class Kernel extends ConsoleKernel
                 ->everyMinute()
                 ->runInBackground();
 
-            //whatsapp reports 
-            // $array = ['All', "P", "A", "M", "ME"];
-            $array = ['All'];
-
-            foreach ($array as $status) {
-
-                $schedule
-                    ->command("task:generate_daily_report {$companyId}  {$status}")
-                    ->dailyAt('03:45');
-            }
-
             $schedule
-                ->command("task:send_whatsapp_notification {$companyId}")
-                ->dailyAt('09:00')
+                ->command("task:generate_daily_report {$companyId}")
+                ->dailyAt('03:45')
                 ->runInBackground();
+
 
             $schedule
                 ->command("task:sync_leaves $companyId")
@@ -139,12 +161,15 @@ class Kernel extends ConsoleKernel
                 //->withoutOverlapping()
                 ->runInBackground(); //->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
 
-
-
             $schedule
                 ->command("task:sync_visitor_set_expire_dates $companyId")
                 ->everyFiveMinutes()
                 ->runInBackground();
+
+            // $schedule
+            //     ->command("task:report_notification_crons $companyId")
+            //     ->everyMinute()
+            //     ->runInBackground();
         }
 
         $schedule
@@ -163,6 +188,10 @@ class Kernel extends ConsoleKernel
             // info("Cache cleared successfully at " . date("d-M-y H:i:s"));
         })->hourly();
 
+        $schedule
+            ->command('task:render_missing')
+            ->dailyAt('02:15');
+
         $payroll_settings = PayrollSetting::get(["id", "date", "company_id"]);
 
         foreach ($payroll_settings as $payroll_setting) {
@@ -173,8 +202,11 @@ class Kernel extends ConsoleKernel
                 ->command("task:payslip_generation $payroll_setting->company_id")
                 ->monthlyOn((int) $payroll_date, "00:00");
         }
+
         //whatsapp and email notifications
-        $models = ReportNotification::get();
+        $models = ReportNotification::where("type", "attendance")
+            // ->orWhere("type", "automation")
+            ->get();
 
         foreach ($models as $model) {
 
@@ -182,35 +214,16 @@ class Kernel extends ConsoleKernel
                 ->command("multi:daily_report " . $model->company_id . " " . $model->branch_id)
                 ->dailyAt('3:45');
 
-            $command_name = "task:report_notification_crons";
+            // if ($model->type == "alert") {
+            //     $command_name = "alert:absents";
+            // }
 
-            if ($model->type == "alert") {
-                $command_name = "alert:absents";
-            }
-
-            $scheduleCommand = $schedule->command("$command_name " . $model->id . ' ' . $model->company_id)
-                ->runInBackground();
-
-            if ($model->frequency == "Daily") {
-                $scheduleCommand->dailyAt($model->time);
-            }
-        }
-
-        $schedule
-            ->command('task:render_missing')
-            ->dailyAt('02:15');
-
-        if (env("APP_ENV") == "production") {
-            // $schedule
-            //     ->command('task:db_backup')
-            //     ->dailyAt('6:00')
-            //     ->emailOutputOnFailure(env("ADMIN_MAIL_RECEIVERS"));
-
-
+            $companyId = $model->company_id;
 
             $schedule
-                ->command('restart_sdk')
-                ->dailyAt('4:00');
+                ->command("task:report_notification_crons $companyId")
+                ->dailyAt($model->time)
+                ->runInBackground();
         }
     }
 

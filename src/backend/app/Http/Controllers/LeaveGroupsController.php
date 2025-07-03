@@ -7,6 +7,7 @@ use App\Http\Requests\Leavegroups\UpdateRequest;
 use App\Models\EmployeeLeaves;
 use App\Models\LeaveCount;
 use App\Models\LeaveGroups;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -44,32 +45,42 @@ class LeaveGroupsController extends Controller
     {
         return $this->getDefaultModelSettings($request)->paginate($request->per_page ?? 100);
     }
+
+
     public function show($id, Request $request)
     {
-
         $year = date("Y");
-        $data = LeaveGroups::with(["leave_count.leave_type"])->whereId($id)->get();
+
+        $leaveGroup = LeaveGroups::with(['leave_count.leave_type'])->findOrFail($id);
+
+        // Check if employee_id is provided
         if ($request->filled('employee_id')) {
+            $employeeId = $request->employee_id;
+            $companyId = $request->company_id;
 
-            foreach ($data as $key => $value) {
+            foreach ($leaveGroup->leave_count as $leaveCount) {
+                // Fetch all leaves of the current leave type for the employee
+                $leaves = EmployeeLeaves::where('company_id', $companyId)
+                    ->where('leave_type_id', $leaveCount->leave_type_id)
+                    ->where('employee_id', $employeeId)
+                    ->where('status', 1)
+                    ->get(['start_date', 'end_date']);
 
-                foreach ($value->leave_count as $key2 => $value2) {
+                // Calculate total days used
+                $daysUsed = $leaves->sum(function ($leave) {
+                    $start = Carbon::parse($leave->start_date);
+                    $end = Carbon::parse($leave->end_date);
+                    return $start->diffInDays($end) + 1;
+                });
 
-                    $leaves_count = EmployeeLeaves::where('company_id', '=', $request->company_id)
-                        ->where('leave_type_id', '=', $value2->leave_type_id)
-                        ->where('employee_id', '=', $request->employee_id)
-                        ->where('status', '=', 1)->count();
-
-                    $value2->employee_used = $leaves_count;
-                    $value2->year = $year;
-                }
+                $leaveCount->employee_used = $daysUsed;
+                $leaveCount->year = $year;
             }
-
-            return $data;
-        } else {
-            return $data;
         }
+
+        return response()->json([$leaveGroup]);
     }
+
 
     function list(Request $request)
     {

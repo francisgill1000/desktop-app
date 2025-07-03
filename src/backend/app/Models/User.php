@@ -84,7 +84,7 @@ class User extends Authenticatable
     }
     public function employee()
     {
-        return $this->hasOne(Employee::class);
+        return $this->hasOne(Employee::class)->with(["schedule_active"]);
     }
 
     public function role()

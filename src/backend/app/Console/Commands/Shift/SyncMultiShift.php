@@ -5,6 +5,7 @@ namespace App\Console\Commands\Shift;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWhatsappMessageJob;
 use App\Models\Attendance;
+use App\Models\AttendanceLog;
 use App\Models\Shift;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -63,13 +64,13 @@ class SyncMultiShift extends Command
             ->join('shifts as sh', 'sh.id', '=', 'se.shift_id')
             ->select('al.UserID')
             ->where('sh.shift_type_id', "=", 2) // this condition not workin
-            ->where('al.checked', $this->argument("checked", false) ? true : false)
+            ->where('al.checked', in_array(strtolower($this->argument('checked')), ['1', 'true', 'yes'], true) ? true : false)
             // ->where('al.UserID', 619)
             ->where('se.company_id', $id)
             ->where('al.company_id', $id)
-            ->whereDate('al.log_date', $date)
+            ->whereBetween("al.log_date", ["$date 00:00:00", "$date 23:59:59"])
             ->orderBy("al.LogTime")
-            // ->take(50)
+            ->take(1)
             ->pluck("al.UserID")
             ->toArray();
 
@@ -124,7 +125,7 @@ class SyncMultiShift extends Command
             ->where('al.company_id', $id)
             ->where('e.company_id', $id)
             ->whereIn('al.UserID', $filtered_all_new_employee_ids)
-            ->whereBetween('al.log_date', [$date, date("Y-m-d", strtotime($date . "+1 day"))])
+            ->whereBetween('al.log_date', ["$date 00:00:00", date("Y-m-d", strtotime($date . "+1 day"))])
             ->distinct('al.LogTime', 'al.UserID', 'e.company_id')
             ->orderBy("al.LogTime")
             ->get()
@@ -212,7 +213,7 @@ class SyncMultiShift extends Command
             // Update attendance logs
             $result = DB::table('attendance_logs')
                 ->whereIn('UserID', $filtered_all_new_employee_ids)
-                ->where('log_date', $date)
+                ->whereBetween("log_date", ["$date 00:00:00", "$date 23:59:59"])
                 ->where('company_id', $id)
                 ->update([
                     'checked' => true,
@@ -230,7 +231,7 @@ class SyncMultiShift extends Command
             ->where('e.status', 1)
             ->where('al.company_id', $id)
             ->where('e.company_id', $id)
-            ->whereDate('al.log_date', $date)
+            ->whereBetween("al.log_date", ["$date 00:00:00", "$date 23:59:59"])
             ->where('al.checked', false)
             ->count();
         // $this->info(json_encode($items));
@@ -325,7 +326,7 @@ class SyncMultiShift extends Command
                 }
             } else {
 
-                if ($currentLog->log_date == $date) {
+                if (date("Y-m-d", strtotime($currentLog->log_date)) == $date) {
                     $pairedLogs[] = [
                         "in" => date("H:i", strtotime($currentLog->LogTime)),
                         "out" => "---",

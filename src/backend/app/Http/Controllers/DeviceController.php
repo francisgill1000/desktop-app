@@ -467,7 +467,7 @@ class DeviceController extends Controller
 
             $model->where('LogTime', '>', date('Y-m-01'));
             $model->where('LogTime', '<=', date('Y-m-d 23:59:59'));
-            $model->orderBy('LogTime', 'DESC');
+            $model->orderBy('log_date_time', 'DESC');
 
             return $model->paginate(request("per_page", 10));
         });
@@ -701,19 +701,19 @@ class DeviceController extends Controller
         try {
             $record = $Device->update($request->validated());
 
-            //update to Device 
+            //update to Device
             if ($request->model_number == 'OX-900') {
 
                 $status = $request->function == 'option'  ? 'true' : 'false';
-                $json = '{             
-             
-                 
+                $json = '{
+
+
                 "custom_enable": false,
                 "function_keys": [],
-                 
-                        "enable":  ' . $status . ' 
-                        
-                         
+
+                        "enable":  ' . $status . '
+
+
                     }';
 
                 // return  $json;
@@ -1239,7 +1239,7 @@ class DeviceController extends Controller
                         if ($company_id == 0) {
 
 
-                            //update missing logs - By Date - Morning 
+                            //update missing logs - By Date - Morning
                             $requestArray = array(
                                 'device_id' => $companyDevice_id,
                                 'date' => date("Y-m-d"),
@@ -1250,7 +1250,7 @@ class DeviceController extends Controller
                             (new AttendanceLogMissingController())->GetMissingLogs($renderRequest);
 
 
-                            // // update missing logs - By Recent Serial Number 
+                            // // update missing logs - By Recent Serial Number
                             // $requestArray = array(
                             //     'device_id' => $companyDevice_id,
                             //     'date' => date("Y-m-d"),
@@ -1278,7 +1278,7 @@ class DeviceController extends Controller
                 }
             }
             ////$company_id = $Device["company_id"];
-        } //for 
+        } //for
 
         $array_unique = array_unique($companiesIds);
         // Re-indexing the array to maintain a clean index sequence
@@ -1307,7 +1307,7 @@ class DeviceController extends Controller
         }
 
 
-        //get offline devices list 
+        //get offline devices list
         $offlineDevices = Device::with(["company"])->where("device_type", "!=", "Mobile")
             ->when($company_id > 0, fn($q) => $q->where('company_id', $company_id))
             ->where("device_id", "!=", "Manual")
@@ -1521,7 +1521,7 @@ class DeviceController extends Controller
                     }
 
                     // $this->sendWhatsappNotification($message, '971554501483');
-                    // $this->sendWhatsappNotification($message, '971553303991'); 
+                    // $this->sendWhatsappNotification($message, '971553303991');
 
 
                     $this->sendNotification($notification, $company, $offlineDevicesCount, $devicesLocations, "", $company->devices);

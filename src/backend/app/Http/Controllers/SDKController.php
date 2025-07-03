@@ -166,7 +166,7 @@ class SDKController extends Controller
         try {
             $cameraResponse1 = $this->filterCameraModel1Devices($request);
             $cameraResponse2 = $this->filterCameraModel2Devices($request);
-            if ($cameraResponse2 == '')
+            if ($cameraResponse2 == "")
                 $cameraResponse2 = [];
 
             $deviceResponse = $cameraResponse2;
@@ -188,7 +188,7 @@ class SDKController extends Controller
         try {
             $cameraResponse1 = $this->filterCameraModel1Devices($request);
             $cameraResponse2 = $this->filterCameraModel2Devices($request);
-            if ($cameraResponse2 == '')
+            if ($cameraResponse2 == "")
                 $cameraResponse2 = [];
             $deviceResponse = $cameraResponse2;
         } catch (\Exception $e) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EmployeeLeaves\StoreRequest;
 use App\Http\Requests\EmployeeLeaves\UpdateRequest;
+use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\EmployeeLeaves;
 use App\Models\EmployeeLeaveTimeline;
@@ -227,17 +228,20 @@ class EmployeeLeavesController extends Controller
     {
         $model = EmployeeLeaves::find($leaveId);
 
+        $company_id = $request->company_id;
+        $employee_id = $model->employee_id;
+
         if (!$model) {
             return $this->response('Employee Leave data is not available.', null, false);
         }
 
-        $lastAdmin = User::where("company_id", $model->company_id)
+        $lastAdmin = User::where("company_id", $company_id)
             ->where("order", "<", $request->order)
             ->orderBy("order", "desc")
             ->value("order") ?? 0;
 
         if ($model->order == -1) {
-            $lastAdmin = $this->getLastAdminInOrder($request->company_id);
+            $lastAdmin = $this->getLastAdminInOrder($company_id);
         } else if ($model->order == 0) {
             $model->status = 1;
         }
@@ -252,13 +256,21 @@ class EmployeeLeavesController extends Controller
 
         if ($record) {
             if ($model->order == 0) {
-                $employee = Employee::where(["company_id" => $model->company_id, "employee_id" => $model->employee_id])->first();
+
+                $employee = Employee::where(["company_id" => $company_id, "employee_id" => $employee_id])
+                    ->withOut(["branch", "department", "schedule", "designation", "sub_department", "user"])
+                    ->first("system_user_id");
+
+                Attendance::where(["company_id" => $company_id, "employee_id" => $employee->system_user_id])
+                    ->whereBetWeen("date", [$model->start_date, $model->end_date])
+                    ->update(["status" => "L"]);
+
                 Notification::create([
                     "data" => "Leave application has been $status_text",
                     "action" => "Leave Status",
                     "model" => "EmployeeLeaves",
                     "user_id" => $employee->user_id ?? 0,
-                    "company_id" => $model->company_id,
+                    "company_id" => $employee_id,
                     "redirect_url" => "leaves"
                 ]);
             }
@@ -278,8 +290,6 @@ class EmployeeLeavesController extends Controller
         } else {
             return $this->response("Employee Leave not $status_text.", null, false);
         }
-        return;
-        // return $this->processLeaveStatus($request, $leaveId, 1, "approved");
     }
 
     public function rejectLeave(Request $request, $leaveId)
@@ -381,7 +391,7 @@ class EmployeeLeavesController extends Controller
 
     public function getLeavesForNextThirtyDaysMonth(Request $request)
     {
-       
+
 
         $companyId = $request->input('company_id', 0);
         $today = date("Y-m-d");
@@ -394,8 +404,8 @@ class EmployeeLeavesController extends Controller
         return EmployeeLeaves::where('company_id', $companyId)
             ->whereBetween('start_date', [$today, $nextThirtyDays])
             ->where('status', 1)
-            ->with(["leave_type","employee.leave_group"])
-            ->get(["start_date", "end_date","employee_id"])
+            ->with(["leave_type", "employee.leave_group"])
+            ->get(["start_date", "end_date", "employee_id"])
             ->toArray();
     }
 }

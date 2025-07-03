@@ -230,7 +230,7 @@ class Attendance extends Model
                 function ($q) use ($company_id) {
                     $q->where('company_id', $company_id);
 
-                    $showTabs = json_decode(request("showTabs"), true);
+                    $showTabs = json_decode(request("showTabs") ?? '[]', true);
 
                     $filteredTabs = array_filter($showTabs, fn($value) => $value === true);
 

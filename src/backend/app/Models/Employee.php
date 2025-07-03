@@ -41,10 +41,12 @@ class Employee extends Model
     }
     public function schedule_active()
     {
-        return $this->hasOne(ScheduleEmployee::class, "employee_id", "system_user_id")
-            ->where('from_date', '<=', date('Y-m-d'))
-            ->where('to_date', '>=', date('Y-m-d'))
-            ->orderBy('from_date', 'desc')
+        return $this->hasOne(ScheduleEmployee::class, 'employee_id', 'system_user_id')
+            ->whereHas('shift', function ($query) {
+                $query->where('from_date', '<=', date('Y-m-d'))
+                    ->where('to_date', '>=', date('Y-m-d'));
+            })
+            ->orderBy('updated_at', 'desc')
             ->withDefault([
                 "shift_type_id" => "---",
                 "shift_type" => [

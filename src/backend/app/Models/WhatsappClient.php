@@ -14,4 +14,15 @@ class WhatsappClient extends Model
     protected $casts = [
         'accounts' => 'array', // Automatically cast JSON to array
     ];
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+
+    public function contact()
+    {
+        return $this->belongsTo(CompanyContact::class, "company_id", "company_id");
+    }
 }

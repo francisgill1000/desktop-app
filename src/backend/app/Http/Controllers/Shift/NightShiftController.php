@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use DateTime;
 
 class NightShiftController extends Controller
 {
@@ -271,8 +272,57 @@ class NightShiftController extends Controller
                     $item["total_hrs"] = $this->calculatedHours($firstLog['LogTime'], $lastLog['LogTime']);
                 }
 
+
+
                 if ($schedule["isOverTime"] ?? false) {
-                    $item["ot"] = $this->calculatedOT($item["total_hrs"], $lastLogShift["working_hours"], $lastLogShift["overtime_interval"]);
+                    $otTime = $this->calculatedOT($item["total_hrs"], $lastLogShift["working_hours"], $lastLogShift["overtime_interval"]);
+
+                    if ($otTime == "---") {
+                        $otTime = "00:00";
+                    }
+
+                    // Convert "HH:MM" to total minutes
+                    [$otHours, $otMinutes] = explode(':', $otTime);
+                    $totalOtMinutes = ($otHours * 60) + $otMinutes;
+
+                    $in = $item["in"];               // e.g. 08:20
+                    $out = $item["out"];             // e.g. 19:00
+                    $on_duty_time = $shift["on_duty_time"];
+                    $off_duty_time = $shift["off_duty_time"] ?? null;
+
+                    $inTime = new DateTime($in);
+                    $onDutyTime = new DateTime($on_duty_time);
+                    $outTime = new DateTime($out);
+                    $offDutyTime = $off_duty_time ? new DateTime($off_duty_time) : null;
+
+                    if ($shift["overtime_type"] === "Both") {
+                        $item["ot"] = $otTime;
+                    }
+
+                    else if ($shift["overtime_type"] === "After") {
+                        $earlyMinutes = 0;
+                        if ($inTime < $onDutyTime) {
+                            $earlyDiff = $onDutyTime->diff($inTime);
+                            $earlyMinutes = ($earlyDiff->h * 60) + $earlyDiff->i;
+                        }
+
+                        $totalOtMinutes = max(0, $totalOtMinutes - $earlyMinutes);
+                    }
+
+                    else if ($shift["overtime_type"] === "Before") {
+                        $lateMinutes = 0;
+                        if ($offDutyTime && $outTime > $offDutyTime) {
+                            $lateDiff = $outTime->diff($offDutyTime);
+                            $lateMinutes = ($lateDiff->h * 60) + $lateDiff->i;
+                        }
+
+                        $totalOtMinutes = max(0, $totalOtMinutes - $lateMinutes);
+                    }
+
+                    // Convert total minutes back to HH:MM
+                    $otHours = floor($totalOtMinutes / 60);
+                    $otMinutes = $totalOtMinutes % 60;
+                    $item["ot"] = str_pad($otHours, 2, "0", STR_PAD_LEFT) . ":" . str_pad($otMinutes, 2, "0", STR_PAD_LEFT);
                 }
 
                 if ($item["shift_type_id"] == 4) {

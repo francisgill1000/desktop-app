@@ -94,8 +94,29 @@ class Shift extends Model
                     "shift_type_id",
                     "beginning_in",
                     "beginning_out",
+                    "halfday",
+                    "late_time",
+                    "early_time"
                 ]
 
             )->toArray();
+    }
+
+    public static function getShiftTypesByCompany($company_id)
+    {
+        $shiftTypeIds = self::where('company_id', $company_id)
+            ->pluck('shift_type_id')
+            ->unique()
+            ->toArray();
+
+        if (empty($shiftTypeIds)) {
+            return null;
+        }
+
+        if (array_intersect([2, 5], $shiftTypeIds)) {
+            return ['Multi'];
+        }
+
+        return ['General'];
     }
 }

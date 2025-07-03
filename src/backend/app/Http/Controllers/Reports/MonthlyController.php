@@ -16,6 +16,7 @@ use App\Models\ShiftType;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
@@ -30,8 +31,43 @@ class MonthlyController extends Controller
     {
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', 300); // Increase to 5 minutes
-        
+
         $showTabs = json_decode($request->showTabs, true);
+
+        $shift_type = $showTabs['multi'] == true || $showTabs['dual'] == true ? "Multi" : "General";
+
+        $company_id = $request->company_id;
+
+        $from_date = $request->from_date;
+        $to_date = $request->to_date;
+
+        $heading = "Summary";
+
+        $companyPayload = Company::whereId($company_id)
+            ->with('contact:id,company_id,number')
+            ->first(["logo", "name", "company_code", "location", "p_o_box_no", "id", "user_id"]);
+
+        $company = [
+            "logo_raw" => env("BASE_URL") .   '/' . $companyPayload->logo_raw,
+            "name" => $companyPayload->name,
+            "email" => $companyPayload->user->email ?? 'mail not found',
+            "location" => $companyPayload->location,
+            "contact" => $companyPayload->contact->number ?? 'contact not found',
+            "report_type" => $heading,
+            "from_date" => $from_date,
+            "to_date" => $to_date,
+        ];
+
+        if ($request->report_template == 'Template3') {
+
+            $branchId = $request->branch_id;
+
+            if (!$branchId) return "Branch must be selected";
+
+            if ($from_date !== $to_date) return "From Date and To Date must be same for (Daily) report";
+
+            return $this->processTemplate3($shift_type, $company_id, $branchId, $company);
+        }
 
         // only for multi in/out
         if ($showTabs['multi'] == true || $showTabs['dual'] == true) {
@@ -39,8 +75,8 @@ class MonthlyController extends Controller
         }
 
         $file_name = "Attendance Report";
-        if (isset($request->from_date) && isset($request->to_date)) {
-            $file_name = "Attendance Report - " . $request->from_date . ' to ' . $request->to_date;
+        if (isset($from_date) && isset($to_date)) {
+            $file_name = "Attendance Report - " . $from_date . ' to ' . $to_date;
         }
         $file_name = $file_name . '.pdf';
 
@@ -51,8 +87,43 @@ class MonthlyController extends Controller
     {
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', 300); // Increase to 5 minutes
-        
+
         $showTabs = json_decode($request->showTabs, true);
+
+        $shift_type = $showTabs['multi'] == true || $showTabs['dual'] == true ? "Multi" : "General";
+
+        $company_id = $request->company_id;
+
+        $from_date = $request->from_date;
+        $to_date = $request->to_date;
+
+        $heading = "Summary";
+
+        $companyPayload = Company::whereId($company_id)
+            ->with('contact:id,company_id,number')
+            ->first(["logo", "name", "company_code", "location", "p_o_box_no", "id", "user_id"]);
+
+        $company = [
+            "logo_raw" => env("BASE_URL") .   '/' . $companyPayload->logo_raw,
+            "name" => $companyPayload->name,
+            "email" => $companyPayload->user->email ?? 'mail not found',
+            "location" => $companyPayload->location,
+            "contact" => $companyPayload->contact->number ?? 'contact not found',
+            "report_type" => $heading,
+            "from_date" => $from_date,
+            "to_date" => $to_date,
+        ];
+
+        if ($request->report_template == 'Template3') {
+
+            $branchId = $request->branch_id;
+
+            if (!$branchId) return "Branch must be selected";
+
+            if ($from_date !== $to_date) return "From Date and To Date must be same for (Daily) report";
+
+            return $this->processTemplate3($shift_type, $company_id, $branchId, $company, "D");
+        }
 
         // only for multi in/out
         if ($showTabs['multi'] == true || $showTabs['dual'] == true) {
@@ -131,7 +202,7 @@ class MonthlyController extends Controller
 
     public function multi_in_out_monthly_download_pdf(Request $request)
     {
-        if (request("company_id", 0) == 22) {
+        if (request("shift_type_id", 0) == 2) {
             return $this->PDFMerge("D");
         }
 
@@ -1047,7 +1118,7 @@ class MonthlyController extends Controller
 
         $template = request("report_template", 0);
 
-        $filesDirectory = public_path("reports/companies/$company_id/$template/Summary");
+        $filesDirectory = public_path("reports/$company_id/$template");
 
         // Check if the directory exists
         if (!is_dir($filesDirectory)) {
@@ -1056,11 +1127,15 @@ class MonthlyController extends Controller
 
         $pdfFiles = glob($filesDirectory . '/*.pdf');
 
+        $month = date("M", strtotime(request("from_date", date("Y-m-d"))));
+
         if (count($employeeIds)) {
             $pdfFiles = [];
             foreach ($employeeIds as $value) {
-                if (glob($filesDirectory . "/$value.pdf")) {
-                    $pdfFiles[] = glob($filesDirectory . "/$value.pdf")[0];
+                $fileName = "{$month}_$value.pdf";
+                $filePath = $filesDirectory . DIRECTORY_SEPARATOR . $fileName;
+                if (glob($filePath)) {
+                    $pdfFiles[] = glob($filePath)[0];
                 }
             }
         }
@@ -1074,5 +1149,115 @@ class MonthlyController extends Controller
         }
 
         return (new Controller)->mergePdfFiles($pdfFiles, $action);
+    }
+
+
+    public function processTemplate3($shift_type, $company_id, $branchId, $company, $action = "I")
+    {
+
+        $from_date = $company["from_date"] ?? date("Y-m-d");
+        $to_date =  $company["to_date"] ?? date("Y-m-d");
+
+        $model = Attendance::query();
+        $model->where('company_id', $company_id);
+        $model->whereBetween("date", [$from_date . " 00:00:00", $to_date . " 23:59:59"]);
+        $model->with(['shift_type', 'last_reason', 'branch']);
+
+        $model->whereHas('employee', function ($q) use ($company_id, $branchId) {
+            $q->where('company_id', $company_id);
+            $q->where('branch_id', $branchId);
+            $q->where('status', 1);
+            $q->whereHas("schedule", function ($q) use ($company_id) {
+                $q->where('company_id', $company_id);
+            });
+        });
+
+        $model->with([
+            'employee' => function ($q) use ($company_id) {
+                $q->where('company_id', $company_id)
+                    ->where('status', 1)
+                    ->select('system_user_id', 'full_name', 'display_name', "department_id", "first_name", "last_name", "profile_picture", "employee_id", "branch_id", "joining_date")
+                    ->with(['department', 'branch'])
+                    ->with([
+                        "schedule" => function ($q) use ($company_id) {
+                            $q->where('company_id', $company_id)
+                                ->select("id", "shift_id", "employee_id")
+                                ->withOut("shift_type");
+                        },
+                        "schedule.shift" => function ($q) use ($company_id) {
+                            $q->where('company_id', $company_id)
+                                ->select("id", "name", "on_duty_time", "off_duty_time");
+                        }
+                    ]);
+            },
+            'device_in' => fn($q) => $q->where('company_id', $company_id),
+            'device_out' => fn($q) => $q->where('company_id', $company_id),
+            'shift' => fn($q) => $q->where('company_id', $company_id),
+            'schedule' => fn($q) => $q->where('company_id', $company_id),
+        ]);
+
+        $attendances = $model->get();
+
+        $count = count($attendances->toArray());
+
+        if (!$count) return;
+
+        $chunks = $attendances->chunk(15); // Split into groups of 15
+
+        $counter = 1;
+
+        $yesterday = date("Y-m-d", strtotime("-1 day"));
+
+        foreach ($chunks as $chunk) {
+
+            $arr = [
+                'shift_type' => $shift_type,
+                'company' => $company,
+                'attendances' => $chunk, // pass pages instead of all attendances
+                'counter' => $counter,
+            ];
+
+            $data = Pdf::loadView('pdf.attendance_reports.summary', $arr)->output();
+            $file_path = "pdf/$yesterday/{$company_id}/{$branchId}/summary_report_$counter.pdf";
+            Storage::disk('local')->put($file_path, $data);
+
+            $counter++;
+        }
+
+        // After generating chunked PDFs for each branch:
+        $filesDirectory = storage_path("app/pdf/$yesterday/{$company_id}/{$branchId}");
+
+        if (!is_dir($filesDirectory)) {
+            echo 'Directory not found';
+        }
+
+        $pdfFiles = glob($filesDirectory . '/*.pdf');
+
+        if (empty($pdfFiles)) {
+            echo 'No PDF files found';
+        }
+
+        $pdf = new \setasign\Fpdi\Fpdi();
+
+        foreach ($pdfFiles as $file) {
+            $pageCount = $pdf->setSourceFile($file);
+
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $tplId = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($tplId);
+
+                $orientation = ($size['width'] > $size['height']) ? 'L' : 'P';
+                $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+                $pdf->useTemplate($tplId);
+            }
+        }
+
+        File::deleteDirectory($filesDirectory);
+
+        if ($action == "I") {
+            return $pdf->Output();
+        }
+
+        return response($pdf->Output("report.pdf", $action = "D"))->header('Content-Type', 'application/pdf');
     }
 }

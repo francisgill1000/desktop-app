@@ -91,12 +91,13 @@ class FiloShiftController extends Controller
 
             $logs = $logs->toArray() ?? [];
 
-            $firstLog = collect($logs)->first(function ($record) use ($key) {
-                return in_array($record["log_type"], ["In", "in", "Auto", "auto", null], true);
+
+            $firstLog = collect($logs)->first(function ($record) {
+                return !in_array(strtolower($record['log_type']), ['out'], true);
             });
 
             $lastLog = collect($logs)->last(function ($record) {
-                return in_array($record["log_type"], ["Out", "out", "Auto", "auto", null], true);
+                return !in_array(strtolower($record['log_type']), ['in'], true);
             });
 
             $schedules = ScheduleEmployee::where("company_id", $params["company_id"])->where("employee_id", $key)->get()->toArray();

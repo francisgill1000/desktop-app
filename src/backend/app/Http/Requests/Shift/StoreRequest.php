@@ -78,6 +78,7 @@ class StoreRequest extends FormRequest
 
             'isAutoShift' => "nullable",
 
+            'overtime_type' => "nullable",
         ];
     }
 }

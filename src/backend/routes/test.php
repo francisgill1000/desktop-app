@@ -449,13 +449,22 @@ Route::get('/testapi1', function (Request $request) {
     (new WhatsappNotificationsLogController())->addAttendanceMessageEmployeeId($items[0]);
     return (new WhatsappNotificationsLogController())->addAttendanceMessageEmployeeId($items[1]);
 
-    return (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
+    // return (new SharjahUniversityAPI())->readAttendanceAfterRender($items);
 });
 Route::get('/handleNotification', function (Request $request) {
 
     $test = new DeviceController();
     return  $test->handleNotification(8);
 });
+
+Route::post('/sharjah-uni-test/login', function (Request $request) {
+    return ["token" => "mytken"];
+});
+
+Route::post('/sharjah-uni-test/InsertAccessLog', function (Request $request) {
+    return $request->all();
+});
+
 Route::get('/test/test/3', function (Request $request) {
 
 

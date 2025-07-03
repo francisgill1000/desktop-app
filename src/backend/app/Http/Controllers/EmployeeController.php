@@ -15,6 +15,7 @@ use App\Http\Requests\Employee\UpdateRequestFromDevice;
 use App\Http\Requests\Employee\UpdateRequest;
 use App\Imports\excelEmployeesData;
 use App\Models\Attendance;
+use App\Models\AttendanceLog;
 use App\Models\Company;
 use App\Models\CompanyBranch;
 use App\Models\CompanyContact;
@@ -162,28 +163,28 @@ class EmployeeController extends Controller
 
         $employee = Employee::where("id", $id)->first();
 
-        if ($request->employee_role_id) {
+        // if ($request->employee_role_id) {
 
-            $user = User::where('id', $employee->user_id)->first();
+        //     $user = User::where('id', $employee->user_id)->first();
 
-            if ($user) {
-                $user->update(['employee_role_id' => $request->employee_role_id, 'role_id' => $request->employee_role_id]);
-            } else {
-                $user = User::create(
-                    [
-                        "user_type" => "employee",
-                        'name' => 'null',
-                        'email' => "---",
-                        'password' => "---",
-                        'company_id' => $employee->company_id,
-                        'employee_role_id' => $request->employee_role_id,
-                        'role_id' => $request->employee_role_id,
-                    ]
-                );
+        //     if ($user) {
+        //         $user->update(['employee_role_id' => $request->employee_role_id, 'role_id' => $request->employee_role_id]);
+        //     } else {
+        //         $user = User::create(
+        //             [
+        //                 "user_type" => "employee",
+        //                 'name' => 'null',
+        //                 'email' => "---",
+        //                 'password' => "---",
+        //                 'company_id' => $employee->company_id,
+        //                 'employee_role_id' => $request->employee_role_id,
+        //                 'role_id' => $request->employee_role_id,
+        //             ]
+        //         );
 
-                $data["user_id"] = $user->id;
-            }
-        }
+        //         $data["user_id"] = $user->id;
+        //     }
+        // }
 
         if ($request->profile_picture && $request->hasFile('profile_picture')) {
             $file = $request->file('profile_picture');
@@ -1826,10 +1827,158 @@ class EmployeeController extends Controller
 
     public function getEncodedProfilePicture()
     {
-        $imageData = file_get_contents(request("url", 'https://randomuser.me/api/portraits/women/45.jpg'));
+        $context = stream_context_create([
+            "ssl" => [
+                "verify_peer" => false,
+                "verify_peer_name" => false,
+            ],
+        ]);
+
+        $imageData = file_get_contents(request("url", 'https://randomuser.me/api/portraits/women/45.jpg'), false, $context);
 
         $md5string = base64_encode($imageData);
 
         return "data:image/png;base64,$md5string";
+    }
+
+    public function attendanceSummary(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_id' => 'required|integer|exists:companies,id',
+            'employee_id' => 'required|integer|exists:employees,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $company_id = $request->company_id;
+        $employee_id = $request->employee_id;
+
+        // Count of each attendance status
+        $statusCounts = Attendance::selectRaw("status, COUNT(*) as total")
+            ->where('company_id', $company_id)
+            ->where('employee_id', $employee_id)
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        // Get current date and last 12 months
+        $now = Carbon::now();
+        $start = $now->copy()->subMonths(11)->startOfMonth();
+
+        // Get Present counts for last 12 months
+        $monthlyPresents = Attendance::selectRaw("TO_CHAR(date, 'Mon YYYY') as month_label, COUNT(*) as total")
+            ->where('company_id', $company_id)
+            ->where('employee_id', $employee_id)
+            ->where('status', 'P')
+            ->whereBetween('date', [$start, $now])
+            ->groupByRaw("TO_CHAR(date, 'Mon YYYY')")
+            ->orderByRaw("TO_DATE(TO_CHAR(date, 'Mon YYYY'), 'Mon YYYY')")
+            ->pluck('total', 'month_label');
+
+
+
+        // Fill missing months
+        $labels = [];
+        $barData = [];
+
+        for ($i = 0; $i < 12; $i++) {
+            $label = $start->copy()->addMonths($i)->format('M Y');
+            $labels[] = date("M", strtotime($label));
+            $barData[] = $monthlyPresents[$label] ?? 0;
+        }
+
+        return response()->json([
+            'attendances' => [
+                ['label' => 'Present', 'value' => $statusCounts['P'] ?? 0, 'icon' => 'mdi-check', 'color' => 'success'],
+                ['label' => 'Leave', 'value' => $statusCounts['L'] ?? 0, 'icon' => 'mdi-calendar', 'color' => 'orange'],
+                ['label' => 'Absent', 'value' => $statusCounts['A'] ?? 0, 'icon' => 'mdi-close', 'color' => 'red'],
+            ],
+            'labels' => $labels,
+            'barChartSeries' => [
+                ['name' => 'Present', 'data' => $barData]
+            ],
+        ]);
+    }
+
+
+    public function avgClockIn(Request $request)
+    {
+        $companyId = $request->input('company_id');
+        $employeeId = $request->input('employee_id');
+
+        // Validate required parameters
+        if (!$companyId || !$employeeId) {
+            return response()->json(['error' => 'Missing required parameters.'], 400);
+        }
+
+        // Define date range (last 10 days including today)
+        $startDate = Carbon::now()->subDays(7)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+
+        // Get logs in date range
+        $logs = AttendanceLog::where('company_id', $companyId)
+            ->where('UserID', $employeeId)
+            ->whereBetween('LogTime', [$startDate, $endDate])
+            ->orderBy("LogTime")
+            ->get(['LogTime']);
+
+        // Group logs by date
+        $groupedLogs = $logs->groupBy(function ($log) {
+            return Carbon::parse($log->LogTime)->toDateString();
+        });
+
+        // Prepare all dates range
+        $allDates = collect();
+        $current = Carbon::parse($startDate);
+        while ($current <= $endDate) {
+            $allDates->push($current->toDateString());
+            $current->addDay();
+        }
+
+        $totalMinutes = 0;
+        $validDaysCount = 0;
+
+        // Build final log records
+        $finalLogs = $allDates->map(function ($date) use ($groupedLogs, &$totalMinutes, &$validDaysCount) {
+            if (isset($groupedLogs[$date])) {
+                // Get earliest log time
+                $firstLogTime = Carbon::parse($groupedLogs[$date]->first()->LogTime);
+                $timeStr = $firstLogTime->format('H:i');
+
+                // Convert time to minutes since midnight
+                $minutes = $firstLogTime->hour * 60 + $firstLogTime->minute;
+
+                $totalMinutes += $minutes;
+                $validDaysCount++;
+
+                return (object)[
+                    'date' => date("d M y", strtotime($date)),
+                    'value' => $minutes
+                ];
+            } else {
+                return (object)[
+                    'date' => date("d M y", strtotime($date)),
+                    'value' => 0
+                ];
+            }
+        });
+
+        // Calculate average time
+        $avgClockIn = '00:00';
+        if ($validDaysCount > 0) {
+            $avgMinutes = round($totalMinutes / $validDaysCount);
+            $hours = floor($avgMinutes / 60);
+            $minutes = $avgMinutes % 60;
+            $avgClockIn = str_pad($hours, 2, '0', STR_PAD_LEFT) . ':' . str_pad($minutes, 2, '0', STR_PAD_LEFT);
+        }
+
+        return response()->json([
+            "avg_clock_in" => $avgClockIn,
+            "last_week_clock_ins" => $finalLogs,
+        ]);
     }
 }

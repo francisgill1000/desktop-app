@@ -56,7 +56,7 @@ class RenderMultiData extends Command
             return;
         }
 
-        $responseMessage = "*****Cron started at $formattedDate for task:sync_multi_shift*****\n";
+        $responseMessage = "*****Cron started at $formattedDate for render:multi_data*****\n";
 
         $all_new_employee_ids = DB::table('employees as e')
             ->join('attendance_logs as al', 'e.system_user_id', '=', 'al.UserID')
@@ -247,10 +247,10 @@ class RenderMultiData extends Command
             }
         }
 
-        $responseMessage .= "*****task:sync_multi_shift payload start*****\n";
+        $responseMessage .= "*****render:multi_data payload start*****\n";
         $responseMessage .= "$message\n";
-        $responseMessage .= "*****task:sync_multi_shift payload end*****\n";
-        $responseMessage .= "*****Cron ended for task:sync_multi_shift*****\n";
+        $responseMessage .= "*****render:multi_data payload end*****\n";
+        $responseMessage .= "*****Cron ended for render:multi_data*****\n";
 
         ld($responseMessage);
 

@@ -52,6 +52,8 @@ class UpdateSingleShiftRequest extends FormRequest
 
             'halfday'               => 'nullable',
             'halfday_working_hours' => 'nullable',
+
+            'overtime_type' => 'nullable',
         ];
     }
 }

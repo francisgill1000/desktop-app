@@ -77,6 +77,8 @@ class ThemeController extends Controller
         $branch_id = $request->input('branch_id', 0);
 
         $model = Attendance::where('company_id', $companyId)
+            ->whereHas('employee', fn(Builder $query) => $query->where('company_id', $companyId))
+
             ->when($branch_id, function ($q) use ($branch_id) {
                 $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', $branch_id));
             })

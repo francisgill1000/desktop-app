@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ScheduleEmployee\StoreRequest;
 use App\Http\Requests\ScheduleEmployee\UpdateRequest;
+use App\Jobs\SeedDefaultAttendance;
+use App\Models\Attendance;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Roster;
 use App\Models\ScheduleEmployee;
 use App\Models\ShiftType;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -26,8 +29,8 @@ class ScheduleEmployeeController extends Controller
     {
         $model = Employee::with(["branch", "sub_department",  "department.branch", "sub_department", "schedule"])
             ->where('company_id', $request->company_id)
-            ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->department_id))
-            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->branch_id))
+            ->when($request->filled('department_id'), fn($q) => $q->where('department_id', $request->department_id))
+            ->when($request->filled('branch_id'), fn($q) => $q->where('branch_id', $request->branch_id))
             ->with(["schedule.shift:id,name"]);
 
         $model->with([
@@ -45,11 +48,11 @@ class ScheduleEmployeeController extends Controller
                 $q->orWhere('phone_number', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
                 $q->orWhere('local_email', env('WILD_CARD') ?? 'ILIKE', "%$request->common_search%");
 
-                $q->orWhereHas('branch', fn (Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
-                $q->orWhereHas('department', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('branch', fn(Builder $query) => $query->where('branch_name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
+                $q->orWhereHas('department', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id));
                 // $q->orWhereHas('schedule.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->common_search%")->where('company_id', $request->company_id)->where('company_id', $request->company_id));
 
-                $q->orWhereHas('schedule_active.shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE',  "$request->common_search%")
+                $q->orWhereHas('schedule_active.shift', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE',  "$request->common_search%")
 
                     ->where('company_id', $request->company_id));
             });
@@ -187,28 +190,30 @@ class ScheduleEmployeeController extends Controller
         foreach ($data["employee_ids"] as $item) {
 
             if ($item) {
+
+                $lastShiftId = 0;
+                $lastShiftTypeId = 0;
+
                 foreach ($data["schedules"] as $shift) {
-
-
                     $value = [
                         "isAutoShift" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 1 : 0,
                         "shift_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 0 :  $shift["shift_id"],
-                        "shift_type_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 0 : 2,
+                        "shift_type_id" => array_key_exists("isAutoShift", $shift) && $shift["isAutoShift"] && $shift["shift_id"] == 0 ? 0 : ($shift["shift_type_id"] ?? 2),
                         "isOverTime" => $shift["is_over_time"],
                         "employee_id" => $item,
                         "from_date" => $shift["from_date"],
                         "to_date" => $shift["to_date"],
-                        "company_id" => $data["company_id"],
-                        "branch_id" => $data["branch_id"] ?? 0,
+                        "company_id" => $request->company_id,
+                        "branch_id" => $request->branch_id ?? 0,
                     ];
                     $arr[] = $value;
+
+                    $lastShiftId = $value["shift_id"];
+                    $lastShiftTypeId = $value["shift_type_id"];
                 }
+
+                SeedDefaultAttendance::dispatch($request->company_id, $request->branch_id, $item, $lastShiftId, $lastShiftTypeId);
             }
-
-
-            // if (!$found) {
-            //     $arr[] = $value;
-            // }
         }
 
         try {
@@ -510,7 +515,7 @@ class ScheduleEmployeeController extends Controller
         // $model->whereDate('to_date', '>=', $date);
         $model->when($request->filled('employee_first_name'), function ($q) use ($request) {
 
-            $q->whereHas('employee', fn (Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->employee_first_name%"));
+            $q->whereHas('employee', fn(Builder $query) => $query->where('first_name', env('WILD_CARD') ?? 'ILIKE', "$request->employee_first_name%"));
         });
 
 
@@ -518,24 +523,24 @@ class ScheduleEmployeeController extends Controller
 
         $model->when($request->filled('department_ids') && count($request->department_ids) > 0, function ($q) use ($request) {
 
-            $q->whereHas('employee', fn (Builder $query) => $query->whereIn('department_id', $request->department_ids));
+            $q->whereHas('employee', fn(Builder $query) => $query->whereIn('department_id', $request->department_ids));
         });
         $model->when($request->filled('roster_name'), function ($q) use ($request) {
 
-            $q->whereHas('roster', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->roster_name%"));
+            $q->whereHas('roster', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->roster_name%"));
         });
         $model->when($request->filled('shift_name'), function ($q) use ($request) {
 
-            $q->whereHas('shift', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_name%"));
+            $q->whereHas('shift', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_name%"));
         });
         $model->when($request->filled('shift_type_name'), function ($q) use ($request) {
 
-            $q->whereHas('shift_type', fn (Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_type_name%"));
+            $q->whereHas('shift_type', fn(Builder $query) => $query->where('name', env('WILD_CARD') ?? 'ILIKE', "$request->shift_type_name%"));
         });
         $model->when($request->filled('employee_id'), function ($q) use ($request) {
 
             //$q->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%");
-            $q->whereHas('employee', fn (Builder $query) => $query->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%"));
+            $q->whereHas('employee', fn(Builder $query) => $query->where('employee_id', env('WILD_CARD') ?? 'ILIKE', "$request->employee_id%"));
         });
         $model->when($request->filled('show_from_date'), function ($q) use ($request) {
 

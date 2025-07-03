@@ -12,7 +12,7 @@ class SyncAttendanceCameraLogs extends Command
      *
      * @var string
      */
-    protected $signature = 'task:sync_attendance_camera_logs';
+    protected $signature = 'task:sync_attendance_ox900_logs'; //ox900
 
     /**
      * The console command description.

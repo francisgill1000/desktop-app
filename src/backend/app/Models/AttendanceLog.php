@@ -149,21 +149,12 @@ class AttendanceLog extends Model
                 return $query->where('LogTime', '<=',   date("Y-m-d", strtotime($request->to_date . " +1 day")));
             })
 
-
             ->when($request->filled('dates') && count($request->dates) > 1, function ($q) use ($request) {
                 $q->where(function ($query) use ($request) {
                     $query->where('LogTime', '>=', $request->dates[0])
                         ->where('LogTime', '<=',   date("Y-m-d", strtotime($request->dates[1] . " +1 day")));
                 });
             })
-
-            ->when($request->filled('dates') && count($request->dates) > 1, function ($q) use ($request) {
-                $q->where(function ($query) use ($request) {
-                    $query->where('LogTime', '>=', $request->dates[0])
-                        ->where('LogTime', '<=',   date("Y-m-d", strtotime($request->dates[1] . " +1 day")));
-                });
-            })
-
 
             ->when($request->filled('department'), function ($q) use ($request) {
 
@@ -191,44 +182,7 @@ class AttendanceLog extends Model
             })
             ->when($request->filled('branch_id'), function ($q) {
                 $q->whereHas('employee', fn(Builder $query) => $query->where('branch_id', request("branch_id")));
-            })
-
-            ->when($request->filled('sortBy'), function ($q) use ($request) {
-                $sortDesc = $request->input('sortDesc');
-                if (strpos($request->sortBy, '.')) {
-                    if ($request->sortBy == 'employee.first_name') {
-                        $q->orderBy(Employee::select("first_name")->where("company_id", $request->company_id)->whereColumn("employees.system_user_id", "attendance_logs.UserID"), $sortDesc == 'true' ? 'desc' : 'asc');
-                    } else if ($request->sortBy == 'device.name') {
-                        $q->orderBy(Device::select("name")->where("company_id", $request->company_id)->whereColumn("devices.device_id", "attendance_logs.DeviceID"), $sortDesc == 'true' ? 'desc' : 'asc');
-                    } else if ($request->sortBy == 'device.location') {
-                        $q->orderBy(Device::select("location")->where("company_id", $request->company_id)->whereColumn("devices.device_id", "attendance_logs.DeviceID"), $sortDesc == 'true' ? 'desc' : 'asc');
-                    }
-                    // } else if ($request->sortBy == 'employee.department') {
-                    //     $q->orderBy(Employee::withOut(['schedule', 'department', 'sub_department', 'designation', 'user', 'role'])
-                    //             ->join('departments', 'departments.id', '=', 'employees.department_id')
-                    //             ->join('attendance_logs', 'attendance_logs.UserID', '=', 'employees.system_user_id')
-                    //             ->select('departments.name')
-                    //             ->distinct()
-                    //             ->where('attendance_logs.company_id', $request->company_id)
-                    //             ->when($request->from_date, function ($query) use ($request) {
-                    //                 return $query->whereDate('LogTime', '>=', $request->from_date);
-                    //             })
-                    //             ->when($request->to_date, function ($query) use ($request) {
-                    //                 return $query->whereDate('LogTime', '<=', $request->to_date);
-                    //             })
-                    //         , $sortDesc == 'true' ? 'desc' : 'asc');
-
-                    //
-                    //}
-
-                } else {
-                    $q->orderBy($request->sortBy . "", $sortDesc == 'true' ? 'desc' : 'asc'); {
-                    }
-                }
             });
-        if (!$request->sortBy) {
-            $model->orderBy('index_serial_number', 'DESC');
-        }
 
         return $model;
     }
@@ -581,6 +535,7 @@ class AttendanceLog extends Model
             ];
 
             recordAction([
+                "user_id" => auth()->id() ?? 0,
                 "action" => "Report",
                 "type" => "LogCreate",
                 "model_type" => "user",

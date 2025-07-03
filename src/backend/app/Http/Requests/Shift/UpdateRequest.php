@@ -74,6 +74,7 @@ class UpdateRequest extends FormRequest
 
             'isAutoShift' => "nullable",
 
+            'overtime_type' => "nullable",
         ];
     }
 }

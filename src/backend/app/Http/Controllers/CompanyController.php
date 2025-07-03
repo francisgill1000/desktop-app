@@ -557,4 +557,15 @@ class CompanyController extends Controller
 
         return $company;
     }
+
+    public function contactInfo($id)
+    {
+        $contact = CompanyContact::whereCompanyId($id)->find($id);
+
+        if (!$contact) {
+            return response()->json(['error' => 'Company not found'], 404);
+        }
+
+        return $contact;
+    }
 }

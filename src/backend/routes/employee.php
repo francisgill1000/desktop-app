@@ -44,3 +44,12 @@ Route::post('employee-store-from-device', [EmployeeController::class, 'employeeS
 Route::post('employee-update-from-device/{id}', [EmployeeController::class, 'employeeUpdateFromDevice']);
 
 Route::get('get-encoded-profile-picture/{url?}', [EmployeeController::class, 'getEncodedProfilePicture']);
+
+Route::get('employee-attendance-summary', [EmployeeController::class, 'attendanceSummary']);
+Route::get('employee-avg-clock-in', [EmployeeController::class, 'avgClockIn']);
+
+
+
+
+
+

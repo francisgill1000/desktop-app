@@ -328,3 +328,4 @@ Route::post('send-whatsapp-wessage', function (Request $request) {
 });
 
 Route::get('company-short-info/{id}', [CompanyController::class, 'shortInfo']);
+Route::get('get-company-contact-info/{url}', [CompanyController::class, 'contactInfo']);

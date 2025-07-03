@@ -10,6 +10,13 @@ class ShiftType extends Model
 {
     use HasFactory;
 
+    const FILO = 1;
+    const MULTI = 2;
+    const AUTO = 3;
+    const NIGHT = 4;
+    const SPLIT = 5;
+    const SINGLE = 6;
+
     // "1","FILO",
     // "2","Multi In/Out Shift,
     // "3","Auto Shift",

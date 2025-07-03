@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Models\Employee;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
@@ -86,11 +87,11 @@ class AttendanceLogController extends Controller
             $records[] = [
                 "UserID" => $columns[0],
                 "DeviceID" => $columns[1],
-                "LogTime" => substr(str_replace("T", " ", $columns[2]), 0, -3),
+                "LogTime" => str_replace("T", " ", $columns[2]),
                 "SerialNumber" => $columns[3],
-                "log_date_time" => substr(str_replace("T", " ", $columns[2]), 0, -3),
+                "log_date_time" => str_replace("T", " ", $columns[2]),
                 "index_serial_number" => $columns[3],
-
+                "source_info" => "renderMissing",
                 "log_date" => explode('T', $columns[2])[0] ?? date("Y-m-d"),
             ];
         }
@@ -359,11 +360,15 @@ class AttendanceLogController extends Controller
 
     public function singleView(AttendanceLog $model, Request $request)
     {
-        return $model->where('UserID', $request->UserID)
-            ->where('company_id', $request->company_id)
-            ->whereDate('LogTime', $request->LogTime)
-            ->with("device")
-            // ->select("LogTime")
+        $query = $model->where('UserID', $request->UserID)
+            ->where('company_id', $request->company_id);
+
+        if ($request->filled('LogTime') && strtotime($request->LogTime)) {
+            $query->where('LogTime', ">=", Carbon::parse($request->LogTime)->toDateString() . " 00:00:00");
+            $query->where('LogTime', "<=", Carbon::parse($request->LogTime)->toDateString() . " 23:59:59");
+        }
+
+        return $query->with("device")
             ->distinct("LogTime")
             ->orderBy('LogTime')
             ->paginate($request->per_page ?? 100);

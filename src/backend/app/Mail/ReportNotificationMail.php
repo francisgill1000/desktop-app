@@ -7,51 +7,40 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class ReportNotificationMail extends Mailable
+class ReportNotificationMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
-    public $model;
-    public $manager;
-    public function __construct($model, $manager)
-    {
-        $this->model = $model;
-        $this->manager = $manager;
-    }
+    public function __construct(public $model, public $manager, public $files) {}
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
         $this->subject($this->model->subject);
 
-        $company_id = $this->model->company_id;
+        $companyId = $this->model->company_id;
+        $branchId = $this->model->branch_id;
+        $date = date("Y-m-d", strtotime("-1 day"));
 
-        foreach ($this->model->reports as $file) {
-            if (file_exists(storage_path("app/pdf/$company_id/$file")))
-                $this->attach(storage_path("app/pdf/$company_id/$file"));
-        }
-        $body_content =  "Hi, Automated Email Reports. <br/>Thanks.";
-        //return $this->view('emails.report')->with(["body" => $this->model->body]);
-        if ($this->model->company->company_mail_content) {
-            if ($this->model->company->company_mail_content[0]) {
-                $body_content = $this->model->company->company_mail_content[0]->content;
+        // Attach PDF files if they exist
+        foreach ($this->files as $file) {
+            $relativePath = "storage/pdf/{$date}/{$companyId}/summary_report_{$branchId}_{$file}.pdf";
+            $fullPath = public_path($relativePath);
+
+            if (file_exists($fullPath)) {
+                $this->attach($fullPath);
             }
         }
 
-        $body_content1  = "Hi " . $this->manager->name . '<br/>';
-        $body_content1  =  $body_content1 . "<b>Company:  " . $this->model->company->name . '</b><br/>';
-        $body_content  =  $body_content1 . $body_content;
+        // Build email body
+        $managerName = optional($this->manager)->name ?? 'Manager';
+        $companyName = optional($this->model->company)->name ?? 'N/A';
 
+        $bodyContent = "Hi {$managerName},<br/>";
+        $bodyContent .= "<b>Company: {$companyName}</b><br/><br/>";
+        $bodyContent .= "Hi, Automated Email Reports.<br/>Thanks.";
 
-        return $this->view('emails.report')->with(["body" =>  $body_content]);
+        return $this->view('emails.report')->with([
+            'body' => $bodyContent
+        ]);
     }
 }
