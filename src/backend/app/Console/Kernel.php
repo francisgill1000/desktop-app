@@ -50,10 +50,6 @@ class Kernel extends ConsoleKernel
             ->command('task:update_company_ids')
             ->everyMinute();
 
-        // $schedule
-        //     ->command('pm2:stopped-ae-processes')
-        //     ->everyFourHours();
-
         $companyIds = Company::pluck("id");
 
 
